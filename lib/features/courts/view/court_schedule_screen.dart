@@ -201,68 +201,80 @@ class _SlotsGrid extends ConsumerWidget {
         final slotHour = int.tryParse(slot.startTime.split(':')[0]) ?? 0;
         final isSlotPast = isPast || (isToday && slotHour <= now.hour);
 
+        final statusColor = isReserved
+            ? AppColors.error
+            : isSlotPast
+                ? Colors.grey
+                : AppColors.success;
+
         return Card(
           margin: const EdgeInsets.only(bottom: 6),
-          child: ListTile(
-            leading: Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: isReserved
-                    ? AppColors.error.withAlpha(20)
-                    : isSlotPast
-                        ? Colors.grey.shade100
-                        : AppColors.success.withAlpha(20),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  _formatTime(slot.startTime),
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: isReserved
-                        ? AppColors.error
-                        : isSlotPast
-                            ? Colors.grey
-                            : AppColors.success,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                // Time box
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: statusColor.withAlpha(20),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(
+                    child: Text(
+                      _formatTime(slot.startTime),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: statusColor,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-            title: Text(
-              slot.timeRange,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            subtitle: Text(
-              isReserved
-                  ? 'Reservado - ${reservation.playerName ?? 'Jogador'}'
-                  : isSlotPast
-                      ? 'Horario passado'
-                      : 'Disponivel',
-              style: TextStyle(
-                fontSize: 12,
-                color: isReserved
-                    ? AppColors.error
-                    : isSlotPast
-                        ? Colors.grey
-                        : AppColors.success,
-              ),
-            ),
-            trailing: !isReserved && !isSlotPast
-                ? ElevatedButton(
-                    onPressed: () =>
-                        _confirmReservation(context, ref, slot),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                const SizedBox(width: 12),
+                // Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        slot.timeRange,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isReserved
+                            ? 'Reservado - ${reservation.playerName ?? 'Jogador'}'
+                            : isSlotPast
+                                ? 'Horario passado'
+                                : 'Disponivel',
+                        style: TextStyle(fontSize: 12, color: statusColor),
+                      ),
+                    ],
+                  ),
+                ),
+                // Action
+                if (!isReserved && !isSlotPast)
+                  SizedBox(
+                    height: 36,
+                    child: ElevatedButton(
+                      onPressed: () =>
+                          _confirmReservation(context, ref, slot),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                      ),
+                      child: const Text('Reservar',
+                          style: TextStyle(fontSize: 13)),
                     ),
-                    child: const Text('Reservar',
-                        style: TextStyle(fontSize: 13)),
                   )
-                : isReserved
-                    ? const Icon(Icons.lock, color: Colors.grey, size: 20)
-                    : null,
+                else if (isReserved)
+                  const Icon(Icons.lock, color: Colors.grey, size: 20),
+              ],
+            ),
           ),
         );
       },
