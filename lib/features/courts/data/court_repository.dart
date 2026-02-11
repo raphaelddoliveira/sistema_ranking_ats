@@ -1,0 +1,176 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../../core/constants/supabase_constants.dart';
+import '../../../core/errors/error_handler.dart';
+import '../../../services/supabase_service.dart';
+import '../../../shared/models/court_model.dart';
+import '../../../shared/models/court_slot_model.dart';
+import '../../../shared/models/reservation_model.dart';
+
+final courtRepositoryProvider = Provider<CourtRepository>((ref) {
+  return CourtRepository(ref.watch(supabaseClientProvider));
+});
+
+class CourtRepository {
+  final SupabaseClient _client;
+
+  CourtRepository(this._client);
+
+  /// Get all active courts
+  Future<List<CourtModel>> getCourts() async {
+    try {
+      final data = await _client
+          .from(SupabaseConstants.courtsTable)
+          .select()
+          .eq('is_active', true)
+          .order('name');
+      return data.map((e) => CourtModel.fromJson(e)).toList();
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Get slots for a specific court and day of week
+  Future<List<CourtSlotModel>> getSlotsForCourt(
+    String courtId, {
+    required int dayOfWeek,
+  }) async {
+    try {
+      final data = await _client
+          .from(SupabaseConstants.courtSlotsTable)
+          .select()
+          .eq('court_id', courtId)
+          .eq('day_of_week', dayOfWeek)
+          .eq('is_active', true)
+          .order('start_time');
+      return data.map((e) => CourtSlotModel.fromJson(e)).toList();
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Get reservations for a court on a specific date
+  Future<List<ReservationModel>> getReservationsForDate(
+    String courtId, {
+    required DateTime date,
+  }) async {
+    try {
+      final dateStr =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final data = await _client
+          .from(SupabaseConstants.courtReservationsTable)
+          .select('''
+            *,
+            court:courts!court_id(name),
+            player:players!reserved_by(full_name)
+          ''')
+          .eq('court_id', courtId)
+          .eq('reservation_date', dateStr)
+          .eq('status', 'confirmed')
+          .order('start_time');
+      return data.map((e) => ReservationModel.fromJson(e)).toList();
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Create a reservation
+  Future<void> createReservation({
+    required String courtSlotId,
+    required String courtId,
+    required DateTime date,
+    required String startTime,
+    required String endTime,
+    String? challengeId,
+    String? notes,
+  }) async {
+    try {
+      final playerId = await _getCurrentPlayerId();
+      final dateStr =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+      await _client.from(SupabaseConstants.courtReservationsTable).insert({
+        'court_slot_id': courtSlotId,
+        'court_id': courtId,
+        'reserved_by': playerId,
+        'reservation_date': dateStr,
+        'start_time': startTime,
+        'end_time': endTime,
+        if (challengeId != null) 'challenge_id': challengeId,
+        if (notes != null) 'notes': notes,
+      });
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Cancel a reservation
+  Future<void> cancelReservation(String reservationId) async {
+    try {
+      await _client
+          .from(SupabaseConstants.courtReservationsTable)
+          .update({
+            'status': 'cancelled',
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', reservationId);
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Get current player's reservations
+  Future<List<ReservationModel>> getMyReservations() async {
+    try {
+      final playerId = await _getCurrentPlayerId();
+      final data = await _client
+          .from(SupabaseConstants.courtReservationsTable)
+          .select('''
+            *,
+            court:courts!court_id(name),
+            player:players!reserved_by(full_name)
+          ''')
+          .eq('reserved_by', playerId)
+          .eq('status', 'confirmed')
+          .gte('reservation_date',
+              '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}')
+          .order('reservation_date')
+          .order('start_time');
+      return data.map((e) => ReservationModel.fromJson(e)).toList();
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Get all reservations history for current player
+  Future<List<ReservationModel>> getMyReservationHistory() async {
+    try {
+      final playerId = await _getCurrentPlayerId();
+      final data = await _client
+          .from(SupabaseConstants.courtReservationsTable)
+          .select('''
+            *,
+            court:courts!court_id(name),
+            player:players!reserved_by(full_name)
+          ''')
+          .eq('reserved_by', playerId)
+          .order('reservation_date', ascending: false)
+          .order('start_time', ascending: false)
+          .limit(50);
+      return data.map((e) => ReservationModel.fromJson(e)).toList();
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  Future<String> _getCurrentPlayerId() async {
+    final authId = _client.auth.currentUser!.id;
+    final data = await _client
+        .from(SupabaseConstants.playersTable)
+        .select('id')
+        .eq('auth_id', authId)
+        .single();
+    return data['id'] as String;
+  }
+}

@@ -13,6 +13,7 @@ import '../../features/challenges/view/challenges_screen.dart';
 import '../../features/challenges/view/create_challenge_screen.dart';
 import '../../features/challenges/view/challenge_detail_screen.dart';
 import '../../features/courts/view/courts_screen.dart';
+import '../../features/courts/view/my_reservations_screen.dart';
 import '../../features/notifications/view/notifications_screen.dart';
 import '../../features/profile/view/profile_screen.dart';
 import '../../shared/widgets/app_scaffold.dart';
@@ -82,6 +83,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => const NoTransitionPage(
               child: CourtsScreen(),
             ),
+            routes: [
+              GoRoute(
+                path: 'my-reservations',
+                builder: (context, state) =>
+                    const MyReservationsScreen(),
+              ),
+            ],
           ),
           GoRoute(
             path: RouteNames.notifications,

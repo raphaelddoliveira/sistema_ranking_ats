@@ -69,6 +69,9 @@ lib/
       challenge_model.dart           # Model com joins, proposedDates, statusLabel, computed properties
       match_model.dart               # Model com SetScore, scoreDisplay
       ambulance_model.dart           # Model com isProtected, daysActive
+      court_model.dart               # Model com surfaceLabel
+      court_slot_model.dart          # Model com dayLabel, timeRange
+      reservation_model.dart         # Model com joins (courtName, playerName), timeRange, formattedDate
     providers/
       auth_state_provider.dart       # StreamProvider do onAuthStateChange
       current_player_provider.dart   # FutureProvider do jogador logado
@@ -131,12 +134,17 @@ lib/
         create_challenge_viewmodel.dart # eligibleOpponentsProvider + CreateChallengeNotifier
         challenge_detail_viewmodel.dart # challengeDetailProvider, challengeMatchProvider, ChallengeActionNotifier
 
-    courts/                          # [FASE 5 - Pendente]
+    courts/                          # [FASE 5 - Completa]
       data/
+        court_repository.dart        # getCourts, getSlotsForCourt, getReservationsForDate, createReservation, cancelReservation, getMyReservations
       view/
-        courts_screen.dart           # Placeholder
+        courts_screen.dart           # Cards das quadras com tipo de piso e cobertura
+        court_schedule_screen.dart   # Calendario (table_calendar) + grid de slots por horario
+        my_reservations_screen.dart  # Reservas do jogador com opcao de cancelar
         widgets/
       viewmodel/
+        courts_viewmodel.dart        # FutureProvider lista de quadras
+        reservation_viewmodel.dart   # Providers para slots, reservas por data, minhas reservas, acoes
 
     notifications/                   # [FASE 6 - Pendente]
       data/
@@ -264,11 +272,18 @@ supabase/
 - [x] `flutter analyze` = 0 issues
 - [ ] Sistema de ambulancia (admin) - sera feito na Fase 6
 
-### Fase 5 - Reserva de Quadra (PENDENTE)
-- [ ] CourtModel, CourtSlotModel, ReservationModel
-- [ ] CourtRepository
-- [ ] ViewModels
-- [ ] Telas (lista quadras, agenda com calendario, minhas reservas, admin CRUD)
+### Fase 5 - Reserva de Quadra (COMPLETA)
+- [x] CourtModel com surfaceLabel (saibro, dura, grama)
+- [x] CourtSlotModel com dayLabel, dayShort, timeRange
+- [x] ReservationModel com joins (courtName, playerName), formattedDate, timeRange
+- [x] CourtRepository (getCourts, getSlotsForCourt, getReservationsForDate, createReservation, cancelReservation, getMyReservations, getMyReservationHistory)
+- [x] ViewModels: courts_viewmodel (lista quadras), reservation_viewmodel (slots por dia, reservas por data, minhas reservas, acoes)
+- [x] Tela de Quadras (cards com gradiente, tipo de piso, cobertura, botao minhas reservas)
+- [x] Tela de Agenda (table_calendar semana/2sem/mes, grid de slots com status disponivel/reservado/passado, botao reservar)
+- [x] Tela de Minhas Reservas (cards com data destaque, horario, indicador hoje/amanha, cancelar)
+- [x] Rotas GoRouter para deep linking (courts/my-reservations)
+- [x] `flutter analyze` = 0 errors (2 info-level hints)
+- [ ] Admin CRUD de quadras e slots - sera feito na Fase 6
 
 ### Fase 6 - Notificacoes + Admin + Polish (PENDENTE)
 - [ ] Sistema de notificacoes in-app com Realtime
