@@ -1,5 +1,4 @@
-import 'dart:io';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class SocialLoginButtons extends StatelessWidget {
@@ -43,7 +42,7 @@ class SocialLoginButtons extends StatelessWidget {
                 label: const Text('Google'),
               ),
             ),
-            if (Platform.isIOS) ...[
+            if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) ...[
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(

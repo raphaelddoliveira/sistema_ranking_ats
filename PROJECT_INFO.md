@@ -64,6 +64,7 @@ lib/
   shared/
     models/
       enums.dart                     # Enums espelhando o banco (PlayerStatus, ChallengeStatus, etc.)
+      ranking_history_model.dart     # Model com fromJson/toJson, positionChange, reasonLabel
       player_model.dart              # Model completo com fromJson/toJson/copyWith manual
     providers/
       auth_state_provider.dart       # StreamProvider do onAuthStateChange
@@ -97,12 +98,19 @@ lib/
       viewmodel/
         profile_viewmodel.dart       # StateNotifier com updateProfile e updateAvatar
 
-    ranking/                         # [FASE 3 - Pendente]
+    ranking/                         # [FASE 3 - Completa]
       data/
+        ranking_repository.dart      # getRanking, getRankingStream (Realtime), getPlayerHistory
       view/
-        ranking_screen.dart          # Placeholder
+        ranking_screen.dart          # Lista com posicao, avatar, nome, status (Realtime + pull-to-refresh)
+        ranking_history_screen.dart  # Timeline + grafico fl_chart + resumo do jogador
         widgets/
+          ranking_list_tile.dart     # Tile com badge posicao (ouro/prata/bronze), avatar, status
+          ranking_position_change.dart # Indicador de subida/descida com seta colorida
+          ranking_chart.dart         # Grafico de evolucao de posicao (fl_chart LineChart)
       viewmodel/
+        ranking_list_viewmodel.dart  # StreamProvider com Realtime do Supabase
+        ranking_history_viewmodel.dart # FutureProvider.family(playerId)
 
     challenges/                      # [FASE 4 - Pendente]
       data/
@@ -218,13 +226,15 @@ supabase/
 - [x] GoRouter com auth guard + bottom navigation shell
 - [x] `flutter analyze` = 0 issues
 
-### Fase 3 - Sistema de Ranking (PENDENTE)
-- [ ] RankingRepository (getRanking, getRankingStream, getPlayerHistory)
-- [ ] RankingListViewModel (StreamProvider com Realtime)
-- [ ] RankingHistoryViewModel
-- [ ] Tela de Ranking (lista com posicao, avatar, nome, W/L)
-- [ ] Tela de Historico de Ranking (timeline + grafico fl_chart)
-- [ ] Widgets: ranking_list_tile, ranking_position_change, ranking_chart
+### Fase 3 - Sistema de Ranking (COMPLETA)
+- [x] RankingHistoryModel com fromJson/toJson, positionChange, reasonLabel
+- [x] RankingRepository (getRanking, getRankingStream Realtime, getPlayerHistory)
+- [x] RankingListViewModel (StreamProvider com Supabase Realtime)
+- [x] RankingHistoryViewModel (FutureProvider.family por playerId)
+- [x] Tela de Ranking (lista Realtime, pull-to-refresh, badges ouro/prata/bronze, status icons)
+- [x] Tela de Historico de Ranking (summary card, grafico fl_chart, timeline com dots coloridos)
+- [x] Widgets: ranking_list_tile, ranking_position_change, ranking_chart
+- [x] `flutter analyze` = 0 issues
 
 ### Fase 4 - Sistema de Desafios (PENDENTE)
 - [ ] ChallengeModel, MatchModel, AmbulanceModel
