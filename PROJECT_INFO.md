@@ -66,6 +66,9 @@ lib/
       enums.dart                     # Enums espelhando o banco (PlayerStatus, ChallengeStatus, etc.)
       ranking_history_model.dart     # Model com fromJson/toJson, positionChange, reasonLabel
       player_model.dart              # Model completo com fromJson/toJson/copyWith manual
+      challenge_model.dart           # Model com joins, proposedDates, statusLabel, computed properties
+      match_model.dart               # Model com SetScore, scoreDisplay
+      ambulance_model.dart           # Model com isProtected, daysActive
     providers/
       auth_state_provider.dart       # StreamProvider do onAuthStateChange
       current_player_provider.dart   # FutureProvider do jogador logado
@@ -112,12 +115,21 @@ lib/
         ranking_list_viewmodel.dart  # StreamProvider com Realtime do Supabase
         ranking_history_viewmodel.dart # FutureProvider.family(playerId)
 
-    challenges/                      # [FASE 4 - Pendente]
+    challenges/                      # [FASE 4 - Completa]
       data/
+        challenge_repository.dart    # createChallenge (RPC), proposeDates, chooseDate, recordResult (RPC), getEligibleOpponents, lifecycle completo
       view/
-        challenges_screen.dart       # Placeholder
+        challenges_screen.dart       # Tabs Ativos/Historico com FAB para criar desafio
+        create_challenge_screen.dart # Selecao de oponente (ate 2 posicoes acima, protecao visivel)
+        challenge_detail_screen.dart # Timeline do desafio, status, acoes contextuais por papel
+        propose_dates_screen.dart    # Desafiado propoe 3 datas com DatePicker + TimePicker
+        choose_date_screen.dart      # Desafiante escolhe 1 das 3 datas propostas
+        record_result_screen.dart    # Registro de placar set a set com super tiebreak
         widgets/
       viewmodel/
+        challenge_list_viewmodel.dart   # FutureProvider para desafios ativos + historico
+        create_challenge_viewmodel.dart # eligibleOpponentsProvider + CreateChallengeNotifier
+        challenge_detail_viewmodel.dart # challengeDetailProvider, challengeMatchProvider, ChallengeActionNotifier
 
     courts/                          # [FASE 5 - Pendente]
       data/
@@ -236,12 +248,21 @@ supabase/
 - [x] Widgets: ranking_list_tile, ranking_position_change, ranking_chart
 - [x] `flutter analyze` = 0 issues
 
-### Fase 4 - Sistema de Desafios (PENDENTE)
-- [ ] ChallengeModel, MatchModel, AmbulanceModel
-- [ ] ChallengeRepository (RPC calls, lifecycle)
-- [ ] ViewModels (list, create, detail, record result)
-- [ ] 6 telas (lista, criar, detalhe, propor datas, escolher data, registrar resultado)
-- [ ] Sistema de ambulancia (admin)
+### Fase 4 - Sistema de Desafios (COMPLETA)
+- [x] ChallengeModel com joins (challengerName, challengedName, avatarUrls), computed properties, statusLabel PT-BR
+- [x] MatchModel com SetScore (placar set a set), scoreDisplay
+- [x] AmbulanceModel com isProtected, daysActive
+- [x] ChallengeRepository (createChallenge RPC, proposeDates, chooseDate, recordResult RPC, cancelChallenge, getEligibleOpponents, validateChallenge RPC)
+- [x] ViewModels: challenge_list (ativos + historico), create_challenge (oponentes elegiveis), challenge_detail (acoes do lifecycle)
+- [x] Tela de Desafios (tabs Ativos/Historico, FAB para criar, status colors, win/loss indicators)
+- [x] Tela de Criar Desafio (lista oponentes elegiveis, avatar, posicao, protecao, confirmacao dialog)
+- [x] Tela de Detalhe do Desafio (players card VS, status com countdown, datas propostas, resultado, acoes contextuais)
+- [x] Tela de Propor Datas (3 DatePicker + TimePicker, cards interativos, validacao)
+- [x] Tela de Escolher Data (radio selection entre 3 datas, indicadores hoje/amanha/expirada)
+- [x] Tela de Registrar Resultado (selecao vencedor, placar set a set com dropdowns, super tiebreak toggle, preview)
+- [x] Rotas GoRouter para deep linking (challenges/:challengeId, challenges/create)
+- [x] `flutter analyze` = 0 issues
+- [ ] Sistema de ambulancia (admin) - sera feito na Fase 6
 
 ### Fase 5 - Reserva de Quadra (PENDENTE)
 - [ ] CourtModel, CourtSlotModel, ReservationModel

@@ -10,6 +10,8 @@ import '../../features/auth/view/register_screen.dart';
 import '../../features/auth/view/forgot_password_screen.dart';
 import '../../features/ranking/view/ranking_screen.dart';
 import '../../features/challenges/view/challenges_screen.dart';
+import '../../features/challenges/view/create_challenge_screen.dart';
+import '../../features/challenges/view/challenge_detail_screen.dart';
 import '../../features/courts/view/courts_screen.dart';
 import '../../features/notifications/view/notifications_screen.dart';
 import '../../features/profile/view/profile_screen.dart';
@@ -62,6 +64,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => const NoTransitionPage(
               child: ChallengesScreen(),
             ),
+            routes: [
+              GoRoute(
+                path: 'create',
+                builder: (context, state) => const CreateChallengeScreen(),
+              ),
+              GoRoute(
+                path: ':challengeId',
+                builder: (context, state) => ChallengeDetailScreen(
+                  challengeId: state.pathParameters['challengeId']!,
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: RouteNames.courts,
