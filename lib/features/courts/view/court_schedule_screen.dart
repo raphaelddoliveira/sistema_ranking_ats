@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -22,9 +23,29 @@ class CourtScheduleScreen extends ConsumerStatefulWidget {
 class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
   DateTime _selectedDate = DateTime.now();
   CalendarFormat _calendarFormat = CalendarFormat.week;
+  bool _localeReady = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initLocale();
+  }
+
+  Future<void> _initLocale() async {
+    await initializeDateFormatting('pt_BR');
+    if (mounted) {
+      setState(() => _localeReady = true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (!_localeReady) {
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.court.name)),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     // Convert DateTime.weekday (1=Mon, 7=Sun) to DB format (0=Sun, 6=Sat)
     final dbDayOfWeek = _selectedDate.weekday == 7 ? 0 : _selectedDate.weekday;
 
