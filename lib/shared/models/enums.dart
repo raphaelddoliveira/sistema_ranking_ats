@@ -1,0 +1,90 @@
+// Enums mirroring the database enum types
+
+enum PlayerStatus {
+  active,
+  inactive,
+  ambulance,
+  suspended;
+
+  static PlayerStatus fromString(String value) =>
+      PlayerStatus.values.firstWhere((e) => e.name == value);
+}
+
+enum PlayerRole {
+  player,
+  admin;
+
+  static PlayerRole fromString(String value) =>
+      PlayerRole.values.firstWhere((e) => e.name == value);
+}
+
+enum ChallengeStatus {
+  pending,
+  datesProposed('dates_proposed'),
+  scheduled,
+  completed,
+  woChallenger('wo_challenger'),
+  woChallenged('wo_challenged'),
+  expired,
+  cancelled;
+
+  final String? _dbValue;
+  const ChallengeStatus([this._dbValue]);
+
+  String get dbValue => _dbValue ?? name;
+
+  static ChallengeStatus fromString(String value) =>
+      ChallengeStatus.values.firstWhere(
+        (e) => e.dbValue == value || e.name == value,
+      );
+
+  bool get isActive =>
+      this == pending || this == datesProposed || this == scheduled;
+
+  bool get isFinished =>
+      this == completed ||
+      this == woChallenger ||
+      this == woChallenged ||
+      this == expired ||
+      this == cancelled;
+}
+
+enum PaymentStatus {
+  pending,
+  paid,
+  overdue;
+
+  static PaymentStatus fromString(String value) =>
+      PaymentStatus.values.firstWhere((e) => e.name == value);
+}
+
+enum ReservationStatus {
+  confirmed,
+  cancelled;
+
+  static ReservationStatus fromString(String value) =>
+      ReservationStatus.values.firstWhere((e) => e.name == value);
+}
+
+enum NotificationType {
+  challengeReceived('challenge_received'),
+  datesProposed('dates_proposed'),
+  dateChosen('date_chosen'),
+  matchResult('match_result'),
+  rankingChange('ranking_change'),
+  ambulanceActivated('ambulance_activated'),
+  ambulanceExpired('ambulance_expired'),
+  paymentDue('payment_due'),
+  paymentOverdue('payment_overdue'),
+  woWarning('wo_warning'),
+  monthlyChallengeWarning('monthly_challenge_warning'),
+  general('general');
+
+  final String dbValue;
+  const NotificationType(this.dbValue);
+
+  static NotificationType fromString(String value) =>
+      NotificationType.values.firstWhere(
+        (e) => e.dbValue == value || e.name == value,
+      );
+}
