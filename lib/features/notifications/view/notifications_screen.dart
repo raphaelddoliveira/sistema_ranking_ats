@@ -1,13 +1,162 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class NotificationsScreen extends StatelessWidget {
+import '../../../core/extensions/date_extensions.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../shared/models/notification_model.dart';
+import '../viewmodel/notification_viewmodel.dart';
+
+class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notificationsAsync = ref.watch(notificationsProvider);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Notificacoes')),
-      body: const Center(child: Text('Notificacoes')),
+      appBar: AppBar(
+        title: const Text('Notificacoes'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              ref.read(notificationActionProvider.notifier).markAllAsRead();
+              ref.invalidate(notificationsProvider);
+              ref.invalidate(unreadCountProvider);
+            },
+            icon: const Icon(Icons.done_all),
+            tooltip: 'Marcar todas como lidas',
+          ),
+        ],
+      ),
+      body: notificationsAsync.when(
+        data: (notifications) {
+          if (notifications.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.notifications_none, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'Nenhuma notificacao',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(notificationsProvider);
+              ref.invalidate(unreadCountProvider);
+            },
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              itemCount: notifications.length,
+              itemBuilder: (context, index) => _NotificationTile(
+                notification: notifications[index],
+              ),
+            ),
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Erro: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(notificationsProvider),
+                child: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
+  }
+}
+
+class _NotificationTile extends ConsumerWidget {
+  final NotificationModel notification;
+
+  const _NotificationTile({required this.notification});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final iconData = _getIconData(notification.iconLabel.icon);
+    final iconColor = Color(notification.iconLabel.color);
+
+    return Container(
+      color: notification.isRead ? null : AppColors.primary.withAlpha(8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: iconColor.withAlpha(25),
+          child: Icon(iconData, color: iconColor, size: 20),
+        ),
+        title: Text(
+          notification.title,
+          style: TextStyle(
+            fontWeight:
+                notification.isRead ? FontWeight.normal : FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              notification.body,
+              style: const TextStyle(fontSize: 13),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              notification.createdAt.timeAgo(),
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
+        trailing: notification.isRead
+            ? null
+            : Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+        onTap: () {
+          if (!notification.isRead) {
+            ref
+                .read(notificationActionProvider.notifier)
+                .markAsRead(notification.id);
+            ref.invalidate(notificationsProvider);
+            ref.invalidate(unreadCountProvider);
+          }
+        },
+      ),
+    );
+  }
+
+  IconData _getIconData(String name) {
+    return switch (name) {
+      'sports_tennis' => Icons.sports_tennis,
+      'calendar_month' => Icons.calendar_month,
+      'event_available' => Icons.event_available,
+      'scoreboard' => Icons.scoreboard,
+      'emoji_events' => Icons.emoji_events,
+      'local_hospital' => Icons.local_hospital,
+      'healing' => Icons.healing,
+      'payment' => Icons.payment,
+      'warning' => Icons.warning,
+      'timer_off' => Icons.timer_off,
+      'notifications_active' => Icons.notifications_active,
+      _ => Icons.info,
+    };
   }
 }

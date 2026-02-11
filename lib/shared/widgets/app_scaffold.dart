@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/route_names.dart';
+import '../../core/theme/app_colors.dart';
+import '../../features/notifications/viewmodel/notification_viewmodel.dart';
+import '../providers/current_player_provider.dart';
+import '../../features/admin/view/admin_dashboard_screen.dart';
 
-class AppScaffold extends StatelessWidget {
+class AppScaffold extends ConsumerWidget {
   final Widget child;
 
   const AppScaffold({super.key, required this.child});
@@ -25,37 +30,60 @@ class AppScaffold extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = _currentIndex(context);
+    final unreadAsync = ref.watch(unreadCountProvider);
+    final currentPlayer = ref.watch(currentPlayerProvider);
+    final isAdmin = currentPlayer.valueOrNull?.isAdmin ?? false;
 
     return Scaffold(
       body: child,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
         onTap: (index) => context.go(_tabs[index]),
-        items: const [
-          BottomNavigationBarItem(
+        items: [
+          const BottomNavigationBarItem(
             icon: Icon(Icons.emoji_events),
             label: 'Ranking',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.sports_tennis),
             label: 'Desafios',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.calendar_month),
             label: 'Quadras',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
+            icon: Badge(
+              isLabelVisible: (unreadAsync.valueOrNull ?? 0) > 0,
+              label: Text(
+                '${unreadAsync.valueOrNull ?? 0}',
+                style: const TextStyle(fontSize: 10),
+              ),
+              child: const Icon(Icons.notifications),
+            ),
             label: 'Alertas',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Perfil',
           ),
         ],
       ),
+      floatingActionButton: isAdmin && currentIndex == 0
+          ? FloatingActionButton.small(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const AdminDashboardScreen(),
+                  ),
+                );
+              },
+              backgroundColor: AppColors.secondary,
+              child: const Icon(Icons.admin_panel_settings, size: 20),
+            )
+          : null,
     );
   }
 }

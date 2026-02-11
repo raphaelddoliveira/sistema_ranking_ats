@@ -72,6 +72,7 @@ lib/
       court_model.dart               # Model com surfaceLabel
       court_slot_model.dart          # Model com dayLabel, timeRange
       reservation_model.dart         # Model com joins (courtName, playerName), timeRange, formattedDate
+      notification_model.dart        # Model com iconLabel por tipo, challengeId navigation
     providers/
       auth_state_provider.dart       # StreamProvider do onAuthStateChange
       current_player_provider.dart   # FutureProvider do jogador logado
@@ -146,18 +147,18 @@ lib/
         courts_viewmodel.dart        # FutureProvider lista de quadras
         reservation_viewmodel.dart   # Providers para slots, reservas por data, minhas reservas, acoes
 
-    notifications/                   # [FASE 6 - Pendente]
+    notifications/                   # [FASE 6 - Completa]
       data/
+        notification_repository.dart # getNotifications, getUnreadCount, markAsRead, markAllAsRead
       view/
-        notifications_screen.dart    # Placeholder
+        notifications_screen.dart    # Lista com icones por tipo, badge nao lida, marcar todas como lidas
         widgets/
       viewmodel/
+        notification_viewmodel.dart  # notificationsProvider, unreadCountProvider, NotificationActionNotifier
 
-    admin/                           # [FASE 6 - Pendente]
-      data/
+    admin/                           # [FASE 6 - Completa]
       view/
-        widgets/
-      viewmodel/
+        admin_dashboard_screen.dart  # Dashboard admin (jogadores, ambulancia, mensalidades, quadras)
 
 supabase/
   migrations/
@@ -270,7 +271,7 @@ supabase/
 - [x] Tela de Registrar Resultado (selecao vencedor, placar set a set com dropdowns, super tiebreak toggle, preview)
 - [x] Rotas GoRouter para deep linking (challenges/:challengeId, challenges/create)
 - [x] `flutter analyze` = 0 issues
-- [ ] Sistema de ambulancia (admin) - sera feito na Fase 6
+- [x] Sistema de ambulancia (admin) - implementado na Fase 6
 
 ### Fase 5 - Reserva de Quadra (COMPLETA)
 - [x] CourtModel com surfaceLabel (saibro, dura, grama)
@@ -285,11 +286,17 @@ supabase/
 - [x] `flutter analyze` = 0 errors (2 info-level hints)
 - [ ] Admin CRUD de quadras e slots - sera feito na Fase 6
 
-### Fase 6 - Notificacoes + Admin + Polish (PENDENTE)
-- [ ] Sistema de notificacoes in-app com Realtime
-- [ ] Painel admin
-- [ ] Deep linking completo
-- [ ] Badge de notificacoes nao lidas
+### Fase 6 - Notificacoes + Admin + Polish (COMPLETA)
+- [x] NotificationModel com iconLabel por tipo (12 tipos), challengeId para navegacao
+- [x] NotificationRepository (getNotifications, getUnreadCount, markAsRead, markAllAsRead)
+- [x] NotificationViewModels (notificationsProvider, unreadCountProvider, NotificationActionNotifier)
+- [x] Tela de Notificacoes (lista com icones coloridos por tipo, indicador nao lida, marcar todas como lidas)
+- [x] Badge de notificacoes nao lidas no bottom navigation bar
+- [x] AppScaffold atualizado: ConsumerWidget com badge + FAB admin condicional
+- [x] Painel Admin: dashboard com 4 modulos (jogadores, ambulancia, mensalidades, quadras)
+- [x] Admin Jogadores: lista com status badge, acoes (ativar/desativar/suspender)
+- [x] Admin Ambulancia: ativar via RPC (-3 posicoes + protecao 10 dias), desativar via RPC
+- [x] `flutter analyze` = 0 errors
 
 ### Fase 7 - Automacoes (FUTURO)
 - [ ] N8N crons para penalizacoes automaticas
