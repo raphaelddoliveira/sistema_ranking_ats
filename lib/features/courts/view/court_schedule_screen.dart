@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/date_symbol_data_local.dart';
-import 'package:table_calendar/table_calendar.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/snackbar_utils.dart';
@@ -21,33 +19,35 @@ class CourtScheduleScreen extends ConsumerStatefulWidget {
 }
 
 class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
-  DateTime _selectedDate = DateTime.now();
-  CalendarFormat _calendarFormat = CalendarFormat.week;
-  bool _localeReady = false;
+  late DateTime _selectedDate;
+  late final ScrollController _dateScrollController;
+
+  // Generate 60 days starting from today
+  late final List<DateTime> _dates;
 
   @override
   void initState() {
     super.initState();
-    _initLocale();
+    final today = DateTime.now();
+    _selectedDate = DateTime(today.year, today.month, today.day);
+    _dates = List.generate(
+      60,
+      (i) => DateTime(today.year, today.month, today.day + i),
+    );
+    _dateScrollController = ScrollController();
   }
 
-  Future<void> _initLocale() async {
-    await initializeDateFormatting('pt_BR');
-    if (mounted) {
-      setState(() => _localeReady = true);
-    }
+  @override
+  void dispose() {
+    _dateScrollController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_localeReady) {
-      return Scaffold(
-        appBar: AppBar(title: Text(widget.court.name)),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
     // Convert DateTime.weekday (1=Mon, 7=Sun) to DB format (0=Sun, 6=Sat)
-    final dbDayOfWeek = _selectedDate.weekday == 7 ? 0 : _selectedDate.weekday;
+    final dbDayOfWeek =
+        _selectedDate.weekday == 7 ? 0 : _selectedDate.weekday;
 
     final slotsAsync = ref.watch(courtSlotsProvider(
       (courtId: widget.court.id, dayOfWeek: dbDayOfWeek),
@@ -59,45 +59,23 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.court.name),
+        actions: [
+          IconButton(
+            onPressed: _openDatePicker,
+            icon: const Icon(Icons.calendar_month),
+            tooltip: 'Escolher data',
+          ),
+        ],
       ),
       body: Column(
         children: [
-          TableCalendar(
-            firstDay: DateTime.now().subtract(const Duration(days: 7)),
-            lastDay: DateTime.now().add(const Duration(days: 60)),
-            focusedDay: _selectedDate,
-            selectedDayPredicate: (day) => isSameDay(day, _selectedDate),
-            calendarFormat: _calendarFormat,
-            onFormatChanged: (format) =>
-                setState(() => _calendarFormat = format),
-            onDaySelected: (selectedDay, focusedDay) {
-              setState(() => _selectedDate = selectedDay);
-            },
-            locale: 'pt_BR',
-            startingDayOfWeek: StartingDayOfWeek.monday,
-            headerStyle: const HeaderStyle(
-              formatButtonShowsNext: false,
-              titleCentered: true,
-            ),
-            calendarStyle: CalendarStyle(
-              selectedDecoration: const BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
-              ),
-              todayDecoration: BoxDecoration(
-                color: AppColors.primary.withAlpha(60),
-                shape: BoxShape.circle,
-              ),
-            ),
-            availableCalendarFormats: const {
-              CalendarFormat.week: 'Semana',
-              CalendarFormat.twoWeeks: '2 Semanas',
-              CalendarFormat.month: 'Mes',
-            },
-          ),
+          // Date selector strip
+          _buildDateSelector(),
           const Divider(height: 1),
+          // Selected date info
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
                 Text(
@@ -109,11 +87,13 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                 const Spacer(),
                 Text(
                   _dayOfWeekLabel(dbDayOfWeek),
-                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  style:
+                      const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
               ],
             ),
           ),
+          // Slots list
           Expanded(
             child: slotsAsync.when(
               data: (slots) {
@@ -127,22 +107,18 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                 }
 
                 return reservationsAsync.when(
-                  data: (reservations) => _SlotsGrid(
-                    court: widget.court,
-                    slots: slots,
-                    reservations: reservations,
-                    selectedDate: _selectedDate,
-                  ),
+                  data: (reservations) => _buildSlotsList(slots, reservations),
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
-                  error: (_, _) => const Center(
-                    child: Text('Erro ao carregar reservas'),
+                  error: (err, _) => Center(
+                    child: Text('Erro ao carregar reservas: $err'),
                   ),
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, _) => const Center(
-                child: Text('Erro ao carregar horarios'),
+              loading: () =>
+                  const Center(child: CircularProgressIndicator()),
+              error: (err, _) => Center(
+                child: Text('Erro ao carregar horarios: $err'),
               ),
             ),
           ),
@@ -151,51 +127,94 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
     );
   }
 
-  String _formatDateLabel(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  Widget _buildDateSelector() {
+    return SizedBox(
+      height: 80,
+      child: ListView.builder(
+        controller: _dateScrollController,
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        itemCount: _dates.length,
+        itemBuilder: (context, index) {
+          final date = _dates[index];
+          final isSelected = date.year == _selectedDate.year &&
+              date.month == _selectedDate.month &&
+              date.day == _selectedDate.day;
+          final isToday = index == 0;
+
+          return GestureDetector(
+            onTap: () => setState(() => _selectedDate = date),
+            child: Container(
+              width: 52,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.primary
+                    : isToday
+                        ? AppColors.primary.withAlpha(20)
+                        : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+                border: isToday && !isSelected
+                    ? Border.all(color: AppColors.primary.withAlpha(80))
+                    : null,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    _dayShort(date.weekday),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: isSelected ? Colors.white : Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${date.day}',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected
+                          ? Colors.white
+                          : isToday
+                              ? AppColors.primary
+                              : Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    _monthShort(date.month),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isSelected
+                          ? Colors.white70
+                          : Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
-  String _dayOfWeekLabel(int dow) {
-    return switch (dow) {
-      0 => 'Domingo',
-      1 => 'Segunda-feira',
-      2 => 'Terca-feira',
-      3 => 'Quarta-feira',
-      4 => 'Quinta-feira',
-      5 => 'Sexta-feira',
-      6 => 'Sabado',
-      _ => '',
-    };
-  }
-}
-
-class _SlotsGrid extends ConsumerWidget {
-  final CourtModel court;
-  final List<CourtSlotModel> slots;
-  final List<ReservationModel> reservations;
-  final DateTime selectedDate;
-
-  const _SlotsGrid({
-    required this.court,
-    required this.slots,
-    required this.reservations,
-    required this.selectedDate,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget _buildSlotsList(
+    List<CourtSlotModel> slots,
+    List<ReservationModel> reservations,
+  ) {
     final now = DateTime.now();
-    final isToday = selectedDate.year == now.year &&
-        selectedDate.month == now.month &&
-        selectedDate.day == now.day;
-    final isPast = selectedDate.isBefore(DateTime(now.year, now.month, now.day));
+    final today = DateTime(now.year, now.month, now.day);
+    final isToday = _selectedDate.isAtSameMomentAs(today);
+    final isPast = _selectedDate.isBefore(today);
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       itemCount: slots.length,
       itemBuilder: (context, index) {
         final slot = slots[index];
-        final reservation = _findReservation(slot);
+        final reservation = _findReservation(slot, reservations);
         final isReserved = reservation != null;
 
         final slotHour = int.tryParse(slot.startTime.split(':')[0]) ?? 0;
@@ -210,7 +229,8 @@ class _SlotsGrid extends ConsumerWidget {
         return Card(
           margin: const EdgeInsets.only(bottom: 6),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
               children: [
                 // Time box
@@ -252,7 +272,8 @@ class _SlotsGrid extends ConsumerWidget {
                             : isSlotPast
                                 ? 'Horario passado'
                                 : 'Disponivel',
-                        style: TextStyle(fontSize: 12, color: statusColor),
+                        style:
+                            TextStyle(fontSize: 12, color: statusColor),
                       ),
                     ],
                   ),
@@ -262,10 +283,10 @@ class _SlotsGrid extends ConsumerWidget {
                   SizedBox(
                     height: 36,
                     child: ElevatedButton(
-                      onPressed: () =>
-                          _confirmReservation(context, ref, slot),
+                      onPressed: () => _confirmReservation(slot),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 16),
                       ),
                       child: const Text('Reservar',
                           style: TextStyle(fontSize: 13)),
@@ -281,34 +302,39 @@ class _SlotsGrid extends ConsumerWidget {
     );
   }
 
-  static String _formatTime(String time) {
-    final parts = time.split(':');
-    if (parts.length >= 2) return '${parts[0]}:${parts[1]}';
-    return time;
-  }
-
-  ReservationModel? _findReservation(CourtSlotModel slot) {
-    final slotTime = _formatTime(slot.startTime);
-    for (final r in reservations) {
-      if (_formatTime(r.startTime) == slotTime) {
-        return r;
+  Future<void> _openDatePicker() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 60)),
+      locale: const Locale('pt', 'BR'),
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+      // Scroll to the selected date in the strip
+      final dayIndex = _dates.indexWhere((d) =>
+          d.year == picked.year &&
+          d.month == picked.month &&
+          d.day == picked.day);
+      if (dayIndex >= 0) {
+        _dateScrollController.animateTo(
+          dayIndex * 60.0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
       }
     }
-    return null;
   }
 
-  void _confirmReservation(
-    BuildContext context,
-    WidgetRef ref,
-    CourtSlotModel slot,
-  ) {
+  void _confirmReservation(CourtSlotModel slot) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirmar Reserva'),
         content: Text(
-          'Reservar ${court.name} em '
-          '${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')} '
+          'Reservar ${widget.court.name} em '
+          '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')} '
           'das ${slot.timeRange}?',
         ),
         actions: [
@@ -323,17 +349,17 @@ class _SlotsGrid extends ConsumerWidget {
                   .read(reservationActionProvider.notifier)
                   .createReservation(
                     courtSlotId: slot.id,
-                    courtId: court.id,
-                    date: selectedDate,
+                    courtId: widget.court.id,
+                    date: _selectedDate,
                     startTime: slot.startTime,
                     endTime: slot.endTime,
                   );
 
-              if (context.mounted) {
+              if (mounted) {
                 if (success) {
                   SnackbarUtils.showSuccess(context, 'Reserva confirmada!');
                   ref.invalidate(courtReservationsProvider(
-                    (courtId: court.id, date: selectedDate),
+                    (courtId: widget.court.id, date: _selectedDate),
                   ));
                   ref.invalidate(myReservationsProvider);
                 } else {
@@ -346,5 +372,70 @@ class _SlotsGrid extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  ReservationModel? _findReservation(
+    CourtSlotModel slot,
+    List<ReservationModel> reservations,
+  ) {
+    final slotTime = _formatTime(slot.startTime);
+    for (final r in reservations) {
+      if (_formatTime(r.startTime) == slotTime) return r;
+    }
+    return null;
+  }
+
+  static String _formatTime(String time) {
+    final parts = time.split(':');
+    if (parts.length >= 2) return '${parts[0]}:${parts[1]}';
+    return time;
+  }
+
+  String _formatDateLabel(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+
+  static String _dayShort(int weekday) {
+    return switch (weekday) {
+      1 => 'Seg',
+      2 => 'Ter',
+      3 => 'Qua',
+      4 => 'Qui',
+      5 => 'Sex',
+      6 => 'Sab',
+      7 => 'Dom',
+      _ => '',
+    };
+  }
+
+  static String _monthShort(int month) {
+    return switch (month) {
+      1 => 'Jan',
+      2 => 'Fev',
+      3 => 'Mar',
+      4 => 'Abr',
+      5 => 'Mai',
+      6 => 'Jun',
+      7 => 'Jul',
+      8 => 'Ago',
+      9 => 'Set',
+      10 => 'Out',
+      11 => 'Nov',
+      12 => 'Dez',
+      _ => '',
+    };
+  }
+
+  String _dayOfWeekLabel(int dow) {
+    return switch (dow) {
+      0 => 'Domingo',
+      1 => 'Segunda-feira',
+      2 => 'Terca-feira',
+      3 => 'Quarta-feira',
+      4 => 'Quinta-feira',
+      5 => 'Sexta-feira',
+      6 => 'Sabado',
+      _ => '',
+    };
   }
 }
