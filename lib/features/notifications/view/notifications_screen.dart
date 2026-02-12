@@ -35,11 +35,11 @@ class NotificationsScreen extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_none, size: 64, color: Colors.grey),
+                  Icon(Icons.notifications_none, size: 64, color: AppColors.onBackgroundLight),
                   SizedBox(height: 16),
                   Text(
                     'Nenhuma notificacao',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    style: TextStyle(fontSize: 16, color: AppColors.onBackgroundLight),
                   ),
                 ],
               ),
@@ -90,7 +90,7 @@ class _NotificationTile extends ConsumerWidget {
     final iconColor = Color(notification.iconLabel.color);
 
     return Container(
-      color: notification.isRead ? null : AppColors.primary.withAlpha(8),
+      color: notification.isRead ? null : AppColors.secondarySurface,
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: iconColor.withAlpha(25),
@@ -116,7 +116,7 @@ class _NotificationTile extends ConsumerWidget {
             const SizedBox(height: 2),
             Text(
               notification.createdAt.timeAgo(),
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
+              style: const TextStyle(fontSize: 11, color: AppColors.onBackgroundLight),
             ),
           ],
         ),
@@ -126,7 +126,7 @@ class _NotificationTile extends ConsumerWidget {
                 width: 8,
                 height: 8,
                 decoration: const BoxDecoration(
-                  color: AppColors.primary,
+                  color: AppColors.secondary,
                   shape: BoxShape.circle,
                 ),
               ),

@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/player_model.dart';
 
 class ProfileHeader extends StatelessWidget {
@@ -12,20 +13,41 @@ class ProfileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        CircleAvatar(
-          radius: 48,
-          backgroundColor: Colors.grey.shade200,
-          backgroundImage: player.avatarUrl != null
-              ? CachedNetworkImageProvider(player.avatarUrl!)
-              : null,
-          child: player.avatarUrl == null
-              ? Text(
-                  player.fullName.isNotEmpty
-                      ? player.fullName[0].toUpperCase()
-                      : '?',
-                  style: const TextStyle(fontSize: 36),
-                )
-              : null,
+        Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: AppColors.secondaryGradient,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.secondary.withAlpha(60),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(3),
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.background,
+            ),
+            child: CircleAvatar(
+              radius: 48,
+              backgroundColor: AppColors.surfaceVariant,
+              backgroundImage: player.avatarUrl != null
+                  ? CachedNetworkImageProvider(player.avatarUrl!)
+                  : null,
+              child: player.avatarUrl == null
+                  ? Text(
+                      player.fullName.isNotEmpty
+                          ? player.fullName[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(fontSize: 36),
+                    )
+                  : null,
+            ),
+          ),
         ),
         const SizedBox(height: 12),
         Text(
@@ -39,7 +61,7 @@ class ProfileHeader extends StatelessWidget {
           Text(
             '"${player.nickname}"',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey,
+                  color: AppColors.onBackgroundMedium,
                   fontStyle: FontStyle.italic,
                 ),
           ),
@@ -48,7 +70,7 @@ class ProfileHeader extends StatelessWidget {
         Text(
           player.email,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey,
+                color: AppColors.onBackgroundLight,
               ),
         ),
       ],

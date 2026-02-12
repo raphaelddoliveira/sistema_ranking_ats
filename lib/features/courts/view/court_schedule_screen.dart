@@ -88,7 +88,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                 Text(
                   _dayOfWeekLabel(dbDayOfWeek),
                   style:
-                      const TextStyle(color: Colors.grey, fontSize: 13),
+                      const TextStyle(color: AppColors.onBackgroundLight, fontSize: 13),
                 ),
               ],
             ),
@@ -101,7 +101,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                   return const Center(
                     child: Text(
                       'Sem horarios disponiveis neste dia',
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(color: AppColors.onBackgroundLight),
                     ),
                   );
                 }
@@ -166,7 +166,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: isSelected ? Colors.white : Colors.grey,
+                      color: isSelected ? Colors.white : AppColors.onBackgroundLight,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -179,7 +179,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                           ? Colors.white
                           : isToday
                               ? AppColors.primary
-                              : Colors.black87,
+                              : AppColors.onBackground,
                     ),
                   ),
                   Text(
@@ -187,8 +187,8 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                     style: TextStyle(
                       fontSize: 10,
                       color: isSelected
-                          ? Colors.white70
-                          : Colors.grey.shade500,
+                          ? Colors.white
+                          : AppColors.onBackgroundLight,
                     ),
                   ),
                 ],
@@ -223,7 +223,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
         final statusColor = isReserved
             ? AppColors.error
             : isSlotPast
-                ? Colors.grey
+                ? AppColors.onBackgroundLight
                 : AppColors.success;
 
         return Card(
@@ -291,7 +291,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                         style: TextStyle(fontSize: 13)),
                   )
                 else if (isReserved)
-                  const Icon(Icons.lock, color: Colors.grey, size: 20),
+                  const Icon(Icons.lock, color: AppColors.onBackgroundLight, size: 20),
               ],
             ),
           ),

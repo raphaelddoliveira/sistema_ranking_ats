@@ -24,16 +24,16 @@ class MyReservationsScreen extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.calendar_today, size: 64, color: Colors.grey),
+                  Icon(Icons.calendar_today, size: 64, color: AppColors.onBackgroundLight),
                   SizedBox(height: 16),
                   Text(
                     'Nenhuma reserva ativa',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    style: TextStyle(fontSize: 16, color: AppColors.onBackgroundLight),
                   ),
                   SizedBox(height: 8),
                   Text(
                     'Reserve uma quadra na aba Quadras',
-                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                    style: TextStyle(fontSize: 13, color: AppColors.onBackgroundLight),
                   ),
                 ],
               ),
@@ -109,14 +109,14 @@ class _ReservationCard extends ConsumerWidget {
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
-                      color: AppColors.primary,
+                      color: AppColors.primaryDark,
                     ),
                   ),
                   Text(
                     '${reservation.reservationDate.month.toString().padLeft(2, '0')}/${reservation.reservationDate.year}',
                     style: const TextStyle(
                       fontSize: 10,
-                      color: AppColors.primary,
+                      color: AppColors.primaryDark,
                     ),
                   ),
                 ],
@@ -138,12 +138,12 @@ class _ReservationCard extends ConsumerWidget {
                   Row(
                     children: [
                       const Icon(Icons.access_time,
-                          size: 14, color: Colors.grey),
+                          size: 14, color: AppColors.onBackgroundLight),
                       const SizedBox(width: 4),
                       Text(
                         reservation.timeRange,
                         style: const TextStyle(
-                            fontSize: 13, color: Colors.grey),
+                            fontSize: 13, color: AppColors.onBackgroundLight),
                       ),
                     ],
                   ),

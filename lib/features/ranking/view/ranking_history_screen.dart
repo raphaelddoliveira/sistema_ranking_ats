@@ -70,7 +70,7 @@ class RankingHistoryScreen extends ConsumerWidget {
                           'Posicao mais baixa = melhor',
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Colors.grey,
+                                    color: AppColors.onBackgroundLight,
                                   ),
                         ),
                         const SizedBox(height: 8),
@@ -99,7 +99,7 @@ class RankingHistoryScreen extends ConsumerWidget {
                   child: Center(
                     child: Text(
                       'Nenhuma alteracao de ranking registrada',
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(color: AppColors.onBackgroundLight),
                     ),
                   ),
                 )
@@ -132,7 +132,7 @@ class RankingHistoryScreen extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
               const SizedBox(height: 16),
               Text('Erro ao carregar historico: $error'),
               const SizedBox(height: 16),
@@ -222,7 +222,7 @@ class _SummaryItem extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey,
+                color: AppColors.onBackgroundLight,
                 fontSize: 11,
               ),
         ),
@@ -271,7 +271,7 @@ class _TimelineEntry extends StatelessWidget {
                 Expanded(
                   child: Container(
                     width: isFirst ? 0 : 2,
-                    color: Colors.grey.shade300,
+                    color: AppColors.divider,
                   ),
                 ),
                 // Dot
@@ -294,7 +294,7 @@ class _TimelineEntry extends StatelessWidget {
                 Expanded(
                   child: Container(
                     width: isLast ? 0 : 2,
-                    color: Colors.grey.shade300,
+                    color: AppColors.divider,
                   ),
                 ),
               ],
@@ -330,7 +330,7 @@ class _TimelineEntry extends StatelessWidget {
                               style: Theme.of(context)
                                   .textTheme
                                   .bodySmall
-                                  ?.copyWith(color: Colors.grey),
+                                  ?.copyWith(color: AppColors.onBackgroundMedium),
                             ),
                             const SizedBox(height: 2),
                             Text(
@@ -339,7 +339,7 @@ class _TimelineEntry extends StatelessWidget {
                                   .textTheme
                                   .bodySmall
                                   ?.copyWith(
-                                    color: Colors.grey.shade500,
+                                    color: AppColors.onBackgroundLight,
                                     fontSize: 11,
                                   ),
                             ),

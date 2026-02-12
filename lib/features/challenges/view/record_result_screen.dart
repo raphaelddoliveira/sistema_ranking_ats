@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/snackbar_utils.dart';
@@ -29,7 +30,6 @@ class RecordResultScreen extends ConsumerStatefulWidget {
 }
 
 class _RecordResultScreenState extends ConsumerState<RecordResultScreen> {
-  String? _winnerId;
   bool _superTiebreak = false;
   bool _isSubmitting = false;
 
@@ -39,8 +39,40 @@ class _RecordResultScreenState extends ConsumerState<RecordResultScreen> {
     _SetScoreInput(), // Set 2
   ];
 
+  /// Determina o vencedor automaticamente a partir do placar dos sets.
+  /// Retorna o ID do vencedor, ou null se ainda nao ha vencedor definido.
+  String? _determineWinner() {
+    int challengerSetsWon = 0;
+    int challengedSetsWon = 0;
+
+    for (final set in _sets) {
+      if (set.challengerGames != null && set.challengedGames != null) {
+        if (set.challengerGames! > set.challengedGames!) {
+          challengerSetsWon++;
+        } else if (set.challengedGames! > set.challengerGames!) {
+          challengedSetsWon++;
+        }
+        // Empate em games num set = set invalido, nao conta
+      }
+    }
+
+    if (challengerSetsWon > challengedSetsWon && challengerSetsWon >= 2) {
+      return widget.challengerId;
+    } else if (challengedSetsWon > challengerSetsWon && challengedSetsWon >= 2) {
+      return widget.challengedId;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final winnerId = _determineWinner();
+    final winnerName = winnerId == widget.challengerId
+        ? widget.challengerName
+        : winnerId == widget.challengedId
+            ? widget.challengedName
+            : null;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Registrar Resultado'),
@@ -50,41 +82,6 @@ class _RecordResultScreenState extends ConsumerState<RecordResultScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Winner selection
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Quem venceu?',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    const SizedBox(height: 12),
-                    _WinnerOption(
-                      name: widget.challengerName,
-                      label: 'Desafiante',
-                      isSelected: _winnerId == widget.challengerId,
-                      onTap: () =>
-                          setState(() => _winnerId = widget.challengerId),
-                    ),
-                    const SizedBox(height: 8),
-                    _WinnerOption(
-                      name: widget.challengedName,
-                      label: 'Desafiado',
-                      isSelected: _winnerId == widget.challengedId,
-                      onTap: () =>
-                          setState(() => _winnerId = widget.challengedId),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
             // Set scores
             Card(
               child: Padding(
@@ -114,31 +111,35 @@ class _RecordResultScreenState extends ConsumerState<RecordResultScreen> {
                     ),
                     const SizedBox(height: 8),
 
-                    // Column headers
+                    // Column headers with player names
                     Row(
                       children: [
                         const SizedBox(width: 60),
                         Expanded(
                           child: Center(
                             child: Text(
-                              'Vencedor',
+                              _firstName(widget.challengerName),
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: AppColors.onBackgroundMedium,
                                 fontWeight: FontWeight.w600,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ),
                         Expanded(
                           child: Center(
                             child: Text(
-                              'Perdedor',
+                              _firstName(widget.challengedName),
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: AppColors.onBackgroundMedium,
                                 fontWeight: FontWeight.w600,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ),
@@ -149,59 +150,123 @@ class _RecordResultScreenState extends ConsumerState<RecordResultScreen> {
 
                     ...List.generate(_sets.length, (index) {
                       final isLast = index == _sets.length - 1;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 60,
-                              child: Text(
-                                index == 2 && _superTiebreak
-                                    ? 'Tiebreak'
-                                    : 'Set ${index + 1}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600),
+                      final set = _sets[index];
+                      return Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 60,
+                                  child: Text(
+                                    index == 2 && _superTiebreak
+                                        ? 'Tiebreak'
+                                        : 'Set ${index + 1}',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: _ScoreDropdown(
+                                    value: set.challengerGames,
+                                    isSuperTiebreak:
+                                        index == 2 && _superTiebreak,
+                                    onChanged: (v) => setState(() {
+                                      set.challengerGames = v;
+                                      if (!set.isTiebreak) {
+                                        set.challengerTiebreak = null;
+                                        set.challengedTiebreak = null;
+                                      }
+                                    }),
+                                  ),
+                                ),
+                                const Padding(
+                                  padding:
+                                      EdgeInsets.symmetric(horizontal: 8),
+                                  child: Text('x',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold)),
+                                ),
+                                Expanded(
+                                  child: _ScoreDropdown(
+                                    value: set.challengedGames,
+                                    isSuperTiebreak:
+                                        index == 2 && _superTiebreak,
+                                    onChanged: (v) => setState(() {
+                                      set.challengedGames = v;
+                                      if (!set.isTiebreak) {
+                                        set.challengerTiebreak = null;
+                                        set.challengedTiebreak = null;
+                                      }
+                                    }),
+                                  ),
+                                ),
+                                if (_sets.length > 2 && isLast)
+                                  IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _sets.removeLast();
+                                        _superTiebreak = false;
+                                      });
+                                    },
+                                    icon: const Icon(Icons.close,
+                                        size: 20,
+                                        color: AppColors.onBackgroundLight),
+                                  )
+                                else if (_sets.length > 2)
+                                  const SizedBox(width: 40),
+                              ],
+                            ),
+                          ),
+                          // Tiebreak score row (aparece quando set é 7-6 ou 6-7)
+                          if (set.isTiebreak)
+                            Padding(
+                              padding:
+                                  const EdgeInsets.only(bottom: 12),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 60,
+                                    child: Text(
+                                      'TB ${index + 1}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: _ScoreDropdown(
+                                      value: set.challengerTiebreak,
+                                      isTiebreak: true,
+                                      onChanged: (v) => setState(
+                                          () => set.challengerTiebreak = v),
+                                    ),
+                                  ),
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 8),
+                                    child: Text('x',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12)),
+                                  ),
+                                  Expanded(
+                                    child: _ScoreDropdown(
+                                      value: set.challengedTiebreak,
+                                      isTiebreak: true,
+                                      onChanged: (v) => setState(
+                                          () => set.challengedTiebreak = v),
+                                    ),
+                                  ),
+                                  if (_sets.length > 2)
+                                    const SizedBox(width: 40),
+                                ],
                               ),
                             ),
-                            Expanded(
-                              child: _ScoreDropdown(
-                                value: _sets[index].winnerGames,
-                                isSuperTiebreak:
-                                    index == 2 && _superTiebreak,
-                                onChanged: (v) => setState(
-                                    () => _sets[index].winnerGames = v),
-                              ),
-                            ),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8),
-                              child: Text('x',
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.bold)),
-                            ),
-                            Expanded(
-                              child: _ScoreDropdown(
-                                value: _sets[index].loserGames,
-                                isSuperTiebreak:
-                                    index == 2 && _superTiebreak,
-                                onChanged: (v) => setState(
-                                    () => _sets[index].loserGames = v),
-                              ),
-                            ),
-                            if (_sets.length > 2 && isLast)
-                              IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _sets.removeLast();
-                                    _superTiebreak = false;
-                                  });
-                                },
-                                icon: const Icon(Icons.close,
-                                    size: 20, color: Colors.grey),
-                              )
-                            else if (_sets.length > 2)
-                              const SizedBox(width: 40),
-                          ],
-                        ),
+                        ],
                       );
                     }),
                   ],
@@ -225,7 +290,64 @@ class _RecordResultScreenState extends ConsumerState<RecordResultScreen> {
                 ),
               ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
+            // Auto-determined winner indicator
+            if (winnerId != null)
+              Card(
+                color: AppColors.success.withAlpha(20),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.emoji_events,
+                          color: AppColors.secondary, size: 28),
+                      const SizedBox(height: 8),
+                      Text(
+                        '$winnerName venceu!',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _buildScoreString(),
+                        style: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w600),
+                      ),
+                      if (_superTiebreak)
+                        const Text(
+                          'Super tiebreak',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.onBackgroundLight),
+                        ),
+                    ],
+                  ),
+                ),
+              )
+            else if (_hasAnyScore())
+              Card(
+                color: AppColors.surfaceVariant,
+                child: const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.info_outline,
+                          size: 18, color: AppColors.onBackgroundMedium),
+                      SizedBox(width: 8),
+                      Text(
+                        'Preencha o placar para definir o vencedor',
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.onBackgroundMedium),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 16),
 
             // Submit button
             ElevatedButton.icon(
@@ -244,89 +366,103 @@ class _RecordResultScreenState extends ConsumerState<RecordResultScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
-
-            const SizedBox(height: 8),
-
-            // Preview
-            if (_winnerId != null && _canSubmit()) _buildPreview(),
           ],
         ),
       ),
     );
+  }
+
+  bool _hasAnyScore() {
+    return _sets.any(
+        (s) => s.challengerGames != null || s.challengedGames != null);
   }
 
   bool _canSubmit() {
-    if (_winnerId == null) return false;
-
-    // At least 2 sets must have scores
-    int completeSets = 0;
-    for (final set in _sets) {
-      if (set.winnerGames != null && set.loserGames != null) {
-        completeSets++;
-      }
-    }
-    return completeSets >= 2;
+    // O vencedor precisa ser determinavel pelo placar
+    return _determineWinner() != null;
   }
 
-  Widget _buildPreview() {
-    final winnerName = _winnerId == widget.challengerId
-        ? widget.challengerName
-        : widget.challengedName;
+  String _buildScoreString() {
+    final winnerId = _determineWinner();
+    return _sets
+        .where((s) =>
+            s.challengerGames != null && s.challengedGames != null)
+        .map((s) {
+      final String games;
+      final String tb;
 
-    final scores = _sets
-        .where((s) => s.winnerGames != null && s.loserGames != null)
-        .map((s) => '${s.winnerGames}-${s.loserGames}')
-        .join(' ');
+      if (winnerId == widget.challengerId) {
+        games = '${s.challengerGames}-${s.challengedGames}';
+        tb = (s.isTiebreak &&
+                s.challengerTiebreak != null &&
+                s.challengedTiebreak != null)
+            ? '(${s.challengerTiebreak}-${s.challengedTiebreak})'
+            : '';
+      } else {
+        games = '${s.challengedGames}-${s.challengerGames}';
+        tb = (s.isTiebreak &&
+                s.challengerTiebreak != null &&
+                s.challengedTiebreak != null)
+            ? '(${s.challengedTiebreak}-${s.challengerTiebreak})'
+            : '';
+      }
+      return '$games$tb';
+    }).join(' ');
+  }
 
-    return Card(
-      color: AppColors.success.withAlpha(20),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            const Text('Resultado',
-                style: TextStyle(fontSize: 12, color: Colors.grey)),
-            const SizedBox(height: 4),
-            Text(
-              '$winnerName venceu',
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            Text(
-              scores,
-              style: const TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.w600),
-            ),
-            if (_superTiebreak)
-              const Text(
-                'Super tiebreak',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-          ],
-        ),
-      ),
-    );
+  String _firstName(String fullName) {
+    return fullName.split(' ').first;
   }
 
   Future<void> _submit() async {
-    if (_winnerId == null) return;
+    final winnerId = _determineWinner();
+    if (winnerId == null) return;
 
-    final loserId = _winnerId == widget.challengerId
+    final loserId = winnerId == widget.challengerId
         ? widget.challengedId
         : widget.challengerId;
 
-    // Build sets
+    // Build sets - mapear de challenger/challenged para winner/loser
     final validSets = <SetScore>[];
     int winnerSets = 0;
     int loserSets = 0;
 
     for (final set in _sets) {
-      if (set.winnerGames != null && set.loserGames != null) {
+      if (set.challengerGames != null && set.challengedGames != null) {
+        final int wGames;
+        final int lGames;
+
+        if (winnerId == widget.challengerId) {
+          wGames = set.challengerGames!;
+          lGames = set.challengedGames!;
+        } else {
+          wGames = set.challengedGames!;
+          lGames = set.challengerGames!;
+        }
+
+        // Mapear tiebreak scores para winner/loser
+        int? tbWinner;
+        int? tbLoser;
+        if (set.isTiebreak &&
+            set.challengerTiebreak != null &&
+            set.challengedTiebreak != null) {
+          if (winnerId == widget.challengerId) {
+            tbWinner = set.challengerTiebreak;
+            tbLoser = set.challengedTiebreak;
+          } else {
+            tbWinner = set.challengedTiebreak;
+            tbLoser = set.challengerTiebreak;
+          }
+        }
+
         validSets.add(SetScore(
-          winnerGames: set.winnerGames!,
-          loserGames: set.loserGames!,
+          winnerGames: wGames,
+          loserGames: lGames,
+          tiebreakWinner: tbWinner,
+          tiebreakLoser: tbLoser,
         ));
-        if (set.winnerGames! > set.loserGames!) {
+
+        if (wGames > lGames) {
           winnerSets++;
         } else {
           loserSets++;
@@ -339,7 +475,7 @@ class _RecordResultScreenState extends ConsumerState<RecordResultScreen> {
     final success =
         await ref.read(challengeActionProvider.notifier).recordResult(
               challengeId: widget.challengeId,
-              winnerId: _winnerId!,
+              winnerId: winnerId,
               loserId: loserId,
               sets: validSets,
               winnerSets: winnerSets,
@@ -356,7 +492,7 @@ class _RecordResultScreenState extends ConsumerState<RecordResultScreen> {
       ref.invalidate(challengeMatchProvider(widget.challengeId));
       ref.invalidate(activeChallengesProvider);
       ref.invalidate(challengeHistoryProvider);
-      Navigator.of(context).pop();
+      context.pop();
     } else {
       SnackbarUtils.showError(context, 'Erro ao registrar resultado');
     }
@@ -364,95 +500,48 @@ class _RecordResultScreenState extends ConsumerState<RecordResultScreen> {
 }
 
 class _SetScoreInput {
-  int? winnerGames;
-  int? loserGames;
-}
+  int? challengerGames;
+  int? challengedGames;
+  int? challengerTiebreak;
+  int? challengedTiebreak;
 
-class _WinnerOption extends StatelessWidget {
-  final String name;
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _WinnerOption({
-    required this.name,
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
-          ),
-          color: isSelected ? AppColors.primary.withAlpha(15) : null,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              isSelected
-                  ? Icons.check_circle
-                  : Icons.radio_button_unchecked,
-              color: isSelected ? AppColors.primary : Colors.grey,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: isSelected ? AppColors.primary : null,
-                    ),
-                  ),
-                  Text(
-                    label,
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
-              ),
-            ),
-            if (isSelected)
-              const Icon(Icons.emoji_events,
-                  color: AppColors.secondary, size: 20),
-          ],
-        ),
-      ),
-    );
+  bool get isTiebreak {
+    if (challengerGames == null || challengedGames == null) return false;
+    return (challengerGames == 7 && challengedGames == 6) ||
+        (challengerGames == 6 && challengedGames == 7);
   }
 }
 
 class _ScoreDropdown extends StatelessWidget {
   final int? value;
   final bool isSuperTiebreak;
+  final bool isTiebreak;
   final ValueChanged<int?> onChanged;
 
   const _ScoreDropdown({
     required this.value,
     this.isSuperTiebreak = false,
+    this.isTiebreak = false,
     required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    final items = isSuperTiebreak
-        ? List.generate(14, (i) => i) // 0-13 for super tiebreak
-        : List.generate(8, (i) => i); // 0-7 for regular games
+    final int count;
+    if (isSuperTiebreak) {
+      count = 21; // 0-20 for super tiebreak
+    } else if (isTiebreak) {
+      count = 21; // 0-20 for regular tiebreak
+    } else {
+      count = 8; // 0-7 for regular games
+    }
+    final items = List.generate(count, (i) => i);
 
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(
+          color: isTiebreak ? AppColors.primary.withAlpha(80) : AppColors.divider,
+        ),
         borderRadius: BorderRadius.circular(8),
       ),
       child: DropdownButtonHideUnderline(
@@ -467,8 +556,10 @@ class _ScoreDropdown extends StatelessWidget {
                     child: Center(
                       child: Text(
                         '$i',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: isTiebreak ? 15 : 18,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ))

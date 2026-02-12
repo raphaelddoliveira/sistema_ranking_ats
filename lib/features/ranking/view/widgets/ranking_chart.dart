@@ -17,7 +17,7 @@ class RankingChart extends StatelessWidget {
         child: Center(
           child: Text(
             'Historico insuficiente para gerar grafico',
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(color: AppColors.onBackgroundLight),
           ),
         ),
       );
@@ -47,7 +47,7 @@ class RankingChart extends StatelessWidget {
               drawVerticalLine: false,
               horizontalInterval: 1,
               getDrawingHorizontalLine: (_) => FlLine(
-                color: Colors.grey.shade200,
+                color: AppColors.divider,
                 strokeWidth: 1,
               ),
             ),
@@ -75,7 +75,7 @@ class RankingChart extends StatelessWidget {
                         '${date.day}/${date.month}',
                         style: const TextStyle(
                           fontSize: 10,
-                          color: Colors.grey,
+                          color: AppColors.onBackgroundLight,
                         ),
                       ),
                     );
@@ -91,7 +91,7 @@ class RankingChart extends StatelessWidget {
                       '#${value.toInt()}',
                       style: const TextStyle(
                         fontSize: 10,
-                        color: Colors.grey,
+                        color: AppColors.onBackgroundLight,
                       ),
                     );
                   },

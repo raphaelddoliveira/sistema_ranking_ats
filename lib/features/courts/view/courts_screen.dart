@@ -31,11 +31,11 @@ class CourtsScreen extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.sports_tennis, size: 64, color: Colors.grey),
+                  Icon(Icons.sports_tennis, size: 64, color: AppColors.onBackgroundLight),
                   SizedBox(height: 16),
                   Text(
                     'Nenhuma quadra disponivel',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    style: TextStyle(fontSize: 16, color: AppColors.onBackgroundLight),
                   ),
                 ],
               ),
@@ -57,7 +57,7 @@ class CourtsScreen extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
               const SizedBox(height: 16),
               Text('Erro: $error'),
               const SizedBox(height: 16),
@@ -140,7 +140,7 @@ class _CourtCard extends StatelessWidget {
                     Text(
                       court.notes!,
                       style: const TextStyle(
-                          fontSize: 13, color: Colors.grey),
+                          fontSize: 13, color: AppColors.onBackgroundMedium),
                     ),
                   ],
                 ],
@@ -164,17 +164,17 @@ class _InfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: Colors.grey.shade700),
+          Icon(icon, size: 14, color: AppColors.onBackgroundMedium),
           const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+            style: TextStyle(fontSize: 12, color: AppColors.onBackgroundMedium),
           ),
         ],
       ),

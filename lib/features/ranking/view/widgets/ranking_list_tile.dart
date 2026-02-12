@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/player_model.dart';
@@ -24,7 +25,7 @@ class RankingListTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
               // Position badge
@@ -52,7 +53,7 @@ class RankingListTile extends StatelessWidget {
                       Text(
                         '"${player.nickname}"',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.grey,
+                              color: AppColors.onBackgroundMedium,
                               fontStyle: FontStyle.italic,
                             ),
                       ),
@@ -64,7 +65,7 @@ class RankingListTile extends StatelessWidget {
               _StatusIndicators(player: player),
 
               const SizedBox(width: 4),
-              const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+              Icon(Icons.arrow_forward_ios, color: AppColors.onBackgroundLight, size: 14),
             ],
           ),
         ),
@@ -80,32 +81,68 @@ class _PositionBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = switch (position) {
-      1 => AppColors.gold,
-      2 => AppColors.silver,
-      3 => AppColors.bronze,
-      _ => Colors.grey.shade300,
-    };
+    if (position <= 3) {
+      final gradient = switch (position) {
+        1 => const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFE8D44D), AppColors.gold, Color(0xFFB8941F)],
+          ),
+        2 => const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFC0C0C0), AppColors.silver, Color(0xFF888888)],
+          ),
+        _ => const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFD4955A), AppColors.bronze, Color(0xFF8B5E3C)],
+          ),
+      };
 
-    final textColor = position <= 3 ? Colors.white : Colors.black87;
+      return Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          gradient: gradient,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: (position == 1 ? AppColors.gold : position == 2 ? AppColors.silver : AppColors.bronze).withAlpha(80),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          '$position',
+          style: GoogleFonts.spaceGrotesk(
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+            letterSpacing: -0.3,
+            color: Colors.white,
+          ),
+        ),
+      );
+    }
 
     return Container(
-      width: 36,
-      height: 36,
+      width: 38,
+      height: 38,
       decoration: BoxDecoration(
-        color: color,
+        color: AppColors.surfaceVariant,
         shape: BoxShape.circle,
-        boxShadow: position <= 3
-            ? [BoxShadow(color: color.withAlpha(80), blurRadius: 6)]
-            : null,
+        border: Border.all(color: AppColors.divider, width: 1),
       ),
       alignment: Alignment.center,
       child: Text(
-        '#$position',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 13,
-          color: textColor,
+        '$position',
+        style: GoogleFonts.spaceGrotesk(
+          fontWeight: FontWeight.w700,
+          fontSize: 15,
+          letterSpacing: -0.3,
+          color: AppColors.onBackgroundMedium,
         ),
       ),
     );
@@ -121,7 +158,7 @@ class _PlayerAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     return CircleAvatar(
       radius: 20,
-      backgroundColor: Colors.grey.shade200,
+      backgroundColor: AppColors.surfaceVariant,
       backgroundImage: player.avatarUrl != null
           ? CachedNetworkImageProvider(player.avatarUrl!)
           : null,

@@ -1,12 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/snackbar_utils.dart';
 import '../viewmodel/challenge_list_viewmodel.dart';
 import '../viewmodel/create_challenge_viewmodel.dart';
-import 'challenge_detail_screen.dart';
 
 class CreateChallengeScreen extends ConsumerWidget {
   const CreateChallengeScreen({super.key});
@@ -37,16 +37,16 @@ class CreateChallengeScreen extends ConsumerWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.person_off, size: 64, color: Colors.grey),
+                    Icon(Icons.person_off, size: 64, color: AppColors.onBackgroundLight),
                     SizedBox(height: 16),
                     Text(
                       'Nenhum oponente disponivel',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      style: TextStyle(fontSize: 16, color: AppColors.onBackgroundLight),
                     ),
                     SizedBox(height: 8),
                     Text(
                       'Voce so pode desafiar jogadores ate 2 posicoes acima no ranking.',
-                      style: TextStyle(fontSize: 13, color: Colors.grey),
+                      style: TextStyle(fontSize: 13, color: AppColors.onBackgroundLight),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -72,7 +72,7 @@ class CreateChallengeScreen extends ConsumerWidget {
                 child: Text(
                   'Jogadores ate 2 posicoes acima de voce',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
+                        color: AppColors.onBackgroundMedium,
                       ),
                 ),
               ),
@@ -93,7 +93,7 @@ class CreateChallengeScreen extends ConsumerWidget {
                           horizontal: 12, vertical: 4),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: Colors.grey.shade200,
+                          backgroundColor: AppColors.surfaceVariant,
                           backgroundImage:
                               opponent['avatar_url'] != null
                                   ? CachedNetworkImageProvider(
@@ -202,12 +202,7 @@ class CreateChallengeScreen extends ConsumerWidget {
               if (challengeId != null && context.mounted) {
                 SnackbarUtils.showSuccess(context, 'Desafio criado!');
                 ref.invalidate(activeChallengesProvider);
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        ChallengeDetailScreen(challengeId: challengeId),
-                  ),
-                );
+                context.pushReplacement('/challenges/$challengeId');
               }
             },
             child: const Text('Desafiar'),

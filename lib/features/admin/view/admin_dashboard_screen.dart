@@ -73,7 +73,7 @@ class _AdminCard extends StatelessWidget {
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-        trailing: const Icon(Icons.chevron_right),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 14),
         onTap: onTap,
       ),
     );
@@ -99,7 +99,7 @@ class AdminPlayersScreen extends ConsumerWidget {
             return Card(
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: Colors.grey.shade200,
+                  backgroundColor: AppColors.surfaceVariant,
                   child: Text(
                     '#${player.rankingPosition}',
                     style: const TextStyle(
@@ -140,6 +140,14 @@ class AdminPlayersScreen extends ConsumerWidget {
                     if (player.status != PlayerStatus.suspended)
                       const PopupMenuItem(
                           value: 'suspend', child: Text('Suspender')),
+                    if (player.isProtected)
+                      const PopupMenuItem(
+                          value: 'remove_protection',
+                          child: Text('Remover protecao')),
+                    if (player.isOnCooldown)
+                      const PopupMenuItem(
+                          value: 'remove_cooldown',
+                          child: Text('Remover cooldown')),
                   ],
                 ),
               ),
@@ -159,8 +167,35 @@ class AdminPlayersScreen extends ConsumerWidget {
     String action,
   ) async {
     final client = ref.read(supabaseClientProvider);
-    String newStatus;
 
+    // Ações de proteção/cooldown
+    if (action == 'remove_protection' || action == 'remove_cooldown') {
+      final field = action == 'remove_protection'
+          ? 'challenged_protection_until'
+          : 'challenger_cooldown_until';
+      final label =
+          action == 'remove_protection' ? 'Protecao' : 'Cooldown';
+
+      try {
+        await client
+            .from(SupabaseConstants.playersTable)
+            .update({field: null}).eq('id', player.id);
+
+        if (context.mounted) {
+          SnackbarUtils.showSuccess(
+              context, '$label removido de ${player.fullName}');
+          ref.invalidate(_adminPlayersProvider);
+        }
+      } catch (e) {
+        if (context.mounted) {
+          SnackbarUtils.showError(context, 'Erro: $e');
+        }
+      }
+      return;
+    }
+
+    // Ações de status
+    String newStatus;
     switch (action) {
       case 'activate':
         newStatus = 'active';
@@ -264,7 +299,7 @@ class AdminAmbulanceScreen extends ConsumerWidget {
               ...activePlayers.map((p) => Card(
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: Colors.grey.shade200,
+                        backgroundColor: AppColors.surfaceVariant,
                         child: Text('#${p.rankingPosition}',
                             style: const TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 12)),
@@ -384,7 +419,7 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final (color, label) = switch (status) {
       PlayerStatus.active => (AppColors.success, 'Ativo'),
-      PlayerStatus.inactive => (Colors.grey, 'Inativo'),
+      PlayerStatus.inactive => (AppColors.onBackgroundLight, 'Inativo'),
       PlayerStatus.ambulance => (AppColors.ambulanceActive, 'Ambulancia'),
       PlayerStatus.suspended => (AppColors.error, 'Suspenso'),
     };

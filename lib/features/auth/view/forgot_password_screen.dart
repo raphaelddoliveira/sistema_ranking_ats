@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/snackbar_utils.dart';
 import '../../../core/utils/validators.dart';
 import '../../../services/auth_service.dart';
@@ -75,7 +76,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.lock_reset, size: 64, color: Colors.grey),
+          const Icon(Icons.lock_reset, size: 64, color: AppColors.onBackgroundLight),
           const SizedBox(height: 24),
           Text(
             'Esqueceu sua senha?',
@@ -89,7 +90,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             'Informe seu email e enviaremos um link para redefinir sua senha.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey,
+                  color: AppColors.onBackgroundLight,
                 ),
           ),
           const SizedBox(height: 32),
@@ -123,7 +124,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(Icons.mark_email_read, size: 80, color: Colors.green),
+        const Icon(Icons.mark_email_read, size: 80, color: AppColors.success),
         const SizedBox(height: 24),
         Text(
           'Email enviado!',
@@ -136,7 +137,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           'Verifique sua caixa de entrada e siga as instrucoes para redefinir sua senha.',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey,
+                color: AppColors.onBackgroundLight,
               ),
         ),
         const SizedBox(height: 32),

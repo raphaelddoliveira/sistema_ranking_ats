@@ -13,7 +13,6 @@ abstract final class RouteNames {
 
   // Ranking
   static const String rankingHistory = '/ranking/history/:playerId';
-  static const String playerDetail = '/ranking/player/:playerId';
 
   // Challenges
   static const String createChallenge = '/challenges/create';
@@ -26,13 +25,8 @@ abstract final class RouteNames {
   static const String courtSchedule = '/courts/:courtId/schedule';
   static const String myReservations = '/courts/my-reservations';
 
-  // Profile
-  static const String editProfile = '/profile/edit';
-
   // Admin
   static const String adminDashboard = '/admin';
   static const String adminPlayers = '/admin/players';
-  static const String adminCourts = '/admin/courts';
-  static const String adminFees = '/admin/fees';
   static const String adminAmbulances = '/admin/ambulances';
 }

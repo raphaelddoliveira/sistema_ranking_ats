@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/extensions/date_extensions.dart';
 import '../../../core/theme/app_colors.dart';
@@ -49,7 +50,7 @@ class _ChooseDateScreenState extends ConsumerState<ChooseDateScreen> {
                         style: Theme.of(context)
                             .textTheme
                             .bodySmall
-                            ?.copyWith(color: Colors.grey.shade700),
+                            ?.copyWith(color: AppColors.onBackgroundMedium),
                       ),
                     ),
                   ],
@@ -89,10 +90,10 @@ class _ChooseDateScreenState extends ConsumerState<ChooseDateScreen> {
                                 ? Icons.radio_button_checked
                                 : Icons.radio_button_unchecked,
                             color: isPast
-                                ? Colors.grey.shade400
+                                ? AppColors.onBackgroundLight
                                 : isSelected
                                     ? AppColors.primary
-                                    : Colors.grey,
+                                    : AppColors.onBackgroundLight,
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -104,8 +105,8 @@ class _ChooseDateScreenState extends ConsumerState<ChooseDateScreen> {
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: isPast
-                                        ? Colors.grey.shade400
-                                        : Colors.grey,
+                                        ? AppColors.onBackgroundLight
+                                        : AppColors.onBackgroundLight,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -115,7 +116,7 @@ class _ChooseDateScreenState extends ConsumerState<ChooseDateScreen> {
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                     color: isPast
-                                        ? Colors.grey.shade400
+                                        ? AppColors.onBackgroundLight
                                         : null,
                                     decoration: isPast
                                         ? TextDecoration.lineThrough
@@ -147,7 +148,7 @@ class _ChooseDateScreenState extends ConsumerState<ChooseDateScreen> {
                             const Text(
                               'Expirada',
                               style: TextStyle(
-                                  fontSize: 12, color: Colors.grey),
+                                  fontSize: 12, color: AppColors.onBackgroundLight),
                             ),
                         ],
                       ),
@@ -197,7 +198,7 @@ class _ChooseDateScreenState extends ConsumerState<ChooseDateScreen> {
       SnackbarUtils.showSuccess(context, 'Data confirmada! Jogo agendado.');
       ref.invalidate(challengeDetailProvider(widget.challengeId));
       ref.invalidate(activeChallengesProvider);
-      Navigator.of(context).pop();
+      context.pop();
     } else {
       SnackbarUtils.showError(context, 'Erro ao confirmar data');
     }

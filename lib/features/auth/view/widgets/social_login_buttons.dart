@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_colors.dart';
+
 class SocialLoginButtons extends StatelessWidget {
   final VoidCallback onGooglePressed;
   final VoidCallback onApplePressed;
@@ -25,7 +27,7 @@ class SocialLoginButtons extends StatelessWidget {
               child: Text(
                 'ou continue com',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
+                      color: AppColors.onBackgroundLight,
                     ),
               ),
             ),

@@ -25,7 +25,7 @@ class RankingRepository {
           .select()
           .neq('status', 'inactive')
           .not('ranking_position', 'is', null)
-          .order('ranking_position');
+          .order('ranking_position', ascending: true);
       return data.map((e) => PlayerModel.fromJson(e)).toList();
     } catch (e) {
       throw ErrorHandler.handle(e);

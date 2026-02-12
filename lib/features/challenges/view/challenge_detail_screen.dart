@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/extensions/date_extensions.dart';
 import '../../../core/theme/app_colors.dart';
@@ -37,7 +38,7 @@ class ChallengeDetailScreen extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
               const SizedBox(height: 16),
               Text('Erro: $error'),
               const SizedBox(height: 16),
@@ -88,19 +89,21 @@ class _ChallengeDetailBody extends ConsumerWidget {
                     position: challenge.challengerPosition,
                     isCurrentUser: isChallenger,
                   ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(
                       children: [
-                        Expanded(child: Divider()),
+                        const Expanded(child: Divider()),
                         Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text('VS',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey)),
+                              style: GoogleFonts.spaceGrotesk(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                  letterSpacing: 2,
+                                  color: AppColors.onBackgroundMedium)),
                         ),
-                        Expanded(child: Divider()),
+                        const Expanded(child: Divider()),
                       ],
                     ),
                   ),
@@ -197,7 +200,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
                                 size: 18,
                                 color: date == challenge.chosenDate
                                     ? AppColors.success
-                                    : Colors.grey,
+                                    : AppColors.onBackgroundLight,
                               ),
                               const SizedBox(width: 8),
                               Text(
@@ -251,7 +254,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
                           match.superTiebreak
                               ? 'Super tiebreak'
                               : '${match.winnerSets}x${match.loserSets} sets',
-                          style: const TextStyle(color: Colors.grey),
+                          style: const TextStyle(color: AppColors.onBackgroundMedium),
                         ),
                       ),
                     ],
@@ -403,7 +406,7 @@ class _PlayerRow extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 20,
-          backgroundColor: Colors.grey.shade200,
+          backgroundColor: AppColors.surfaceVariant,
           child: Text('#$position',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
         ),
@@ -414,7 +417,7 @@ class _PlayerRow extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                style: const TextStyle(fontSize: 11, color: AppColors.onBackgroundLight),
               ),
               Row(
                 children: [
@@ -502,9 +505,9 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: color ?? Colors.grey),
+          Icon(icon, size: 16, color: color ?? AppColors.onBackgroundLight),
           const SizedBox(width: 8),
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+          Text(label, style: const TextStyle(color: AppColors.onBackgroundMedium, fontSize: 13)),
           const Spacer(),
           Text(
             value,

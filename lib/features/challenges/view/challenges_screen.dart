@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/extensions/date_extensions.dart';
 import '../../../core/theme/app_colors.dart';
@@ -7,8 +8,6 @@ import '../../../shared/models/challenge_model.dart';
 import '../../../shared/models/enums.dart';
 import '../../../shared/providers/current_player_provider.dart';
 import '../viewmodel/challenge_list_viewmodel.dart';
-import 'challenge_detail_screen.dart';
-import 'create_challenge_screen.dart';
 
 class ChallengesScreen extends ConsumerWidget {
   const ChallengesScreen({super.key});
@@ -29,13 +28,7 @@ class ChallengesScreen extends ConsumerWidget {
           ),
         ),
         floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const CreateChallengeScreen(),
-              ),
-            );
-          },
+          onPressed: () => context.push('/challenges/create'),
           child: const Icon(Icons.add),
         ),
         body: const TabBarView(
@@ -65,16 +58,16 @@ class _ActiveChallengesTab extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.sports_tennis, size: 64, color: Colors.grey),
+                Icon(Icons.sports_tennis, size: 64, color: AppColors.onBackgroundLight),
                 SizedBox(height: 16),
                 Text(
                   'Nenhum desafio ativo',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  style: TextStyle(fontSize: 16, color: AppColors.onBackgroundLight),
                 ),
                 SizedBox(height: 8),
                 Text(
                   'Toque no + para criar um desafio',
-                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                  style: TextStyle(fontSize: 13, color: AppColors.onBackgroundLight),
                 ),
               ],
             ),
@@ -98,7 +91,7 @@ class _ActiveChallengesTab extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
             const SizedBox(height: 16),
             Text('Erro: $error', textAlign: TextAlign.center),
             const SizedBox(height: 16),
@@ -128,7 +121,7 @@ class _HistoryChallengesTab extends ConsumerWidget {
           return const Center(
             child: Text(
               'Nenhum desafio finalizado',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+              style: TextStyle(fontSize: 16, color: AppColors.onBackgroundLight),
             ),
           );
         }
@@ -181,15 +174,7 @@ class _ChallengeListTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: InkWell(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => ChallengeDetailScreen(
-                challengeId: challenge.id,
-              ),
-            ),
-          );
-        },
+        onTap: () => context.push('/challenges/${challenge.id}'),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -216,7 +201,7 @@ class _ChallengeListTile extends StatelessWidget {
                         Text(
                           isChallenger ? 'Voce desafiou' : 'Desafiado por',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.grey,
+                                color: AppColors.onBackgroundMedium,
                               ),
                         ),
                       ],
@@ -251,7 +236,7 @@ class _ChallengeListTile extends StatelessWidget {
                         Text(
                           challenge.createdAt.timeAgo(),
                           style: const TextStyle(
-                              fontSize: 11, color: Colors.grey),
+                              fontSize: 11, color: AppColors.onBackgroundLight),
                         ),
                       ],
                     ),
@@ -272,7 +257,7 @@ class _ChallengeListTile extends StatelessWidget {
                 ),
 
               const SizedBox(width: 4),
-              const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+              Icon(Icons.arrow_forward_ios, color: AppColors.onBackgroundLight, size: 14),
             ],
           ),
         ),

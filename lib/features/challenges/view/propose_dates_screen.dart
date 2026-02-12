@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/snackbar_utils.dart';
@@ -50,7 +51,7 @@ class _ProposeDatesScreenState extends ConsumerState<ProposeDatesScreen> {
                             style: Theme.of(context)
                                 .textTheme
                                 .bodySmall
-                                ?.copyWith(color: Colors.grey.shade700),
+                                ?.copyWith(color: AppColors.onBackgroundMedium),
                           ),
                         ),
                       ],
@@ -122,7 +123,7 @@ class _ProposeDatesScreenState extends ConsumerState<ProposeDatesScreen> {
       SnackbarUtils.showSuccess(context, 'Datas propostas com sucesso!');
       ref.invalidate(challengeDetailProvider(widget.challengeId));
       ref.invalidate(activeChallengesProvider);
-      Navigator.of(context).pop();
+      context.pop();
     } else {
       SnackbarUtils.showError(context, 'Erro ao propor datas');
     }
@@ -162,11 +163,11 @@ class _DatePickerCard extends StatelessWidget {
               CircleAvatar(
                 radius: 18,
                 backgroundColor:
-                    hasDate ? AppColors.primary : Colors.grey.shade200,
+                    hasDate ? AppColors.primary : AppColors.surfaceVariant,
                 child: Text(
                   '$number',
                   style: TextStyle(
-                    color: hasDate ? Colors.white : Colors.grey,
+                    color: hasDate ? Colors.white : AppColors.onBackgroundLight,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -179,7 +180,7 @@ class _DatePickerCard extends StatelessWidget {
                     Text(
                       'Opcao $number',
                       style: const TextStyle(
-                          fontSize: 12, color: Colors.grey),
+                          fontSize: 12, color: AppColors.onBackgroundLight),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -189,7 +190,7 @@ class _DatePickerCard extends StatelessWidget {
                       style: TextStyle(
                         fontWeight:
                             hasDate ? FontWeight.w600 : FontWeight.normal,
-                        color: hasDate ? null : Colors.grey,
+                        color: hasDate ? null : AppColors.onBackgroundLight,
                       ),
                     ),
                   ],
@@ -197,7 +198,7 @@ class _DatePickerCard extends StatelessWidget {
               ),
               Icon(
                 hasDate ? Icons.check_circle : Icons.calendar_month,
-                color: hasDate ? AppColors.success : Colors.grey,
+                color: hasDate ? AppColors.success : AppColors.onBackgroundLight,
               ),
             ],
           ),

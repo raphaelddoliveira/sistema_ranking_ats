@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/constants/route_names.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/errors/error_handler.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/snackbar_utils.dart';
 import '../../../core/utils/validators.dart';
+import '../../../shared/widgets/gradient_button.dart';
 import '../viewmodel/login_viewmodel.dart';
 import 'widgets/auth_form_field.dart';
 import 'widgets/social_login_buttons.dart';
@@ -66,28 +69,47 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(
-                    Icons.sports_tennis,
-                    size: 80,
-                    color: Theme.of(context).colorScheme.primary,
+                  // Gradient logo
+                  Container(
+                    width: 96,
+                    height: 96,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withAlpha(60),
+                          blurRadius: 28,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.sports_tennis,
+                      size: 46,
+                      color: AppColors.secondary,
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   Text(
                     'SmashRank',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.onBackground,
+                      letterSpacing: -0.5,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Sistema de Ranking de Tenis',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey,
+                          color: AppColors.onBackgroundMedium,
                         ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 48),
                   AuthFormField(
                     controller: _emailController,
                     label: 'Email',
@@ -122,7 +144,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
+                  GradientButton(
                     onPressed: isLoading ? null : _submit,
                     child: isLoading
                         ? const SizedBox(
