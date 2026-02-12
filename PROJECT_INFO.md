@@ -14,7 +14,7 @@ Sistema completo de gerenciamento de ranking de tenis, com cadastro de jogadores
 | **Backend** | Supabase (PostgreSQL + Auth + Realtime + Storage) |
 | **Navegacao** | GoRouter com auth guard |
 | **Auth** | Email/Senha + Google Sign-In + Apple Sign-In |
-| **Automacoes (futuro)** | N8N + WhatsApp Business API |
+| **Automacoes** | Vercel Cron Jobs (penalizacoes automaticas) |
 
 ---
 
@@ -121,7 +121,7 @@ lib/
 
     challenges/                      # [FASE 4 - Completa]
       data/
-        challenge_repository.dart    # createChallenge (RPC), proposeDates, chooseDate, recordResult (RPC), getEligibleOpponents, lifecycle completo
+        challenge_repository.dart    # createChallenge (RPC), proposeDates, chooseDate, recordResult (RPC), getEligibleOpponents, lifecycle completo + notificacoes (dates_proposed, date_chosen, general)
       view/
         challenges_screen.dart       # Tabs Ativos/Historico com FAB para criar desafio
         create_challenge_screen.dart # Selecao de oponente (ate 2 posicoes acima, protecao visivel)
@@ -166,7 +166,17 @@ supabase/
     002_rls_policies.sql             # RLS em todas as tabelas + helper functions
     003_database_functions.sql       # 9 funcoes de logica de negocio
     004_seed_data.sql                # 3 quadras + slots horarios
+    005_phase7_notifications.sql     # Notificacoes em todas as funcoes + fix RLS + bug fix expire
   full_setup.sql                     # SQL consolidado (tudo acima em 1 arquivo)
+
+vercel-crons/                        # Cron jobs para penalizacoes automaticas
+  api/cron/
+    expire-challenges.js             # A cada hora: WO automatico em desafios sem resposta 48h
+    daily-penalties.js               # Diario 3h: penalizacao ambulancia + inadimplencia
+    monthly-penalties.js             # Dia 1 4h: penalizacao inatividade mensal
+  package.json
+  vercel.json                        # Schedules dos crons
+  .env.example
 ```
 
 ---
@@ -193,15 +203,15 @@ supabase/
 
 | Funcao | Descricao |
 |--------|-----------|
-| `swap_ranking_after_challenge()` | Troca posicoes quando desafiante vence |
-| `activate_ambulance()` | Penaliza -3 posicoes, ativa protecao 10 dias |
-| `deactivate_ambulance()` | Desativa ambulancia |
-| `apply_ambulance_daily_penalties()` | -1 posicao/dia apos protecao (cron) |
-| `apply_overdue_penalties()` | -10 posicoes por inadimplencia 15+ dias (cron) |
-| `apply_monthly_inactivity_penalties()` | -1 posicao por inatividade mensal (cron) |
+| `swap_ranking_after_challenge()` | Troca posicoes quando desafiante vence + notifica match_result e ranking_change |
+| `activate_ambulance()` | Penaliza -3 posicoes, ativa protecao 10 dias + notifica ambulance_activated |
+| `deactivate_ambulance()` | Desativa ambulancia + notifica ambulance_expired |
+| `apply_ambulance_daily_penalties()` | -1 posicao/dia apos protecao (cron) + notifica ranking_change |
+| `apply_overdue_penalties()` | -10 posicoes por inadimplencia 15+ dias (cron) + notifica payment_overdue |
+| `apply_monthly_inactivity_penalties()` | -1 posicao por inatividade mensal (cron) + notifica ranking_change |
 | `validate_challenge_creation()` | Valida TODAS as regras de negocio |
-| `create_challenge()` | Valida + cria desafio + notifica |
-| `expire_pending_challenges()` | WO automatico apos 48h sem resposta (cron) |
+| `create_challenge()` | Valida + cria desafio + notifica challenge_received |
+| `expire_pending_challenges()` | WO automatico apos 48h sem resposta (cron) + notifica wo_warning |
 
 ---
 
@@ -298,9 +308,18 @@ supabase/
 - [x] Admin Ambulancia: ativar via RPC (-3 posicoes + protecao 10 dias), desativar via RPC
 - [x] `flutter analyze` = 0 errors
 
-### Fase 7 - Automacoes (FUTURO)
-- [ ] N8N crons para penalizacoes automaticas
+### Fase 7 - Notificacoes Completas + Vercel Cron Jobs (COMPLETA)
+- [x] Fix RLS policy: permitir jogadores inserir notificacoes para outros
+- [x] Notificacoes SQL em 7 funcoes: swap_ranking, activate/deactivate_ambulance, daily/overdue/inactivity penalties, expire_challenges
+- [x] Bug fix: expire_pending_challenges - status 'scheduled' antes de chamar swap
+- [x] Notificacoes Dart em 3 metodos: proposeDates (dates_proposed), chooseDate (date_chosen), cancelChallenge (general)
+- [x] 12 tipos de notificacao 100% implementados
+- [x] Vercel Cron Jobs: expire-challenges (horario), daily-penalties (diario 3h), monthly-penalties (dia 1 4h)
+- [x] Migration 005_phase7_notifications.sql
+
+### Fase 8 - Futuro
 - [ ] Integracao WhatsApp Business API
+- [ ] Push notifications (Firebase Cloud Messaging)
 
 ---
 

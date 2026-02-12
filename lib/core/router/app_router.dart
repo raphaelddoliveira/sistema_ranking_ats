@@ -13,7 +13,9 @@ import '../../features/challenges/view/challenges_screen.dart';
 import '../../features/challenges/view/create_challenge_screen.dart';
 import '../../features/challenges/view/challenge_detail_screen.dart';
 import '../../features/courts/view/courts_screen.dart';
+import '../../features/courts/view/court_schedule_screen.dart';
 import '../../features/courts/view/my_reservations_screen.dart';
+import '../../shared/models/court_model.dart';
 import '../../features/notifications/view/notifications_screen.dart';
 import '../../features/profile/view/profile_screen.dart';
 import '../../shared/widgets/app_scaffold.dart';
@@ -88,6 +90,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: 'my-reservations',
                 builder: (context, state) =>
                     const MyReservationsScreen(),
+              ),
+              GoRoute(
+                path: ':courtId',
+                builder: (context, state) => CourtScheduleScreen(
+                  court: state.extra! as CourtModel,
+                ),
               ),
             ],
           ),

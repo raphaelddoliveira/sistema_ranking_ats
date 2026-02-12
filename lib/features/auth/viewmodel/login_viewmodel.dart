@@ -17,9 +17,9 @@ class LoginViewModel extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
     try {
       await _authRepository.signInWithEmail(email, password);
-      state = const AsyncData(null);
+      if (mounted) state = const AsyncData(null);
     } on AppException catch (e, st) {
-      state = AsyncError(e, st);
+      if (mounted) state = AsyncError(e, st);
     }
   }
 
@@ -27,9 +27,9 @@ class LoginViewModel extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
     try {
       await _authRepository.signInWithGoogle();
-      state = const AsyncData(null);
+      if (mounted) state = const AsyncData(null);
     } on AppException catch (e, st) {
-      state = AsyncError(e, st);
+      if (mounted) state = AsyncError(e, st);
     }
   }
 
@@ -37,9 +37,9 @@ class LoginViewModel extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
     try {
       await _authRepository.signInWithApple();
-      state = const AsyncData(null);
+      if (mounted) state = const AsyncData(null);
     } on AppException catch (e, st) {
-      state = AsyncError(e, st);
+      if (mounted) state = AsyncError(e, st);
     }
   }
 }

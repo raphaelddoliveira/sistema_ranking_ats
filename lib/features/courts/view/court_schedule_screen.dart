@@ -280,17 +280,15 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                 ),
                 // Action
                 if (!isReserved && !isSlotPast)
-                  SizedBox(
-                    height: 36,
-                    child: ElevatedButton(
-                      onPressed: () => _confirmReservation(slot),
-                      style: ElevatedButton.styleFrom(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 16),
-                      ),
-                      child: const Text('Reservar',
-                          style: TextStyle(fontSize: 13)),
+                  ElevatedButton(
+                    onPressed: () => _confirmReservation(slot),
+                    style: ElevatedButton.styleFrom(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 16),
+                      minimumSize: const Size(0, 36),
                     ),
+                    child: const Text('Reservar',
+                        style: TextStyle(fontSize: 13)),
                   )
                 else if (isReserved)
                   const Icon(Icons.lock, color: Colors.grey, size: 20),

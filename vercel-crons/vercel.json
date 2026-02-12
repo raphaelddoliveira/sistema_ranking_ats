@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/expire-challenges",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/daily-penalties",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/monthly-penalties",
+      "schedule": "0 4 1 * *"
+    }
+  ]
+}

@@ -1,11 +1,22 @@
 -- ============================================================
--- ATS Ranking System 2026 - Database Functions
+-- ATS Ranking System 2026 - Phase 7: Complete Notifications
 -- ============================================================
 
 -- ============================================================
--- FUNCTION: swap_ranking_after_challenge
--- When challenger wins: takes loser's position, loser drops 1
--- When challenged wins: no position change
+-- FIX: RLS policy to allow players to insert notifications for others
+-- ============================================================
+DROP POLICY IF EXISTS notifications_insert ON notifications;
+
+CREATE POLICY notifications_insert ON notifications
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    is_admin()
+    OR player_id != get_player_id()
+  );
+
+-- ============================================================
+-- FUNCTION: swap_ranking_after_challenge (UPDATED)
+-- Added: match_result + ranking_change notifications
 -- ============================================================
 CREATE OR REPLACE FUNCTION swap_ranking_after_challenge(
   p_challenge_id UUID,
@@ -123,8 +134,8 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================
--- FUNCTION: activate_ambulance
--- -3 positions immediately, 10 days protection
+-- FUNCTION: activate_ambulance (UPDATED)
+-- Added: ambulance_activated notification
 -- ============================================================
 CREATE OR REPLACE FUNCTION activate_ambulance(
   p_player_id UUID,
@@ -183,7 +194,8 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================
--- FUNCTION: deactivate_ambulance
+-- FUNCTION: deactivate_ambulance (UPDATED)
+-- Added: ambulance_expired notification
 -- ============================================================
 CREATE OR REPLACE FUNCTION deactivate_ambulance(p_player_id UUID)
 RETURNS VOID AS $$
@@ -212,8 +224,8 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================
--- FUNCTION: apply_ambulance_daily_penalties
--- Called by cron: -1 position per day after protection ends
+-- FUNCTION: apply_ambulance_daily_penalties (UPDATED)
+-- Added: ranking_change notification
 -- ============================================================
 CREATE OR REPLACE FUNCTION apply_ambulance_daily_penalties()
 RETURNS INT AS $$
@@ -272,8 +284,8 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================
--- FUNCTION: apply_overdue_penalties
--- Players 15+ days overdue lose 10 positions
+-- FUNCTION: apply_overdue_penalties (UPDATED)
+-- Added: payment_overdue notification
 -- ============================================================
 CREATE OR REPLACE FUNCTION apply_overdue_penalties()
 RETURNS INT AS $$
@@ -329,8 +341,8 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================
--- FUNCTION: apply_monthly_inactivity_penalties
--- No challenge in a month = -1 position
+-- FUNCTION: apply_monthly_inactivity_penalties (UPDATED)
+-- Added: ranking_change notification
 -- ============================================================
 CREATE OR REPLACE FUNCTION apply_monthly_inactivity_penalties()
 RETURNS INT AS $$
@@ -379,130 +391,9 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================
--- FUNCTION: validate_challenge_creation
--- Enforces all business rules before allowing a challenge
--- ============================================================
-CREATE OR REPLACE FUNCTION validate_challenge_creation(
-  p_challenger_id UUID,
-  p_challenged_id UUID
-)
-RETURNS JSONB AS $$
-DECLARE
-  v_challenger RECORD;
-  v_challenged RECORD;
-  v_active_challenge_count INT;
-BEGIN
-  SELECT * INTO v_challenger FROM players WHERE id = p_challenger_id;
-  SELECT * INTO v_challenged FROM players WHERE id = p_challenged_id;
-
-  IF v_challenger.status != 'active' THEN
-    RETURN jsonb_build_object('valid', FALSE, 'error', 'Jogador nao esta ativo');
-  END IF;
-  IF v_challenged.status NOT IN ('active') THEN
-    RETURN jsonb_build_object('valid', FALSE, 'error', 'Jogador desafiado nao esta disponivel');
-  END IF;
-
-  IF v_challenger.fee_status = 'overdue' THEN
-    RETURN jsonb_build_object('valid', FALSE, 'error', 'Mensalidade em atraso. Regularize para desafiar.');
-  END IF;
-
-  IF v_challenger.must_be_challenged_first THEN
-    RETURN jsonb_build_object('valid', FALSE, 'error',
-      'Voce deve ser desafiado primeiro apos retornar da ambulancia');
-  END IF;
-
-  IF v_challenger.ranking_position - v_challenged.ranking_position > 2 THEN
-    RETURN jsonb_build_object('valid', FALSE, 'error',
-      'So pode desafiar jogadores ate 2 posicoes a frente');
-  END IF;
-  IF v_challenged.ranking_position >= v_challenger.ranking_position THEN
-    RETURN jsonb_build_object('valid', FALSE, 'error',
-      'So pode desafiar jogadores acima no ranking');
-  END IF;
-
-  IF v_challenger.challenger_cooldown_until IS NOT NULL
-     AND v_challenger.challenger_cooldown_until > now() THEN
-    RETURN jsonb_build_object('valid', FALSE, 'error',
-      format('Cooldown ativo ate %s', v_challenger.challenger_cooldown_until));
-  END IF;
-
-  IF v_challenged.challenged_protection_until IS NOT NULL
-     AND v_challenged.challenged_protection_until > now() THEN
-    RETURN jsonb_build_object('valid', FALSE, 'error',
-      'Este jogador esta protegido temporariamente');
-  END IF;
-
-  SELECT COUNT(*) INTO v_active_challenge_count
-  FROM challenges
-  WHERE status IN ('pending', 'dates_proposed', 'scheduled')
-    AND (challenger_id = p_challenger_id OR challenged_id = p_challenger_id
-         OR challenger_id = p_challenged_id OR challenged_id = p_challenged_id);
-
-  IF v_active_challenge_count > 0 THEN
-    RETURN jsonb_build_object('valid', FALSE, 'error',
-      'Um dos jogadores ja possui um desafio ativo');
-  END IF;
-
-  RETURN jsonb_build_object('valid', TRUE);
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- ============================================================
--- FUNCTION: create_challenge
--- ============================================================
-CREATE OR REPLACE FUNCTION create_challenge(
-  p_challenger_auth_id UUID,
-  p_challenged_id UUID
-)
-RETURNS UUID AS $$
-DECLARE
-  v_challenger_id UUID;
-  v_validation JSONB;
-  v_challenge_id UUID;
-  v_challenger_pos INT;
-  v_challenged_pos INT;
-BEGIN
-  SELECT id INTO v_challenger_id FROM players WHERE auth_id = p_challenger_auth_id;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Jogador nao encontrado para auth_id: %', p_challenger_auth_id;
-  END IF;
-
-  v_validation := validate_challenge_creation(v_challenger_id, p_challenged_id);
-  IF NOT (v_validation->>'valid')::BOOLEAN THEN
-    RAISE EXCEPTION '%', v_validation->>'error';
-  END IF;
-
-  SELECT ranking_position INTO v_challenger_pos FROM players WHERE id = v_challenger_id;
-  SELECT ranking_position INTO v_challenged_pos FROM players WHERE id = p_challenged_id;
-
-  INSERT INTO challenges (
-    challenger_id, challenged_id,
-    challenger_position, challenged_position,
-    response_deadline
-  )
-  VALUES (
-    v_challenger_id, p_challenged_id,
-    v_challenger_pos, v_challenged_pos,
-    now() + INTERVAL '48 hours'
-  )
-  RETURNING id INTO v_challenge_id;
-
-  INSERT INTO notifications (player_id, type, title, body, data)
-  VALUES (
-    p_challenged_id,
-    'challenge_received',
-    'Novo Desafio!',
-    format('Voce foi desafiado pelo jogador da posicao #%s. Responda em 48h.', v_challenger_pos),
-    jsonb_build_object('challenge_id', v_challenge_id)
-  );
-
-  RETURN v_challenge_id;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- ============================================================
--- FUNCTION: expire_pending_challenges
--- Auto-expire challenges without response after 48h
+-- FUNCTION: expire_pending_challenges (UPDATED)
+-- Bug fix: call swap BEFORE setting wo_challenged status
+-- Added: wo_warning notification
 -- ============================================================
 CREATE OR REPLACE FUNCTION expire_pending_challenges()
 RETURNS INT AS $$

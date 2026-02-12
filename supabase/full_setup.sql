@@ -416,7 +416,10 @@ CREATE POLICY notifications_update ON notifications
 
 CREATE POLICY notifications_insert ON notifications
   FOR INSERT TO authenticated
-  WITH CHECK (is_admin());
+  WITH CHECK (
+    is_admin()
+    OR player_id != get_player_id()
+  );
 
 -- MONTHLY_FEES
 ALTER TABLE monthly_fees ENABLE ROW LEVEL SECURITY;
@@ -467,8 +470,8 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Challenge not found: %', p_challenge_id;
   END IF;
-  IF v_challenge.status != 'scheduled' THEN
-    RAISE EXCEPTION 'Challenge is not in scheduled status: %', v_challenge.status;
+  IF v_challenge.status NOT IN ('scheduled', 'wo_challenged') THEN
+    RAISE EXCEPTION 'Challenge is not in valid status: %', v_challenge.status;
   END IF;
 
   v_challenger_id := v_challenge.challenger_id;
@@ -498,6 +501,22 @@ BEGIN
     VALUES (p_winner_id, v_winner_pos, v_loser_pos, 'challenge_win', p_challenge_id);
     INSERT INTO ranking_history (player_id, old_position, new_position, reason, reference_id)
     VALUES (p_loser_id, v_loser_pos, v_loser_pos + 1, 'challenge_loss', p_challenge_id);
+
+    -- Notification: ranking_change for winner
+    INSERT INTO notifications (player_id, type, title, body, data)
+    VALUES (
+      p_winner_id, 'ranking_change', 'Ranking Atualizado!',
+      format('Voce subiu para a posicao #%s (era #%s).', v_loser_pos, v_winner_pos),
+      jsonb_build_object('challenge_id', p_challenge_id, 'old_position', v_winner_pos, 'new_position', v_loser_pos)
+    );
+
+    -- Notification: ranking_change for loser
+    INSERT INTO notifications (player_id, type, title, body, data)
+    VALUES (
+      p_loser_id, 'ranking_change', 'Ranking Atualizado',
+      format('Voce desceu para a posicao #%s (era #%s).', v_loser_pos + 1, v_loser_pos),
+      jsonb_build_object('challenge_id', p_challenge_id, 'old_position', v_loser_pos, 'new_position', v_loser_pos + 1)
+    );
   END IF;
 
   -- Update challenge status
@@ -518,6 +537,22 @@ BEGIN
   UPDATE players
   SET challenged_protection_until = now() + INTERVAL '24 hours'
   WHERE id = v_challenged_id;
+
+  -- Notification: match_result for winner
+  INSERT INTO notifications (player_id, type, title, body, data)
+  VALUES (
+    p_winner_id, 'match_result', 'Resultado Registrado',
+    'Voce venceu o desafio! Confira os detalhes.',
+    jsonb_build_object('challenge_id', p_challenge_id)
+  );
+
+  -- Notification: match_result for loser
+  INSERT INTO notifications (player_id, type, title, body, data)
+  VALUES (
+    p_loser_id, 'match_result', 'Resultado Registrado',
+    'O resultado do seu desafio foi registrado. Confira os detalhes.',
+    jsonb_build_object('challenge_id', p_challenge_id)
+  );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -565,6 +600,14 @@ BEGIN
   INSERT INTO ranking_history (player_id, old_position, new_position, reason, reference_id)
   VALUES (p_player_id, v_current_pos, v_new_pos, 'ambulance_penalty', v_ambulance_id);
 
+  -- Notification: ambulance_activated
+  INSERT INTO notifications (player_id, type, title, body, data)
+  VALUES (
+    p_player_id, 'ambulance_activated', 'Ambulancia Ativada',
+    format('Ambulancia ativada. Voce foi para a posicao #%s (era #%s). Protecao de 10 dias ativa.', v_new_pos, v_current_pos),
+    jsonb_build_object('ambulance_id', v_ambulance_id, 'reason', p_reason, 'old_position', v_current_pos, 'new_position', v_new_pos)
+  );
+
   RETURN v_ambulance_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -583,6 +626,14 @@ BEGIN
       ambulance_started_at = NULL,
       ambulance_protection_until = NULL
   WHERE id = p_player_id;
+
+  -- Notification: ambulance_expired
+  INSERT INTO notifications (player_id, type, title, body, data)
+  VALUES (
+    p_player_id, 'ambulance_expired', 'Ambulancia Desativada',
+    'Sua ambulancia foi desativada. Voce esta de volta ao ranking ativo.',
+    jsonb_build_object()
+  );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -625,6 +676,14 @@ BEGIN
 
       INSERT INTO ranking_history (player_id, old_position, new_position, reason, reference_id)
       VALUES (v_ambulance.player_id, v_current_pos, v_current_pos + 1, 'ambulance_daily_penalty', v_ambulance.id);
+
+      -- Notification: ranking_change for ambulance daily penalty
+      INSERT INTO notifications (player_id, type, title, body, data)
+      VALUES (
+        v_ambulance.player_id, 'ranking_change', 'Penalizacao Diaria - Ambulancia',
+        format('Voce perdeu 1 posicao por ambulancia ativa. Agora: #%s.', v_current_pos + 1),
+        jsonb_build_object('old_position', v_current_pos, 'new_position', v_current_pos + 1)
+      );
 
       v_count := v_count + 1;
     END IF;
@@ -672,6 +731,14 @@ BEGIN
     INSERT INTO ranking_history (player_id, old_position, new_position, reason)
     VALUES (v_player.id, v_player.ranking_position, v_new_pos, 'overdue_penalty');
 
+    -- Notification: payment_overdue
+    INSERT INTO notifications (player_id, type, title, body, data)
+    VALUES (
+      v_player.id, 'payment_overdue', 'Penalizacao por Inadimplencia',
+      format('Voce perdeu %s posicoes por atraso na mensalidade (15+ dias). Regularize para evitar mais penalizacoes.', v_new_pos - v_player.ranking_position),
+      jsonb_build_object('old_position', v_player.ranking_position, 'new_position', v_new_pos)
+    );
+
     v_count := v_count + 1;
   END LOOP;
 
@@ -707,6 +774,14 @@ BEGIN
 
     INSERT INTO ranking_history (player_id, old_position, new_position, reason)
     VALUES (v_player.id, v_player.ranking_position, v_player.ranking_position + 1, 'monthly_inactivity');
+
+    -- Notification: ranking_change for monthly inactivity
+    INSERT INTO notifications (player_id, type, title, body, data)
+    VALUES (
+      v_player.id, 'ranking_change', 'Penalizacao por Inatividade',
+      format('Voce perdeu 1 posicao por nao ter jogado nenhum desafio este mes. Agora: #%s.', v_player.ranking_position + 1),
+      jsonb_build_object('old_position', v_player.ranking_position, 'new_position', v_player.ranking_position + 1)
+    );
 
     v_count := v_count + 1;
   END LOOP;
@@ -848,17 +923,31 @@ BEGIN
     WHERE status = 'pending'
       AND response_deadline < now()
   LOOP
+    -- Set to 'scheduled' temporarily so swap_ranking_after_challenge works
     UPDATE challenges
-    SET status = 'wo_challenged',
-        wo_player_id = v_challenge.challenged_id,
-        completed_at = now()
+    SET status = 'scheduled'
     WHERE id = v_challenge.id;
 
+    -- Perform the ranking swap (sets status to 'completed' + sends match_result notifications)
     PERFORM swap_ranking_after_challenge(
       v_challenge.id,
       v_challenge.challenger_id,
       v_challenge.challenged_id,
       '[]'::JSONB, 0, 0, FALSE
+    );
+
+    -- Override to wo_challenged status
+    UPDATE challenges
+    SET status = 'wo_challenged',
+        wo_player_id = v_challenge.challenged_id
+    WHERE id = v_challenge.id;
+
+    -- Notification: wo_warning for challenged player (who didn't respond)
+    INSERT INTO notifications (player_id, type, title, body, data)
+    VALUES (
+      v_challenge.challenged_id, 'wo_warning', 'WO - Desafio Expirado',
+      'Voce nao respondeu ao desafio em 48h e perdeu por WO.',
+      jsonb_build_object('challenge_id', v_challenge.id)
     );
 
     v_count := v_count + 1;
