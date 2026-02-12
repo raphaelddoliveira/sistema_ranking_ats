@@ -166,7 +166,10 @@ CREATE POLICY notifications_update ON notifications
 
 CREATE POLICY notifications_insert ON notifications
   FOR INSERT TO authenticated
-  WITH CHECK (is_admin());
+  WITH CHECK (
+    is_admin()
+    OR player_id != get_player_id()
+  );
 
 -- ============================================================
 -- MONTHLY_FEES

@@ -151,8 +151,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: ':courtId/schedule',
                 builder: (context, state) {
-                  final court =
-                      state.extra as CourtModel;
+                  final court = state.extra as CourtModel;
                   return CourtScheduleScreen(court: court);
                 },
               ),

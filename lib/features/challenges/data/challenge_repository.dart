@@ -115,6 +115,13 @@ class ChallengeRepository {
     required DateTime date3,
   }) async {
     try {
+      // Fetch challenge to get challenger_id for notification
+      final challenge = await _client
+          .from(SupabaseConstants.challengesTable)
+          .select('challenger_id')
+          .eq('id', challengeId)
+          .single();
+
       await _client
           .from(SupabaseConstants.challengesTable)
           .update({
@@ -125,6 +132,15 @@ class ChallengeRepository {
             'dates_proposed_at': DateTime.now().toIso8601String(),
           })
           .eq('id', challengeId);
+
+      // Notification: dates_proposed for challenger
+      await _client.from(SupabaseConstants.notificationsTable).insert({
+        'player_id': challenge['challenger_id'],
+        'type': 'dates_proposed',
+        'title': 'Datas Propostas',
+        'body': 'Seu oponente propos 3 datas para o desafio. Escolha uma!',
+        'data': {'challenge_id': challengeId},
+      });
     } catch (e) {
       throw ErrorHandler.handle(e);
     }
@@ -133,6 +149,13 @@ class ChallengeRepository {
   /// Challenger chooses one of the 3 proposed dates
   Future<void> chooseDate(String challengeId, DateTime chosenDate) async {
     try {
+      // Fetch challenge to get challenged_id for notification
+      final challenge = await _client
+          .from(SupabaseConstants.challengesTable)
+          .select('challenged_id')
+          .eq('id', challengeId)
+          .single();
+
       await _client
           .from(SupabaseConstants.challengesTable)
           .update({
@@ -144,6 +167,15 @@ class ChallengeRepository {
                 .toIso8601String(),
           })
           .eq('id', challengeId);
+
+      // Notification: date_chosen for challenged player
+      await _client.from(SupabaseConstants.notificationsTable).insert({
+        'player_id': challenge['challenged_id'],
+        'type': 'date_chosen',
+        'title': 'Data Confirmada',
+        'body': 'A data do seu desafio foi confirmada. Confira os detalhes!',
+        'data': {'challenge_id': challengeId},
+      });
     } catch (e) {
       throw ErrorHandler.handle(e);
     }
@@ -180,6 +212,15 @@ class ChallengeRepository {
   /// Cancel a challenge
   Future<void> cancelChallenge(String challengeId) async {
     try {
+      final playerId = await _getCurrentPlayerId();
+
+      // Fetch challenge to determine the other player
+      final challenge = await _client
+          .from(SupabaseConstants.challengesTable)
+          .select('challenger_id, challenged_id')
+          .eq('id', challengeId)
+          .single();
+
       await _client
           .from(SupabaseConstants.challengesTable)
           .update({
@@ -187,6 +228,19 @@ class ChallengeRepository {
             'cancelled_at': DateTime.now().toIso8601String(),
           })
           .eq('id', challengeId);
+
+      // Notify the other player
+      final otherPlayerId = challenge['challenger_id'] == playerId
+          ? challenge['challenged_id']
+          : challenge['challenger_id'];
+
+      await _client.from(SupabaseConstants.notificationsTable).insert({
+        'player_id': otherPlayerId,
+        'type': 'general',
+        'title': 'Desafio Cancelado',
+        'body': 'Um desafio em que voce participava foi cancelado.',
+        'data': {'challenge_id': challengeId},
+      });
     } catch (e) {
       throw ErrorHandler.handle(e);
     }

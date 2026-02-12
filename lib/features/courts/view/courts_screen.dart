@@ -18,9 +18,7 @@ class CourtsScreen extends ConsumerWidget {
         title: const Text('Quadras'),
         actions: [
           IconButton(
-            onPressed: () {
-              context.push('/courts/my-reservations');
-            },
+            onPressed: () => context.push('/courts/my-reservations'),
             icon: const Icon(Icons.calendar_month),
             tooltip: 'Minhas Reservas',
           ),
