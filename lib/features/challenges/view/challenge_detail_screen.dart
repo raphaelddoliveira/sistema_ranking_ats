@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/extensions/date_extensions.dart';
 import '../../../core/theme/app_colors.dart';
@@ -9,9 +10,6 @@ import '../../../shared/models/enums.dart';
 import '../../../shared/providers/current_player_provider.dart';
 import '../viewmodel/challenge_detail_viewmodel.dart';
 import '../viewmodel/challenge_list_viewmodel.dart';
-import 'propose_dates_screen.dart';
-import 'choose_date_screen.dart';
-import 'record_result_screen.dart';
 
 class ChallengeDetailScreen extends ConsumerWidget {
   final String challengeId;
@@ -288,13 +286,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
           actions.add(
             ElevatedButton.icon(
               onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ProposeDatesScreen(
-                      challengeId: challengeId,
-                    ),
-                  ),
-                );
+                context.push('/challenges/$challengeId/propose-dates');
               },
               icon: const Icon(Icons.calendar_month),
               label: const Text('Propor Datas'),
@@ -319,13 +311,9 @@ class _ChallengeDetailBody extends ConsumerWidget {
           actions.add(
             ElevatedButton.icon(
               onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ChooseDateScreen(
-                      challengeId: challengeId,
-                      proposedDates: challenge.proposedDates,
-                    ),
-                  ),
+                context.push(
+                  '/challenges/$challengeId/choose-date',
+                  extra: {'proposedDates': challenge.proposedDates},
                 );
               },
               icon: const Icon(Icons.event_available),
@@ -339,16 +327,14 @@ class _ChallengeDetailBody extends ConsumerWidget {
         actions.add(
           ElevatedButton.icon(
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => RecordResultScreen(
-                    challengeId: challengeId,
-                    challengerId: challenge.challengerId,
-                    challengedId: challenge.challengedId,
-                    challengerName: challenge.challengerName ?? 'Desafiante',
-                    challengedName: challenge.challengedName ?? 'Desafiado',
-                  ),
-                ),
+              context.push(
+                '/challenges/$challengeId/record-result',
+                extra: {
+                  'challengerId': challenge.challengerId,
+                  'challengedId': challenge.challengedId,
+                  'challengerName': challenge.challengerName ?? 'Desafiante',
+                  'challengedName': challenge.challengedName ?? 'Desafiado',
+                },
               );
             },
             icon: const Icon(Icons.scoreboard),

@@ -19,7 +19,7 @@ Future<void> main() async {
 
   runApp(
     const ProviderScope(
-      child: AtsRankingApp(),
+      child: SmashRankApp(),
     ),
   );
 }

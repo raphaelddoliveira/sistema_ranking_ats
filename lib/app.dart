@@ -4,15 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 
-class AtsRankingApp extends ConsumerWidget {
-  const AtsRankingApp({super.key});
+class SmashRankApp extends ConsumerWidget {
+  const SmashRankApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
-      title: 'ATS Ranking 2026',
+      title: 'SmashRank',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

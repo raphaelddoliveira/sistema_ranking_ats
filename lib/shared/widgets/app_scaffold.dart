@@ -6,7 +6,6 @@ import '../../core/constants/route_names.dart';
 import '../../core/theme/app_colors.dart';
 import '../../features/notifications/viewmodel/notification_viewmodel.dart';
 import '../providers/current_player_provider.dart';
-import '../../features/admin/view/admin_dashboard_screen.dart';
 
 class AppScaffold extends ConsumerWidget {
   final Widget child;
@@ -74,11 +73,7 @@ class AppScaffold extends ConsumerWidget {
       floatingActionButton: isAdmin && currentIndex == 0
           ? FloatingActionButton.small(
               onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const AdminDashboardScreen(),
-                  ),
-                );
+                context.push('/admin');
               },
               backgroundColor: AppColors.secondary,
               child: const Icon(Icons.admin_panel_settings, size: 20),

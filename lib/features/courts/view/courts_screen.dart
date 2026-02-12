@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/court_model.dart';
 import '../viewmodel/courts_viewmodel.dart';
-import 'court_schedule_screen.dart';
-import 'my_reservations_screen.dart';
 
 class CourtsScreen extends ConsumerWidget {
   const CourtsScreen({super.key});
@@ -20,11 +19,7 @@ class CourtsScreen extends ConsumerWidget {
         actions: [
           IconButton(
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const MyReservationsScreen(),
-                ),
-              );
+              context.push('/courts/my-reservations');
             },
             icon: const Icon(Icons.calendar_month),
             tooltip: 'Minhas Reservas',
@@ -92,11 +87,7 @@ class _CourtCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => CourtScheduleScreen(court: court),
-            ),
-          );
+          context.push('/courts/${court.id}/schedule', extra: court);
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

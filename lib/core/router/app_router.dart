@@ -9,14 +9,21 @@ import '../../features/auth/view/login_screen.dart';
 import '../../features/auth/view/register_screen.dart';
 import '../../features/auth/view/forgot_password_screen.dart';
 import '../../features/ranking/view/ranking_screen.dart';
+import '../../features/ranking/view/ranking_history_screen.dart';
 import '../../features/challenges/view/challenges_screen.dart';
 import '../../features/challenges/view/create_challenge_screen.dart';
 import '../../features/challenges/view/challenge_detail_screen.dart';
+import '../../features/challenges/view/propose_dates_screen.dart';
+import '../../features/challenges/view/choose_date_screen.dart';
+import '../../features/challenges/view/record_result_screen.dart';
 import '../../features/courts/view/courts_screen.dart';
+import '../../features/courts/view/court_schedule_screen.dart';
 import '../../features/courts/view/my_reservations_screen.dart';
 import '../../features/notifications/view/notifications_screen.dart';
 import '../../features/profile/view/profile_screen.dart';
+import '../../features/admin/view/admin_dashboard_screen.dart';
 import '../../shared/widgets/app_scaffold.dart';
+import '../../shared/models/court_model.dart';
 import '../../services/supabase_service.dart';
 import '../constants/route_names.dart';
 
@@ -59,6 +66,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => const NoTransitionPage(
               child: RankingScreen(),
             ),
+            routes: [
+              GoRoute(
+                path: 'history/:playerId',
+                builder: (context, state) {
+                  final playerId = state.pathParameters['playerId']!;
+                  final playerName =
+                      state.uri.queryParameters['name'] ?? 'Jogador';
+                  return RankingHistoryScreen(
+                    playerId: playerId,
+                    playerName: playerName,
+                  );
+                },
+              ),
+            ],
           ),
           GoRoute(
             path: RouteNames.challenges,
@@ -75,6 +96,44 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) => ChallengeDetailScreen(
                   challengeId: state.pathParameters['challengeId']!,
                 ),
+                routes: [
+                  GoRoute(
+                    path: 'propose-dates',
+                    builder: (context, state) => ProposeDatesScreen(
+                      challengeId: state.pathParameters['challengeId']!,
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'choose-date',
+                    builder: (context, state) {
+                      final extra =
+                          state.extra as Map<String, dynamic>? ?? {};
+                      final proposedDates =
+                          extra['proposedDates'] as List<DateTime>? ?? [];
+                      return ChooseDateScreen(
+                        challengeId: state.pathParameters['challengeId']!,
+                        proposedDates: proposedDates,
+                      );
+                    },
+                  ),
+                  GoRoute(
+                    path: 'record-result',
+                    builder: (context, state) {
+                      final extra =
+                          state.extra as Map<String, dynamic>? ?? {};
+                      return RecordResultScreen(
+                        challengeId: state.pathParameters['challengeId']!,
+                        challengerId: extra['challengerId'] as String? ?? '',
+                        challengedId:
+                            extra['challengedId'] as String? ?? '',
+                        challengerName:
+                            extra['challengerName'] as String? ?? 'Desafiante',
+                        challengedName:
+                            extra['challengedName'] as String? ?? 'Desafiado',
+                      );
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -89,6 +148,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) =>
                     const MyReservationsScreen(),
               ),
+              GoRoute(
+                path: ':courtId/schedule',
+                builder: (context, state) {
+                  final court =
+                      state.extra as CourtModel;
+                  return CourtScheduleScreen(court: court);
+                },
+              ),
             ],
           ),
           GoRoute(
@@ -102,6 +169,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => const NoTransitionPage(
               child: ProfileScreen(),
             ),
+          ),
+        ],
+      ),
+
+      // Admin routes (no bottom nav)
+      GoRoute(
+        path: RouteNames.adminDashboard,
+        builder: (context, state) => const AdminDashboardScreen(),
+        routes: [
+          GoRoute(
+            path: 'players',
+            builder: (context, state) => const AdminPlayersScreen(),
+          ),
+          GoRoute(
+            path: 'ambulances',
+            builder: (context, state) => const AdminAmbulanceScreen(),
           ),
         ],
       ),

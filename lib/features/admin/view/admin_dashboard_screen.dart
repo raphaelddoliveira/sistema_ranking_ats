@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/snackbar_utils.dart';
@@ -22,37 +23,25 @@ class AdminDashboardScreen extends StatelessWidget {
             icon: Icons.people,
             title: 'Gerenciar Jogadores',
             subtitle: 'Status, posicao, ambulancia',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                  builder: (_) => const AdminPlayersScreen()),
-            ),
+            onTap: () => context.push('/admin/players'),
           ),
           _AdminCard(
             icon: Icons.local_hospital,
             title: 'Ambulancias',
             subtitle: 'Ativar/desativar ambulancias',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                  builder: (_) => const AdminAmbulanceScreen()),
-            ),
+            onTap: () => context.push('/admin/ambulances'),
           ),
           _AdminCard(
             icon: Icons.payment,
             title: 'Mensalidades',
             subtitle: 'Controle de pagamentos',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                  builder: (_) => const _PlaceholderScreen(title: 'Mensalidades')),
-            ),
+            onTap: () {}, // Em desenvolvimento
           ),
           _AdminCard(
             icon: Icons.sports_tennis,
             title: 'Quadras',
             subtitle: 'CRUD de quadras e slots',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                  builder: (_) => const _PlaceholderScreen(title: 'Gerenciar Quadras')),
-            ),
+            onTap: () {}, // Em desenvolvimento
           ),
         ],
       ),
@@ -414,19 +403,3 @@ class _StatusBadge extends StatelessWidget {
   }
 }
 
-class _PlaceholderScreen extends StatelessWidget {
-  final String title;
-
-  const _PlaceholderScreen({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: const Center(
-        child: Text('Em desenvolvimento',
-            style: TextStyle(color: Colors.grey)),
-      ),
-    );
-  }
-}

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../viewmodel/ranking_list_viewmodel.dart';
-import 'ranking_history_screen.dart';
 import 'widgets/ranking_list_tile.dart';
 
 class RankingScreen extends ConsumerWidget {
@@ -14,7 +14,7 @@ class RankingScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ranking ATS'),
+        title: const Text('SmashRank'),
         centerTitle: true,
         actions: [
           IconButton(
@@ -54,13 +54,8 @@ class RankingScreen extends ConsumerWidget {
                 return RankingListTile(
                   player: player,
                   onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => RankingHistoryScreen(
-                          playerId: player.id,
-                          playerName: player.fullName,
-                        ),
-                      ),
+                    context.push(
+                      '/ranking/history/${player.id}?name=${Uri.encodeComponent(player.fullName)}',
                     );
                   },
                 );
