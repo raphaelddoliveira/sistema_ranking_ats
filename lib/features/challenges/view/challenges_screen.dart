@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/challenge_model.dart';
 import '../../../shared/models/enums.dart';
 import '../../../shared/providers/current_player_provider.dart';
+import '../../clubs/view/club_selector_widget.dart';
 import '../viewmodel/challenge_list_viewmodel.dart';
 
 class ChallengesScreen extends ConsumerWidget {
@@ -18,7 +19,7 @@ class ChallengesScreen extends ConsumerWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Desafios'),
+          title: clubAppBarTitle('Desafios', context, ref),
           centerTitle: true,
           bottom: const TabBar(
             tabs: [

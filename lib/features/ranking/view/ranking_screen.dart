@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../shared/models/player_model.dart';
+import '../../../shared/models/club_member_model.dart';
+import '../../clubs/view/club_selector_widget.dart';
+import '../../clubs/viewmodel/club_providers.dart';
 import '../viewmodel/ranking_list_viewmodel.dart';
 import 'widgets/ranking_list_tile.dart';
 
@@ -28,11 +30,12 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final clubId = ref.watch(currentClubIdProvider);
     final rankingAsync = ref.watch(rankingListProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SmashRank'),
+        title: clubAppBarTitle('SmashRank', context, ref),
         centerTitle: true,
         actions: [
           IconButton(
@@ -42,211 +45,230 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
           ),
         ],
       ),
-      body: rankingAsync.when(
-        data: (players) {
-          if (players.isEmpty) {
-            return const Center(
+      body: clubId == null
+          ? const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.emoji_events_outlined, size: 64, color: AppColors.onBackgroundLight),
+                  Icon(Icons.groups_outlined, size: 64, color: AppColors.onBackgroundLight),
                   SizedBox(height: 16),
                   Text(
-                    'Nenhum jogador no ranking',
+                    'Selecione ou crie um clube',
                     style: TextStyle(fontSize: 16, color: AppColors.onBackgroundLight),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'O ranking e organizado por clube',
+                    style: TextStyle(fontSize: 13, color: AppColors.onBackgroundLight),
                   ),
                 ],
               ),
-            );
-          }
+            )
+          : rankingAsync.when(
+              data: (members) {
+                if (members.isEmpty) {
+                  return const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.emoji_events_outlined, size: 64, color: AppColors.onBackgroundLight),
+                        SizedBox(height: 16),
+                        Text(
+                          'Nenhum jogador no ranking',
+                          style: TextStyle(fontSize: 16, color: AppColors.onBackgroundLight),
+                        ),
+                      ],
+                    ),
+                  );
+                }
 
-          final topThree = players.length >= 3 ? players.sublist(0, 3) : <PlayerModel>[];
+                final topThree = members.length >= 3 ? members.sublist(0, 3) : <ClubMemberModel>[];
 
-          // Filtrar lista pela busca
-          final filteredPlayers = _searchQuery.isEmpty
-              ? players
-              : players.where((p) {
-                  final query = _searchQuery.toLowerCase();
-                  return p.fullName.toLowerCase().contains(query) ||
-                      (p.nickname?.toLowerCase().contains(query) ?? false);
-                }).toList();
+                // Filtrar lista pela busca
+                final filteredMembers = _searchQuery.isEmpty
+                    ? members
+                    : members.where((m) {
+                        final query = _searchQuery.toLowerCase();
+                        return m.playerName.toLowerCase().contains(query) ||
+                            (m.playerNickname?.toLowerCase().contains(query) ?? false);
+                      }).toList();
 
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(rankingListProvider);
-            },
-            child: CustomScrollView(
-              slivers: [
-                // Hero header with gradient (always in tree to preserve TextField focus)
-                SliverToBoxAdapter(
-                  child: AnimatedSize(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeInOut,
-                    child: _searchQuery.isEmpty
-                        ? Container(
-                            decoration: const BoxDecoration(
-                              gradient: AppColors.heroGradient,
-                            ),
-                            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.emoji_events, color: AppColors.secondary, size: 20),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '${players.length} jogadores ativos',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (topThree.length == 3) ...[
-                                  const SizedBox(height: 20),
-                                  _TopThreePodium(
-                                    topThree: topThree,
-                                    onTap: (player) {
-                                      context.push(
-                                        '/ranking/history/${player.id}?name=${Uri.encodeComponent(player.fullName)}',
-                                      );
-                                    },
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(rankingListProvider);
+                  },
+                  child: CustomScrollView(
+                    slivers: [
+                      // Hero header with gradient (always in tree to preserve TextField focus)
+                      SliverToBoxAdapter(
+                        child: AnimatedSize(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeInOut,
+                          child: _searchQuery.isEmpty
+                              ? Container(
+                                  decoration: const BoxDecoration(
+                                    gradient: AppColors.heroGradient,
                                   ),
-                                ],
+                                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(Icons.emoji_events, color: AppColors.secondary, size: 20),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '${members.length} jogadores ativos',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      if (topThree.length == 3) ...[
+                                        const SizedBox(height: 20),
+                                        _TopThreePodium(
+                                          topThree: topThree,
+                                          onTap: (member) {
+                                            context.push(
+                                              '/ranking/history/${member.playerId}?name=${Uri.encodeComponent(member.playerName)}',
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                      ),
+
+                      // Search bar
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: (value) => setState(() => _searchQuery = value),
+                            decoration: InputDecoration(
+                              hintText: 'Buscar jogador...',
+                              prefixIcon: const Icon(Icons.search, size: 20),
+                              suffixIcon: _searchQuery.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.close, size: 18),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        setState(() => _searchQuery = '');
+                                      },
+                                    )
+                                  : null,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Section title
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                          child: Text(
+                            _searchQuery.isNotEmpty
+                                ? '${filteredMembers.length} resultado${filteredMembers.length != 1 ? 's' : ''}'
+                                : 'Ranking completo',
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.2,
+                              color: AppColors.onBackgroundMedium,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Player list
+                      if (filteredMembers.isEmpty)
+                        const SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.search_off, size: 48, color: AppColors.onBackgroundLight),
+                                SizedBox(height: 12),
+                                Text(
+                                  'Nenhum jogador encontrado',
+                                  style: TextStyle(color: AppColors.onBackgroundLight),
+                                ),
                               ],
                             ),
-                          )
-                        : const SizedBox.shrink(),
-                  ),
-                ),
-
-                // Search bar
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: (value) => setState(() => _searchQuery = value),
-                      decoration: InputDecoration(
-                        hintText: 'Buscar jogador...',
-                        prefixIcon: const Icon(Icons.search, size: 20),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.close, size: 18),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() => _searchQuery = '');
-                                },
-                              )
-                            : null,
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Section title
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: Text(
-                      _searchQuery.isNotEmpty
-                          ? '${filteredPlayers.length} resultado${filteredPlayers.length != 1 ? 's' : ''}'
-                          : 'Ranking completo',
-                      style: GoogleFonts.spaceGrotesk(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.2,
-                        color: AppColors.onBackgroundMedium,
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Player list
-                if (filteredPlayers.isEmpty)
-                  const SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.search_off, size: 48, color: AppColors.onBackgroundLight),
-                          SizedBox(height: 12),
-                          Text(
-                            'Nenhum jogador encontrado',
-                            style: TextStyle(color: AppColors.onBackgroundLight),
                           ),
-                        ],
-                      ),
-                    ),
-                  )
-                else
-                  SliverPadding(
-                    padding: const EdgeInsets.only(top: 4, bottom: 8),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final player = filteredPlayers[index];
-                          return RankingListTile(
-                            player: player,
-                            onTap: () {
-                              context.push(
-                                '/ranking/history/${player.id}?name=${Uri.encodeComponent(player.fullName)}',
-                              );
-                            },
-                          );
-                        },
-                        childCount: filteredPlayers.length,
-                      ),
-                    ),
+                        )
+                      else
+                        SliverPadding(
+                          padding: const EdgeInsets.only(top: 4, bottom: 8),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                final member = filteredMembers[index];
+                                return RankingListTile(
+                                  member: member,
+                                  onTap: () {
+                                    context.push(
+                                      '/ranking/history/${member.playerId}?name=${Uri.encodeComponent(member.playerName)}',
+                                    );
+                                  },
+                                );
+                              },
+                              childCount: filteredMembers.length,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-              ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Erro ao carregar ranking',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        error.toString(),
+                        style: const TextStyle(color: AppColors.onBackgroundLight, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () => ref.invalidate(rankingListProvider),
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Tentar novamente'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                const SizedBox(height: 16),
-                Text(
-                  'Erro ao carregar ranking',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  error.toString(),
-                  style: const TextStyle(color: AppColors.onBackgroundLight, fontSize: 13),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () => ref.invalidate(rankingListProvider),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Tentar novamente'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
 
 // ─── Top 3 Podium Widget ───
 class _TopThreePodium extends StatelessWidget {
-  final List<PlayerModel> topThree;
-  final ValueChanged<PlayerModel> onTap;
+  final List<ClubMemberModel> topThree;
+  final ValueChanged<ClubMemberModel> onTap;
 
   const _TopThreePodium({required this.topThree, required this.onTap});
 
@@ -258,7 +280,7 @@ class _TopThreePodium extends StatelessWidget {
       children: [
         // 2nd place
         _PodiumCard(
-          player: topThree[1],
+          member: topThree[1],
           position: 2,
           height: 120,
           badgeColor: AppColors.silver,
@@ -270,7 +292,7 @@ class _TopThreePodium extends StatelessWidget {
         const SizedBox(width: 8),
         // 1st place (tallest)
         _PodiumCard(
-          player: topThree[0],
+          member: topThree[0],
           position: 1,
           height: 150,
           badgeColor: AppColors.gold,
@@ -283,7 +305,7 @@ class _TopThreePodium extends StatelessWidget {
         const SizedBox(width: 8),
         // 3rd place
         _PodiumCard(
-          player: topThree[2],
+          member: topThree[2],
           position: 3,
           height: 100,
           badgeColor: AppColors.bronze,
@@ -298,7 +320,7 @@ class _TopThreePodium extends StatelessWidget {
 }
 
 class _PodiumCard extends StatelessWidget {
-  final PlayerModel player;
+  final ClubMemberModel member;
   final int position;
   final double height;
   final Color badgeColor;
@@ -307,7 +329,7 @@ class _PodiumCard extends StatelessWidget {
   final bool isFirst;
 
   const _PodiumCard({
-    required this.player,
+    required this.member,
     required this.position,
     required this.height,
     required this.badgeColor,
@@ -345,13 +367,13 @@ class _PodiumCard extends StatelessWidget {
                   child: CircleAvatar(
                     radius: isFirst ? 32 : 26,
                     backgroundColor: AppColors.surfaceVariant,
-                    backgroundImage: player.avatarUrl != null
-                        ? CachedNetworkImageProvider(player.avatarUrl!)
+                    backgroundImage: member.playerAvatarUrl != null
+                        ? CachedNetworkImageProvider(member.playerAvatarUrl!)
                         : null,
-                    child: player.avatarUrl == null
+                    child: member.playerAvatarUrl == null
                         ? Text(
-                            player.fullName.isNotEmpty
-                                ? player.fullName[0].toUpperCase()
+                            member.playerName.isNotEmpty
+                                ? member.playerName[0].toUpperCase()
                                 : '?',
                             style: TextStyle(
                               fontSize: isFirst ? 22 : 18,
@@ -401,7 +423,7 @@ class _PodiumCard extends StatelessWidget {
                     left: 0,
                     right: 0,
                     child: Center(
-                      child: Text('👑', style: TextStyle(fontSize: 18)),
+                      child: Text('\u{1F451}', style: TextStyle(fontSize: 18)),
                     ),
                   ),
               ],
@@ -409,7 +431,7 @@ class _PodiumCard extends StatelessWidget {
             const SizedBox(height: 10),
             // Name
             Text(
-              _firstName(player.fullName),
+              _firstName(member.playerName),
               style: GoogleFonts.spaceGrotesk(
                 fontSize: isFirst ? 13 : 11,
                 fontWeight: FontWeight.w700,

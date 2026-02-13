@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../features/auth/data/auth_repository.dart';
 import '../../../shared/providers/current_player_provider.dart';
+import '../../clubs/view/club_selector_widget.dart';
+import '../../clubs/viewmodel/club_providers.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/stats_card.dart';
 
@@ -13,10 +16,13 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final playerAsync = ref.watch(currentPlayerProvider);
+    final clubMember = ref.watch(currentClubMemberProvider);
+    final myClubs = ref.watch(myClubsProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Meu Perfil'),
+        title: clubAppBarTitle('Meu Perfil', context, ref),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -50,6 +56,9 @@ class ProfileScreen extends ConsumerWidget {
           if (player == null) {
             return const Center(child: Text('Jogador nao encontrado'));
           }
+
+          final member = clubMember.valueOrNull;
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -61,7 +70,7 @@ class ProfileScreen extends ConsumerWidget {
                     Expanded(
                       child: StatsCard(
                         label: 'Posicao',
-                        value: '#${player.rankingPosition ?? '-'}',
+                        value: '#${member?.rankingPosition ?? '-'}',
                         icon: Icons.emoji_events,
                         color: AppColors.gold,
                       ),
@@ -70,7 +79,7 @@ class ProfileScreen extends ConsumerWidget {
                     Expanded(
                       child: StatsCard(
                         label: 'Desafios/Mes',
-                        value: '${player.challengesThisMonth}',
+                        value: '${member?.challengesThisMonth ?? 0}',
                         icon: Icons.sports_tennis,
                         color: AppColors.primary,
                       ),
@@ -103,28 +112,78 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
+
+                // Club-specific status indicators
+                if (member != null) ...[
+                  const SizedBox(height: 24),
+                  if (member.isOnCooldown)
+                    _buildInfoTile(
+                      icon: Icons.timer,
+                      title: 'Cooldown ativo',
+                      subtitle: 'Aguarde para desafiar novamente',
+                      color: AppColors.warning,
+                    ),
+                  if (member.isProtected)
+                    _buildInfoTile(
+                      icon: Icons.shield,
+                      title: 'Protecao ativa',
+                      subtitle: 'Voce esta protegido de novos desafios',
+                      color: AppColors.info,
+                    ),
+                  if (member.isOnAmbulance)
+                    _buildInfoTile(
+                      icon: Icons.local_hospital,
+                      title: 'Ambulancia ativa',
+                      subtitle: 'Voce esta em pausa no ranking',
+                      color: AppColors.ambulanceActive,
+                    ),
+                ],
+
+                // Clubs section
                 const SizedBox(height: 24),
-                if (player.isOnCooldown)
-                  _buildInfoTile(
-                    icon: Icons.timer,
-                    title: 'Cooldown ativo',
-                    subtitle: 'Aguarde para desafiar novamente',
-                    color: AppColors.warning,
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Meus Clubes',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
-                if (player.isProtected)
-                  _buildInfoTile(
-                    icon: Icons.shield,
-                    title: 'Protecao ativa',
-                    subtitle: 'Voce esta protegido de novos desafios',
-                    color: AppColors.info,
-                  ),
-                if (player.isOnAmbulance)
-                  _buildInfoTile(
-                    icon: Icons.local_hospital,
-                    title: 'Ambulancia ativa',
-                    subtitle: 'Voce esta em pausa no ranking',
-                    color: AppColors.ambulanceActive,
-                  ),
+                ),
+                const SizedBox(height: 8),
+                myClubs.when(
+                  data: (clubs) {
+                    if (clubs.isEmpty) {
+                      return Card(
+                        child: ListTile(
+                          leading: const Icon(Icons.groups_outlined, color: AppColors.onBackgroundLight),
+                          title: const Text('Nenhum clube'),
+                          subtitle: const Text('Crie ou entre em um clube'),
+                          trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                          onTap: () => context.push('/clubs/create'),
+                        ),
+                      );
+                    }
+                    return Column(
+                      children: clubs.map((club) => Card(
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: AppColors.primary.withAlpha(25),
+                            child: const Icon(Icons.groups, color: AppColors.primary, size: 20),
+                          ),
+                          title: Text(club.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          subtitle: club.description != null
+                              ? Text(club.description!, maxLines: 1, overflow: TextOverflow.ellipsis)
+                              : null,
+                          trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                          onTap: () => context.push('/clubs/${club.id}/manage'),
+                        ),
+                      )).toList(),
+                    );
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (_, _) => const SizedBox.shrink(),
+                ),
               ],
             ),
           );

@@ -11,6 +11,9 @@ abstract final class SupabaseConstants {
   static const String notificationsTable = 'notifications';
   static const String monthlyFeesTable = 'monthly_fees';
   static const String whatsappLogsTable = 'whatsapp_logs';
+  static const String clubsTable = 'clubs';
+  static const String clubMembersTable = 'club_members';
+  static const String clubJoinRequestsTable = 'club_join_requests';
 
   // RPC function names
   static const String rpcSwapRanking = 'swap_ranking_after_challenge';
@@ -22,6 +25,10 @@ abstract final class SupabaseConstants {
   static const String rpcValidateChallenge = 'validate_challenge_creation';
   static const String rpcCreateChallenge = 'create_challenge';
   static const String rpcExpirePendingChallenges = 'expire_pending_challenges';
+  static const String rpcCreateClub = 'create_club';
+  static const String rpcJoinClubByCode = 'join_club_by_code';
+  static const String rpcApproveJoinRequest = 'approve_join_request';
+  static const String rpcRejectJoinRequest = 'reject_join_request';
 
   // Storage buckets
   static const String avatarsBucket = 'avatars';

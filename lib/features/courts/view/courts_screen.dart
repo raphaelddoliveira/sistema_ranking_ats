@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/court_model.dart';
+import '../../clubs/view/club_selector_widget.dart';
 import '../viewmodel/courts_viewmodel.dart';
 
 class CourtsScreen extends ConsumerWidget {
@@ -15,7 +16,8 @@ class CourtsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Quadras'),
+        title: clubAppBarTitle('Quadras', context, ref),
+        centerTitle: true,
         actions: [
           IconButton(
             onPressed: () => context.push('/courts/my-reservations'),

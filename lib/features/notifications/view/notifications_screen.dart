@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/extensions/date_extensions.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/notification_model.dart';
+import '../../clubs/view/club_selector_widget.dart';
 import '../viewmodel/notification_viewmodel.dart';
 
 class NotificationsScreen extends ConsumerWidget {
@@ -15,7 +16,8 @@ class NotificationsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notificacoes'),
+        title: clubAppBarTitle('Notificacoes', context, ref),
+        centerTitle: true,
         actions: [
           IconButton(
             onPressed: () {

@@ -17,15 +17,98 @@ class CourtRepository {
 
   CourtRepository(this._client);
 
-  /// Get all active courts
-  Future<List<CourtModel>> getCourts() async {
+  /// Get all active courts for a club
+  Future<List<CourtModel>> getCourts({required String clubId}) async {
     try {
       final data = await _client
           .from(SupabaseConstants.courtsTable)
           .select()
+          .eq('club_id', clubId)
           .eq('is_active', true)
           .order('name');
       return data.map((e) => CourtModel.fromJson(e)).toList();
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Get all courts for a club (including inactive — for admin)
+  Future<List<CourtModel>> getAllCourts({required String clubId}) async {
+    try {
+      final data = await _client
+          .from(SupabaseConstants.courtsTable)
+          .select()
+          .eq('club_id', clubId)
+          .order('name');
+      return data.map((e) => CourtModel.fromJson(e)).toList();
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Create a new court
+  Future<void> createCourt({
+    required String clubId,
+    required String name,
+    String? surfaceType,
+    bool isCovered = false,
+    String? notes,
+  }) async {
+    try {
+      await _client.from(SupabaseConstants.courtsTable).insert({
+        'club_id': clubId,
+        'name': name,
+        'surface_type': surfaceType,
+        'is_covered': isCovered,
+        'notes': notes,
+      });
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Update an existing court
+  Future<void> updateCourt(
+    String courtId, {
+    String? name,
+    String? surfaceType,
+    bool? isCovered,
+    String? notes,
+  }) async {
+    try {
+      final updates = <String, dynamic>{};
+      if (name != null) updates['name'] = name;
+      if (surfaceType != null) updates['surface_type'] = surfaceType;
+      if (isCovered != null) updates['is_covered'] = isCovered;
+      if (notes != null) updates['notes'] = notes;
+      await _client
+          .from(SupabaseConstants.courtsTable)
+          .update(updates)
+          .eq('id', courtId);
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Deactivate a court (soft delete)
+  Future<void> deactivateCourt(String courtId) async {
+    try {
+      await _client
+          .from(SupabaseConstants.courtsTable)
+          .update({'is_active': false})
+          .eq('id', courtId);
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Reactivate a court
+  Future<void> reactivateCourt(String courtId) async {
+    try {
+      await _client
+          .from(SupabaseConstants.courtsTable)
+          .update({'is_active': true})
+          .eq('id', courtId);
     } catch (e) {
       throw ErrorHandler.handle(e);
     }
@@ -82,6 +165,7 @@ class CourtRepository {
     required DateTime date,
     required String startTime,
     required String endTime,
+    String? clubId,
     String? challengeId,
     String? notes,
   }) async {
@@ -97,6 +181,7 @@ class CourtRepository {
         'reservation_date': dateStr,
         'start_time': startTime,
         'end_time': endTime,
+        if (clubId != null) 'club_id': clubId,
         if (challengeId != null) 'challenge_id': challengeId,
         if (notes != null) 'notes': notes,
       });

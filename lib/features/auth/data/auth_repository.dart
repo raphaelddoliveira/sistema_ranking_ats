@@ -117,14 +117,6 @@ class AuthRepository {
     String? phone,
   }) async {
     try {
-      // Get next available ranking position
-      final countResult = await _client
-          .from(SupabaseConstants.playersTable)
-          .select('id')
-          .count(CountOption.exact);
-
-      final nextPosition = countResult.count + 1;
-
       final data = await _client
           .from(SupabaseConstants.playersTable)
           .insert({
@@ -132,7 +124,6 @@ class AuthRepository {
             'email': email,
             'full_name': fullName,
             'phone': phone,
-            'ranking_position': nextPosition,
           })
           .select()
           .single();

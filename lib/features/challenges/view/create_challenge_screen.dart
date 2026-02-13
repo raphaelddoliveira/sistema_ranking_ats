@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/snackbar_utils.dart';
+import '../../../shared/models/club_member_model.dart';
 import '../viewmodel/challenge_list_viewmodel.dart';
 import '../viewmodel/create_challenge_viewmodel.dart';
 
@@ -82,11 +83,6 @@ class CreateChallengeScreen extends ConsumerWidget {
                   itemCount: opponents.length,
                   itemBuilder: (context, index) {
                     final opponent = opponents[index];
-                    final isProtected =
-                        opponent['challenged_protection_until'] != null &&
-                            DateTime.parse(
-                                    opponent['challenged_protection_until'])
-                                .isAfter(DateTime.now());
 
                     return Card(
                       margin: const EdgeInsets.symmetric(
@@ -95,36 +91,34 @@ class CreateChallengeScreen extends ConsumerWidget {
                         leading: CircleAvatar(
                           backgroundColor: AppColors.surfaceVariant,
                           backgroundImage:
-                              opponent['avatar_url'] != null
+                              opponent.playerAvatarUrl != null
                                   ? CachedNetworkImageProvider(
-                                      opponent['avatar_url'])
+                                      opponent.playerAvatarUrl!)
                                   : null,
-                          child: opponent['avatar_url'] == null
+                          child: opponent.playerAvatarUrl == null
                               ? Text(
-                                  (opponent['full_name'] as String)
-                                      .isNotEmpty
-                                      ? (opponent['full_name'] as String)[0]
-                                          .toUpperCase()
+                                  opponent.playerName.isNotEmpty
+                                      ? opponent.playerName[0].toUpperCase()
                                       : '?',
                                 )
                               : null,
                         ),
                         title: Text(
-                          opponent['full_name'] as String,
+                          opponent.playerName,
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                         subtitle: Row(
                           children: [
-                            Text('#${opponent['ranking_position']}'),
-                            if (opponent['nickname'] != null) ...[
+                            Text('#${opponent.rankingPosition}'),
+                            if (opponent.playerNickname != null) ...[
                               const Text(' - '),
                               Text(
-                                '"${opponent['nickname']}"',
+                                '"${opponent.playerNickname}"',
                                 style: const TextStyle(
                                     fontStyle: FontStyle.italic),
                               ),
                             ],
-                            if (isProtected) ...[
+                            if (opponent.isProtected) ...[
                               const SizedBox(width: 8),
                               const Icon(Icons.shield,
                                   size: 14, color: AppColors.info),
@@ -144,8 +138,8 @@ class CreateChallengeScreen extends ConsumerWidget {
                                     strokeWidth: 2),
                               )
                             : const Icon(Icons.sports_tennis),
-                        enabled: !isProtected && !createState.isLoading,
-                        onTap: isProtected || createState.isLoading
+                        enabled: !opponent.isProtected && !createState.isLoading,
+                        onTap: opponent.isProtected || createState.isLoading
                             ? null
                             : () => _confirmChallenge(
                                 context, ref, opponent),
@@ -178,14 +172,14 @@ class CreateChallengeScreen extends ConsumerWidget {
   void _confirmChallenge(
     BuildContext context,
     WidgetRef ref,
-    Map<String, dynamic> opponent,
+    ClubMemberModel opponent,
   ) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirmar Desafio'),
         content: Text(
-          'Deseja desafiar ${opponent['full_name']} (#${opponent['ranking_position']})?',
+          'Deseja desafiar ${opponent.playerName} (#${opponent.rankingPosition})?',
         ),
         actions: [
           TextButton(
@@ -197,7 +191,7 @@ class CreateChallengeScreen extends ConsumerWidget {
               Navigator.of(ctx).pop();
               final challengeId = await ref
                   .read(createChallengeProvider.notifier)
-                  .createChallenge(opponent['id'] as String);
+                  .createChallenge(opponent.playerId);
 
               if (challengeId != null && context.mounted) {
                 SnackbarUtils.showSuccess(context, 'Desafio criado!');

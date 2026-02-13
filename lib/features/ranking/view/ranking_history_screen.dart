@@ -20,7 +20,7 @@ class RankingHistoryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final historyAsync = ref.watch(rankingHistoryProvider(playerId));
-    final playerAsync = ref.watch(playerDetailProvider(playerId));
+    final playerAsync = ref.watch(playerClubMemberProvider(playerId));
 
     return Scaffold(
       appBar: AppBar(
@@ -33,15 +33,18 @@ class RankingHistoryScreen extends ConsumerWidget {
               // Player summary card
               SliverToBoxAdapter(
                 child: playerAsync.when(
-                  data: (player) => _PlayerSummaryCard(
-                    position: player.rankingPosition ?? 0,
-                    totalChanges: history.length,
-                    bestPosition: history.isEmpty
-                        ? player.rankingPosition ?? 0
-                        : history
-                            .map((e) => e.newPosition)
-                            .reduce((a, b) => a < b ? a : b),
-                  ),
+                  data: (member) {
+                    final pos = member?.rankingPosition ?? 0;
+                    return _PlayerSummaryCard(
+                      position: pos,
+                      totalChanges: history.length,
+                      bestPosition: history.isEmpty
+                          ? pos
+                          : history
+                              .map((e) => e.newPosition)
+                              .reduce((a, b) => a < b ? a : b),
+                    );
+                  },
                   loading: () => const SizedBox(
                     height: 100,
                     child: Center(child: CircularProgressIndicator()),

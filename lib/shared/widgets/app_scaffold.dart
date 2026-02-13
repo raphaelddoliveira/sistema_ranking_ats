@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/constants/route_names.dart';
 import '../../core/theme/app_colors.dart';
+import '../../features/clubs/viewmodel/club_providers.dart';
 import '../../features/notifications/viewmodel/notification_viewmodel.dart';
 import '../providers/current_player_provider.dart';
 import 'floating_nav_bar.dart';
@@ -36,6 +37,15 @@ class AppScaffold extends ConsumerWidget {
     final currentPlayer = ref.watch(currentPlayerProvider);
     final isAdmin = currentPlayer.valueOrNull?.isAdmin ?? false;
     final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
+
+    // Auto-select first club if none selected
+    final clubId = ref.watch(currentClubIdProvider);
+    final myClubs = ref.watch(myClubsProvider);
+    if (clubId == null && myClubs.valueOrNull != null && myClubs.valueOrNull!.isNotEmpty) {
+      Future.microtask(() {
+        ref.read(currentClubIdProvider.notifier).state = myClubs.valueOrNull!.first.id;
+      });
+    }
 
     return Scaffold(
       body: Stack(

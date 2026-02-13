@@ -3,21 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../shared/models/player_model.dart';
+import '../../../../shared/models/club_member_model.dart';
 
 class RankingListTile extends StatelessWidget {
-  final PlayerModel player;
+  final ClubMemberModel member;
   final VoidCallback? onTap;
 
   const RankingListTile({
     super.key,
-    required this.player,
+    required this.member,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final position = player.rankingPosition ?? 0;
+    final position = member.rankingPosition ?? 0;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -33,7 +33,7 @@ class RankingListTile extends StatelessWidget {
               const SizedBox(width: 12),
 
               // Avatar
-              _PlayerAvatar(player: player),
+              _PlayerAvatar(member: member),
               const SizedBox(width: 12),
 
               // Name + status
@@ -42,16 +42,16 @@ class RankingListTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      player.fullName,
+                      member.playerName,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (player.nickname != null)
+                    if (member.playerNickname != null)
                       Text(
-                        '"${player.nickname}"',
+                        '"${member.playerNickname}"',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: AppColors.onBackgroundMedium,
                               fontStyle: FontStyle.italic,
@@ -62,7 +62,7 @@ class RankingListTile extends StatelessWidget {
               ),
 
               // Status indicators
-              _StatusIndicators(player: player),
+              _StatusIndicators(member: member),
 
               const SizedBox(width: 4),
               Icon(Icons.arrow_forward_ios, color: AppColors.onBackgroundLight, size: 14),
@@ -150,22 +150,22 @@ class _PositionBadge extends StatelessWidget {
 }
 
 class _PlayerAvatar extends StatelessWidget {
-  final PlayerModel player;
+  final ClubMemberModel member;
 
-  const _PlayerAvatar({required this.player});
+  const _PlayerAvatar({required this.member});
 
   @override
   Widget build(BuildContext context) {
     return CircleAvatar(
       radius: 20,
       backgroundColor: AppColors.surfaceVariant,
-      backgroundImage: player.avatarUrl != null
-          ? CachedNetworkImageProvider(player.avatarUrl!)
+      backgroundImage: member.playerAvatarUrl != null
+          ? CachedNetworkImageProvider(member.playerAvatarUrl!)
           : null,
-      child: player.avatarUrl == null
+      child: member.playerAvatarUrl == null
           ? Text(
-              player.fullName.isNotEmpty
-                  ? player.fullName[0].toUpperCase()
+              member.playerName.isNotEmpty
+                  ? member.playerName[0].toUpperCase()
                   : '?',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             )
@@ -175,21 +175,21 @@ class _PlayerAvatar extends StatelessWidget {
 }
 
 class _StatusIndicators extends StatelessWidget {
-  final PlayerModel player;
+  final ClubMemberModel member;
 
-  const _StatusIndicators({required this.player});
+  const _StatusIndicators({required this.member});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (player.isOnAmbulance)
+        if (member.isOnAmbulance)
           const Tooltip(
             message: 'Ambulancia ativa',
             child: Icon(Icons.local_hospital, color: AppColors.ambulanceActive, size: 18),
           ),
-        if (player.isOnCooldown)
+        if (member.isOnCooldown)
           const Padding(
             padding: EdgeInsets.only(left: 4),
             child: Tooltip(
@@ -197,20 +197,12 @@ class _StatusIndicators extends StatelessWidget {
               child: Icon(Icons.timer, color: AppColors.warning, size: 18),
             ),
           ),
-        if (player.isProtected)
+        if (member.isProtected)
           const Padding(
             padding: EdgeInsets.only(left: 4),
             child: Tooltip(
               message: 'Protegido',
               child: Icon(Icons.shield, color: AppColors.info, size: 18),
-            ),
-          ),
-        if (player.hasFeeOverdue)
-          const Padding(
-            padding: EdgeInsets.only(left: 4),
-            child: Tooltip(
-              message: 'Mensalidade em atraso',
-              child: Icon(Icons.warning_amber, color: AppColors.error, size: 18),
             ),
           ),
       ],

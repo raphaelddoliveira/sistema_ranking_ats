@@ -25,6 +25,12 @@ abstract final class RouteNames {
   static const String courtSchedule = '/courts/:courtId/schedule';
   static const String myReservations = '/courts/my-reservations';
 
+  // Clubs
+  static const String clubs = '/clubs';
+  static const String createClub = '/clubs/create';
+  static const String joinClub = '/clubs/join';
+  static const String clubManagement = '/clubs/:clubId/manage';
+
   // Admin
   static const String adminDashboard = '/admin';
   static const String adminPlayers = '/admin/players';

@@ -6,8 +6,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/snackbar_utils.dart';
 import '../../../core/constants/supabase_constants.dart';
 import '../../../services/supabase_service.dart';
-import '../../../shared/models/player_model.dart';
+import '../../../shared/models/club_member_model.dart';
 import '../../../shared/models/enums.dart';
+import '../../clubs/viewmodel/club_providers.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -35,13 +36,13 @@ class AdminDashboardScreen extends StatelessWidget {
             icon: Icons.payment,
             title: 'Mensalidades',
             subtitle: 'Controle de pagamentos',
-            onTap: () {}, // Em desenvolvimento
+            onTap: () {},
           ),
           _AdminCard(
             icon: Icons.sports_tennis,
             title: 'Quadras',
             subtitle: 'CRUD de quadras e slots',
-            onTap: () {}, // Em desenvolvimento
+            onTap: () {},
           ),
         ],
       ),
@@ -86,32 +87,40 @@ class AdminPlayersScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final playersAsync = ref.watch(_adminPlayersProvider);
+    final clubId = ref.watch(currentClubIdProvider);
+    if (clubId == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Gerenciar Jogadores')),
+        body: const Center(child: Text('Selecione um clube primeiro')),
+      );
+    }
+
+    final membersAsync = ref.watch(clubMembersProvider(clubId));
 
     return Scaffold(
       appBar: AppBar(title: const Text('Gerenciar Jogadores')),
-      body: playersAsync.when(
-        data: (players) => ListView.builder(
+      body: membersAsync.when(
+        data: (members) => ListView.builder(
           padding: const EdgeInsets.all(8),
-          itemCount: players.length,
+          itemCount: members.length,
           itemBuilder: (context, index) {
-            final player = players[index];
+            final member = members[index];
             return Card(
               child: ListTile(
                 leading: CircleAvatar(
                   backgroundColor: AppColors.surfaceVariant,
                   child: Text(
-                    '#${player.rankingPosition}',
+                    '#${member.rankingPosition ?? '-'}',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 12),
                   ),
                 ),
-                title: Text(player.fullName,
+                title: Text(member.playerName,
                     style: const TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Row(
                   children: [
-                    _StatusBadge(status: player.status),
-                    if (player.role == PlayerRole.admin) ...[
+                    _ClubMemberStatusBadge(status: member.status),
+                    if (member.isClubAdmin) ...[
                       const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -129,22 +138,13 @@ class AdminPlayersScreen extends ConsumerWidget {
                 ),
                 trailing: PopupMenuButton<String>(
                   onSelected: (action) =>
-                      _handleAction(context, ref, player, action),
+                      _handleAction(context, ref, member, action, clubId),
                   itemBuilder: (_) => [
-                    if (player.status != PlayerStatus.active)
-                      const PopupMenuItem(
-                          value: 'activate', child: Text('Ativar')),
-                    if (player.status == PlayerStatus.active)
-                      const PopupMenuItem(
-                          value: 'deactivate', child: Text('Desativar')),
-                    if (player.status != PlayerStatus.suspended)
-                      const PopupMenuItem(
-                          value: 'suspend', child: Text('Suspender')),
-                    if (player.isProtected)
+                    if (member.isProtected)
                       const PopupMenuItem(
                           value: 'remove_protection',
                           child: Text('Remover protecao')),
-                    if (player.isOnCooldown)
+                    if (member.isOnCooldown)
                       const PopupMenuItem(
                           value: 'remove_cooldown',
                           child: Text('Remover cooldown')),
@@ -163,12 +163,12 @@ class AdminPlayersScreen extends ConsumerWidget {
   void _handleAction(
     BuildContext context,
     WidgetRef ref,
-    PlayerModel player,
+    ClubMemberModel member,
     String action,
+    String clubId,
   ) async {
     final client = ref.read(supabaseClientProvider);
 
-    // Ações de proteção/cooldown
     if (action == 'remove_protection' || action == 'remove_cooldown') {
       final field = action == 'remove_protection'
           ? 'challenged_protection_until'
@@ -178,60 +178,33 @@ class AdminPlayersScreen extends ConsumerWidget {
 
       try {
         await client
-            .from(SupabaseConstants.playersTable)
-            .update({field: null}).eq('id', player.id);
+            .from(SupabaseConstants.clubMembersTable)
+            .update({field: null}).eq('id', member.id);
 
         if (context.mounted) {
           SnackbarUtils.showSuccess(
-              context, '$label removido de ${player.fullName}');
-          ref.invalidate(_adminPlayersProvider);
+              context, '$label removido de ${member.playerName}');
+          ref.invalidate(clubMembersProvider(clubId));
         }
       } catch (e) {
         if (context.mounted) {
           SnackbarUtils.showError(context, 'Erro: $e');
         }
       }
-      return;
-    }
-
-    // Ações de status
-    String newStatus;
-    switch (action) {
-      case 'activate':
-        newStatus = 'active';
-      case 'deactivate':
-        newStatus = 'inactive';
-      case 'suspend':
-        newStatus = 'suspended';
-      default:
-        return;
-    }
-
-    try {
-      await client
-          .from(SupabaseConstants.playersTable)
-          .update({'status': newStatus}).eq('id', player.id);
-
-      if (context.mounted) {
-        SnackbarUtils.showSuccess(
-            context, '${player.fullName} atualizado para $newStatus');
-        ref.invalidate(_adminPlayersProvider);
-      }
-    } catch (e) {
-      if (context.mounted) {
-        SnackbarUtils.showError(context, 'Erro: $e');
-      }
     }
   }
 }
 
-final _adminPlayersProvider = FutureProvider<List<PlayerModel>>((ref) async {
+final _adminClubMembersProvider =
+    FutureProvider.family<List<ClubMemberModel>, String>((ref, clubId) async {
   final client = ref.watch(supabaseClientProvider);
   final data = await client
-      .from(SupabaseConstants.playersTable)
-      .select()
+      .from(SupabaseConstants.clubMembersTable)
+      .select('*, player:players(full_name, nickname, avatar_url, email, phone)')
+      .eq('club_id', clubId)
+      .eq('status', 'active')
       .order('ranking_position');
-  return data.map((e) => PlayerModel.fromJson(e)).toList();
+  return data.map((e) => ClubMemberModel.fromJson(e)).toList();
 });
 
 // ─── Admin Ambulance Screen ───
@@ -240,43 +213,51 @@ class AdminAmbulanceScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final playersAsync = ref.watch(_adminPlayersProvider);
+    final clubId = ref.watch(currentClubIdProvider);
+    if (clubId == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Ambulancias')),
+        body: const Center(child: Text('Selecione um clube primeiro')),
+      );
+    }
+
+    final membersAsync = ref.watch(_adminClubMembersProvider(clubId));
 
     return Scaffold(
       appBar: AppBar(title: const Text('Ambulancias')),
-      body: playersAsync.when(
-        data: (players) {
-          final activePlayers =
-              players.where((p) => p.status == PlayerStatus.active).toList();
-          final ambulancePlayers =
-              players.where((p) => p.status == PlayerStatus.ambulance).toList();
+      body: membersAsync.when(
+        data: (members) {
+          final activeMembers =
+              members.where((m) => !m.ambulanceActive).toList();
+          final ambulanceMembers =
+              members.where((m) => m.ambulanceActive).toList();
 
           return ListView(
             padding: const EdgeInsets.all(12),
             children: [
-              if (ambulancePlayers.isNotEmpty) ...[
+              if (ambulanceMembers.isNotEmpty) ...[
                 Padding(
                   padding: const EdgeInsets.all(8),
                   child: Text(
-                    'Ambulancias Ativas (${ambulancePlayers.length})',
+                    'Ambulancias Ativas (${ambulanceMembers.length})',
                     style: Theme.of(context)
                         .textTheme
                         .titleSmall
                         ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
-                ...ambulancePlayers.map((p) => Card(
+                ...ambulanceMembers.map((m) => Card(
                       child: ListTile(
                         leading: const CircleAvatar(
                           backgroundColor: Color(0x20E53935),
                           child: Icon(Icons.local_hospital,
                               color: AppColors.ambulanceActive, size: 20),
                         ),
-                        title: Text(p.fullName),
-                        subtitle: Text('#${p.rankingPosition}'),
+                        title: Text(m.playerName),
+                        subtitle: Text('#${m.rankingPosition ?? '-'}'),
                         trailing: ElevatedButton(
                           onPressed: () =>
-                              _deactivateAmbulance(context, ref, p),
+                              _deactivateAmbulance(context, ref, m, clubId),
                           style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.error),
                           child: const Text('Desativar',
@@ -289,25 +270,25 @@ class AdminAmbulanceScreen extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.all(8),
                 child: Text(
-                  'Jogadores Ativos (${activePlayers.length})',
+                  'Jogadores Ativos (${activeMembers.length})',
                   style: Theme.of(context)
                       .textTheme
                       .titleSmall
                       ?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ),
-              ...activePlayers.map((p) => Card(
+              ...activeMembers.map((m) => Card(
                     child: ListTile(
                       leading: CircleAvatar(
                         backgroundColor: AppColors.surfaceVariant,
-                        child: Text('#${p.rankingPosition}',
+                        child: Text('#${m.rankingPosition ?? '-'}',
                             style: const TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 12)),
                       ),
-                      title: Text(p.fullName),
+                      title: Text(m.playerName),
                       trailing: OutlinedButton(
                         onPressed: () =>
-                            _activateAmbulance(context, ref, p),
+                            _activateAmbulance(context, ref, m, clubId),
                         child: const Text('Ambulancia',
                             style: TextStyle(fontSize: 12)),
                       ),
@@ -323,13 +304,13 @@ class AdminAmbulanceScreen extends ConsumerWidget {
   }
 
   void _activateAmbulance(
-      BuildContext context, WidgetRef ref, PlayerModel player) {
+      BuildContext context, WidgetRef ref, ClubMemberModel member, String clubId) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Ativar Ambulancia'),
         content: Text(
-          'Ativar ambulancia para ${player.fullName} (#${player.rankingPosition})?\n\n'
+          'Ativar ambulancia para ${member.playerName} (#${member.rankingPosition ?? '-'})?\n\n'
           'Isso ira:\n'
           '- Penalizar -3 posicoes\n'
           '- Ativar protecao de 10 dias\n'
@@ -349,12 +330,15 @@ class AdminAmbulanceScreen extends ConsumerWidget {
                 final client = ref.read(supabaseClientProvider);
                 await client.rpc(
                   SupabaseConstants.rpcActivateAmbulance,
-                  params: {'p_player_id': player.id},
+                  params: {
+                    'p_player_id': member.playerId,
+                    'p_club_id': clubId,
+                  },
                 );
                 if (context.mounted) {
                   SnackbarUtils.showSuccess(
-                      context, 'Ambulancia ativada para ${player.fullName}');
-                  ref.invalidate(_adminPlayersProvider);
+                      context, 'Ambulancia ativada para ${member.playerName}');
+                  ref.invalidate(_adminClubMembersProvider(clubId));
                 }
               } catch (e) {
                 if (context.mounted) {
@@ -370,13 +354,13 @@ class AdminAmbulanceScreen extends ConsumerWidget {
   }
 
   void _deactivateAmbulance(
-      BuildContext context, WidgetRef ref, PlayerModel player) {
+      BuildContext context, WidgetRef ref, ClubMemberModel member, String clubId) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Desativar Ambulancia'),
         content:
-            Text('Desativar ambulancia de ${player.fullName}?'),
+            Text('Desativar ambulancia de ${member.playerName}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -389,12 +373,15 @@ class AdminAmbulanceScreen extends ConsumerWidget {
                 final client = ref.read(supabaseClientProvider);
                 await client.rpc(
                   SupabaseConstants.rpcDeactivateAmbulance,
-                  params: {'p_player_id': player.id},
+                  params: {
+                    'p_player_id': member.playerId,
+                    'p_club_id': clubId,
+                  },
                 );
                 if (context.mounted) {
                   SnackbarUtils.showSuccess(context,
-                      'Ambulancia desativada para ${player.fullName}');
-                  ref.invalidate(_adminPlayersProvider);
+                      'Ambulancia desativada para ${member.playerName}');
+                  ref.invalidate(_adminClubMembersProvider(clubId));
                 }
               } catch (e) {
                 if (context.mounted) {
@@ -410,18 +397,17 @@ class AdminAmbulanceScreen extends ConsumerWidget {
   }
 }
 
-class _StatusBadge extends StatelessWidget {
-  final PlayerStatus status;
+class _ClubMemberStatusBadge extends StatelessWidget {
+  final ClubMemberStatus status;
 
-  const _StatusBadge({required this.status});
+  const _ClubMemberStatusBadge({required this.status});
 
   @override
   Widget build(BuildContext context) {
     final (color, label) = switch (status) {
-      PlayerStatus.active => (AppColors.success, 'Ativo'),
-      PlayerStatus.inactive => (AppColors.onBackgroundLight, 'Inativo'),
-      PlayerStatus.ambulance => (AppColors.ambulanceActive, 'Ambulancia'),
-      PlayerStatus.suspended => (AppColors.error, 'Suspenso'),
+      ClubMemberStatus.active => (AppColors.success, 'Ativo'),
+      ClubMemberStatus.pending => (AppColors.warning, 'Pendente'),
+      ClubMemberStatus.inactive => (AppColors.onBackgroundLight, 'Inativo'),
     };
 
     return Container(
@@ -437,4 +423,3 @@ class _StatusBadge extends StatelessWidget {
     );
   }
 }
-

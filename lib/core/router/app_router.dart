@@ -8,6 +8,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/auth/view/login_screen.dart';
 import '../../features/auth/view/register_screen.dart';
 import '../../features/auth/view/forgot_password_screen.dart';
+import '../../features/clubs/view/create_club_screen.dart';
+import '../../features/clubs/view/join_club_screen.dart';
+import '../../features/clubs/view/club_management_screen.dart';
 import '../../features/ranking/view/ranking_screen.dart';
 import '../../features/ranking/view/ranking_history_screen.dart';
 import '../../features/challenges/view/challenges_screen.dart';
@@ -170,6 +173,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ),
           ),
         ],
+      ),
+
+      // Club routes (no bottom nav)
+      GoRoute(
+        path: RouteNames.createClub,
+        builder: (context, state) => const CreateClubScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.joinClub,
+        builder: (context, state) => const JoinClubScreen(),
+      ),
+      GoRoute(
+        path: '/clubs/:clubId/manage',
+        builder: (context, state) => ClubManagementScreen(
+          clubId: state.pathParameters['clubId']!,
+        ),
       ),
 
       // Admin routes (no bottom nav)

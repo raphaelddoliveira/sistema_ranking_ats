@@ -5,6 +5,7 @@ import '../../../core/constants/supabase_constants.dart';
 import '../../../core/errors/error_handler.dart';
 import '../../../services/supabase_service.dart';
 import '../../../shared/models/challenge_model.dart';
+import '../../../shared/models/club_member_model.dart';
 import '../../../shared/models/match_model.dart';
 
 final challengeRepositoryProvider = Provider<ChallengeRepository>((ref) {
@@ -22,8 +23,8 @@ class ChallengeRepository {
     challenged:players!challenged_id(full_name, avatar_url)
   ''';
 
-  /// Create a challenge via RPC (validates all business rules server-side)
-  Future<String> createChallenge(String challengedId) async {
+  /// Create a challenge via RPC
+  Future<String> createChallenge(String challengedId, {required String clubId}) async {
     try {
       final authId = _client.auth.currentUser!.id;
       final result = await _client.rpc(
@@ -31,6 +32,7 @@ class ChallengeRepository {
         params: {
           'p_challenger_auth_id': authId,
           'p_challenged_id': challengedId,
+          'p_club_id': clubId,
         },
       );
       return result as String;
@@ -39,28 +41,14 @@ class ChallengeRepository {
     }
   }
 
-  /// Get challenges for current player (active + history)
-  Future<List<ChallengeModel>> getMyChallenges() async {
+  /// Get only active challenges for current player in a club
+  Future<List<ChallengeModel>> getActiveChallenges({required String clubId}) async {
     try {
       final playerId = await _getCurrentPlayerId();
       final data = await _client
           .from(SupabaseConstants.challengesTable)
           .select(_selectWithJoins)
-          .or('challenger_id.eq.$playerId,challenged_id.eq.$playerId')
-          .order('created_at', ascending: false);
-      return data.map((e) => ChallengeModel.fromJson(e)).toList();
-    } catch (e) {
-      throw ErrorHandler.handle(e);
-    }
-  }
-
-  /// Get only active challenges for current player
-  Future<List<ChallengeModel>> getActiveChallenges() async {
-    try {
-      final playerId = await _getCurrentPlayerId();
-      final data = await _client
-          .from(SupabaseConstants.challengesTable)
-          .select(_selectWithJoins)
+          .eq('club_id', clubId)
           .or('challenger_id.eq.$playerId,challenged_id.eq.$playerId')
           .inFilter('status', ['pending', 'dates_proposed', 'scheduled'])
           .order('created_at', ascending: false);
@@ -70,20 +58,17 @@ class ChallengeRepository {
     }
   }
 
-  /// Get challenge history for current player
-  Future<List<ChallengeModel>> getChallengeHistory() async {
+  /// Get challenge history for current player in a club
+  Future<List<ChallengeModel>> getChallengeHistory({required String clubId}) async {
     try {
       final playerId = await _getCurrentPlayerId();
       final data = await _client
           .from(SupabaseConstants.challengesTable)
           .select(_selectWithJoins)
+          .eq('club_id', clubId)
           .or('challenger_id.eq.$playerId,challenged_id.eq.$playerId')
           .inFilter('status', [
-            'completed',
-            'wo_challenger',
-            'wo_challenged',
-            'expired',
-            'cancelled'
+            'completed', 'wo_challenger', 'wo_challenged', 'expired', 'cancelled'
           ])
           .order('completed_at', ascending: false)
           .limit(50);
@@ -115,10 +100,9 @@ class ChallengeRepository {
     required DateTime date3,
   }) async {
     try {
-      // Fetch challenge to get challenger_id for notification
       final challenge = await _client
           .from(SupabaseConstants.challengesTable)
-          .select('challenger_id')
+          .select('challenger_id, club_id')
           .eq('id', challengeId)
           .single();
 
@@ -133,13 +117,13 @@ class ChallengeRepository {
           })
           .eq('id', challengeId);
 
-      // Notification: dates_proposed for challenger
       await _client.from(SupabaseConstants.notificationsTable).insert({
         'player_id': challenge['challenger_id'],
         'type': 'dates_proposed',
         'title': 'Datas Propostas',
         'body': 'Seu oponente propos 3 datas para o desafio. Escolha uma!',
         'data': {'challenge_id': challengeId},
+        'club_id': challenge['club_id'],
       });
     } catch (e) {
       throw ErrorHandler.handle(e);
@@ -149,10 +133,9 @@ class ChallengeRepository {
   /// Challenger chooses one of the 3 proposed dates
   Future<void> chooseDate(String challengeId, DateTime chosenDate) async {
     try {
-      // Fetch challenge to get challenged_id for notification
       final challenge = await _client
           .from(SupabaseConstants.challengesTable)
-          .select('challenged_id')
+          .select('challenged_id, club_id')
           .eq('id', challengeId)
           .single();
 
@@ -168,20 +151,20 @@ class ChallengeRepository {
           })
           .eq('id', challengeId);
 
-      // Notification: date_chosen for challenged player
       await _client.from(SupabaseConstants.notificationsTable).insert({
         'player_id': challenge['challenged_id'],
         'type': 'date_chosen',
         'title': 'Data Confirmada',
         'body': 'A data do seu desafio foi confirmada. Confira os detalhes!',
         'data': {'challenge_id': challengeId},
+        'club_id': challenge['club_id'],
       });
     } catch (e) {
       throw ErrorHandler.handle(e);
     }
   }
 
-  /// Record match result via RPC (handles ranking swap server-side)
+  /// Record match result via RPC
   Future<void> recordResult({
     required String challengeId,
     required String winnerId,
@@ -214,10 +197,9 @@ class ChallengeRepository {
     try {
       final playerId = await _getCurrentPlayerId();
 
-      // Fetch challenge to determine the other player
       final challenge = await _client
           .from(SupabaseConstants.challengesTable)
-          .select('challenger_id, challenged_id')
+          .select('challenger_id, challenged_id, club_id')
           .eq('id', challengeId)
           .single();
 
@@ -229,7 +211,6 @@ class ChallengeRepository {
           })
           .eq('id', challengeId);
 
-      // Notify the other player
       final otherPlayerId = challenge['challenger_id'] == playerId
           ? challenge['challenged_id']
           : challenge['challenger_id'];
@@ -240,6 +221,7 @@ class ChallengeRepository {
         'title': 'Desafio Cancelado',
         'body': 'Um desafio em que voce participava foi cancelado.',
         'data': {'challenge_id': challengeId},
+        'club_id': challenge['club_id'],
       });
     } catch (e) {
       throw ErrorHandler.handle(e);
@@ -261,36 +243,43 @@ class ChallengeRepository {
     }
   }
 
-  /// Get eligible opponents for creating a challenge
-  Future<List<Map<String, dynamic>>> getEligibleOpponents() async {
+  /// Get eligible opponents from club_members
+  Future<List<ClubMemberModel>> getEligibleOpponents({required String clubId}) async {
     try {
       final playerId = await _getCurrentPlayerId();
-      final player = await _client
-          .from(SupabaseConstants.playersTable)
+
+      final myMember = await _client
+          .from('club_members')
           .select('ranking_position')
-          .eq('id', playerId)
+          .eq('club_id', clubId)
+          .eq('player_id', playerId)
+          .eq('status', 'active')
           .single();
 
-      final myPosition = player['ranking_position'] as int;
-      final minPosition = myPosition - 2; // Can challenge up to 2 above
+      final myPosition = myMember['ranking_position'] as int;
+      final minPosition = myPosition - 2;
 
       final opponents = await _client
-          .from(SupabaseConstants.playersTable)
-          .select('id, full_name, nickname, avatar_url, ranking_position, status, challenged_protection_until')
-          .neq('id', playerId)
+          .from('club_members')
+          .select('*, player:players(full_name, nickname, avatar_url, email, phone)')
+          .eq('club_id', clubId)
           .eq('status', 'active')
+          .neq('player_id', playerId)
           .gte('ranking_position', minPosition < 1 ? 1 : minPosition)
           .lt('ranking_position', myPosition)
           .order('ranking_position');
 
-      return List<Map<String, dynamic>>.from(opponents);
+      return opponents.map((e) => ClubMemberModel.fromJson(e)).toList();
     } catch (e) {
       throw ErrorHandler.handle(e);
     }
   }
 
-  /// Validate if a challenge can be created (client-side pre-check)
-  Future<Map<String, dynamic>> validateChallenge(String challengedId) async {
+  /// Validate if a challenge can be created
+  Future<Map<String, dynamic>> validateChallenge(
+    String challengedId, {
+    required String clubId,
+  }) async {
     try {
       final playerId = await _getCurrentPlayerId();
       final result = await _client.rpc(
@@ -298,6 +287,7 @@ class ChallengeRepository {
         params: {
           'p_challenger_id': playerId,
           'p_challenged_id': challengedId,
+          'p_club_id': clubId,
         },
       );
       return Map<String, dynamic>.from(result as Map);

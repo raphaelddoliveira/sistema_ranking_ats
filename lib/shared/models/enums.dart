@@ -66,6 +66,32 @@ enum ReservationStatus {
       ReservationStatus.values.firstWhere((e) => e.name == value);
 }
 
+enum ClubMemberRole {
+  admin,
+  member;
+
+  static ClubMemberRole fromString(String value) =>
+      ClubMemberRole.values.firstWhere((e) => e.name == value);
+}
+
+enum ClubMemberStatus {
+  active,
+  pending,
+  inactive;
+
+  static ClubMemberStatus fromString(String value) =>
+      ClubMemberStatus.values.firstWhere((e) => e.name == value);
+}
+
+enum JoinRequestStatus {
+  pending,
+  approved,
+  rejected;
+
+  static JoinRequestStatus fromString(String value) =>
+      JoinRequestStatus.values.firstWhere((e) => e.name == value);
+}
+
 enum NotificationType {
   challengeReceived('challenge_received'),
   datesProposed('dates_proposed'),
