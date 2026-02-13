@@ -35,6 +35,9 @@ class AppScaffold extends ConsumerWidget {
     final currentIndex = _currentIndex(context);
     final unreadAsync = ref.watch(unreadCountProvider);
     final currentPlayer = ref.watch(currentPlayerProvider);
+
+    // Activate realtime listener for notifications
+    ref.watch(notificationRealtimeProvider);
     final isAdmin = currentPlayer.valueOrNull?.isAdmin ?? false;
     final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
 

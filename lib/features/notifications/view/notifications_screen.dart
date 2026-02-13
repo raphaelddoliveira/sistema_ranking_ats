@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/extensions/date_extensions.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/models/enums.dart';
 import '../../../shared/models/notification_model.dart';
 import '../../clubs/view/club_selector_widget.dart';
 import '../viewmodel/notification_viewmodel.dart';
@@ -140,9 +142,38 @@ class _NotificationTile extends ConsumerWidget {
             ref.invalidate(notificationsProvider);
             ref.invalidate(unreadCountProvider);
           }
+          _navigateToDestination(context, notification);
         },
       ),
     );
+  }
+
+  void _navigateToDestination(BuildContext context, NotificationModel n) {
+    final challengeId = n.challengeId;
+
+    switch (n.type) {
+      case NotificationType.challengeReceived:
+      case NotificationType.datesProposed:
+      case NotificationType.dateChosen:
+      case NotificationType.matchResult:
+      case NotificationType.woWarning:
+        if (challengeId != null) {
+          context.push('/challenges/$challengeId');
+        }
+      case NotificationType.rankingChange:
+      case NotificationType.ambulanceActivated:
+      case NotificationType.ambulanceExpired:
+        context.go('/ranking');
+      case NotificationType.paymentDue:
+      case NotificationType.paymentOverdue:
+        context.go('/profile');
+      case NotificationType.monthlyChallengeWarning:
+        context.go('/challenges');
+      case NotificationType.general:
+        if (challengeId != null) {
+          context.push('/challenges/$challengeId');
+        }
+    }
   }
 
   IconData _getIconData(String name) {

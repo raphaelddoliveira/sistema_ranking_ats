@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/club_member_model.dart';
+import '../../../shared/providers/current_player_provider.dart';
 import '../../clubs/view/club_selector_widget.dart';
 import '../../clubs/view/no_club_screen.dart';
 import '../../clubs/viewmodel/club_providers.dart';
@@ -47,7 +48,21 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
         ],
       ),
       body: clubId == null
-          ? const NoClubScreen()
+          ? () {
+              final player = ref.watch(currentPlayerProvider);
+              final myClubs = ref.watch(myClubsProvider);
+              // Show loading while player or clubs are still loading
+              if (player.isLoading || myClubs.isLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              // Player loaded but clubs not yet fetched, or clubs exist but auto-select pending
+              final clubs = myClubs.valueOrNull ?? [];
+              if (player.valueOrNull == null || clubs.isNotEmpty) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              // Player loaded, clubs loaded, truly empty
+              return const NoClubScreen();
+            }()
           : rankingAsync.when(
               data: (members) {
                 if (members.isEmpty) {
