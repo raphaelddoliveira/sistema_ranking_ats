@@ -69,7 +69,7 @@ class FloatingNavBar extends StatelessWidget {
                 _NavItem(
                   icon: Icons.calendar_month_outlined,
                   activeIcon: Icons.calendar_month,
-                  label: 'Quadras',
+                  label: 'Reservas',
                   isActive: currentIndex == 2,
                   onTap: () => onTap(2),
                 ),

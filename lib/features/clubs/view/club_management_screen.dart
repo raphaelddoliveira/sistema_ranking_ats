@@ -12,11 +12,11 @@ import '../../courts/viewmodel/courts_viewmodel.dart';
 import '../data/club_repository.dart';
 import '../viewmodel/club_providers.dart';
 
-/// Courts for a specific club (including inactive for admin view)
-final _clubCourtsProvider = FutureProvider.family<List<CourtModel>, String>(
-  (ref, clubId) async {
+/// Courts for a specific club + sport (including inactive for admin view)
+final _clubCourtsProvider = FutureProvider.family<List<CourtModel>, ({String clubId, String? sportId})>(
+  (ref, params) async {
     final repo = ref.watch(courtRepositoryProvider);
-    return repo.getAllCourts(clubId: clubId);
+    return repo.getAllCourts(clubId: params.clubId, sportId: params.sportId);
   },
 );
 
@@ -723,7 +723,12 @@ class _CourtsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final courtsAsync = ref.watch(_clubCourtsProvider(clubId));
+    final sportId = ref.watch(currentSportIdProvider);
+    final currentSport = ref.watch(currentSportProvider).valueOrNull;
+    final config = currentSport?.facilityConfig;
+    final plural = config?.plural ?? 'Locais';
+    final providerKey = (clubId: clubId, sportId: sportId);
+    final courtsAsync = ref.watch(_clubCourtsProvider(providerKey));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -735,13 +740,13 @@ class _CourtsSection extends ConsumerWidget {
                 padding: const EdgeInsets.only(left: 4),
                 child: courtsAsync.when(
                   data: (courts) => Text(
-                    'Quadras (${courts.where((c) => c.isActive).length})',
+                    '$plural (${courts.where((c) => c.isActive).length})',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  loading: () => const Text('Quadras'),
-                  error: (_, _) => const Text('Quadras'),
+                  loading: () => Text(plural),
+                  error: (_, _) => Text(plural),
                 ),
               ),
             ),
@@ -757,11 +762,11 @@ class _CourtsSection extends ConsumerWidget {
         courtsAsync.when(
           data: (courts) {
             if (courts.isEmpty) {
-              return const Card(
+              return Card(
                 child: ListTile(
-                  leading: Icon(Icons.sports, color: AppColors.onBackgroundLight),
-                  title: Text('Nenhuma quadra cadastrada'),
-                  subtitle: Text('Adicione quadras para reservas'),
+                  leading: const Icon(Icons.sports, color: AppColors.onBackgroundLight),
+                  title: Text(config?.emptyAdmin ?? 'Nenhum local cadastrado'),
+                  subtitle: Text('Adicione para reservas'),
                 ),
               );
             }
@@ -777,7 +782,7 @@ class _CourtsSection extends ConsumerWidget {
                   } else {
                     await repo.reactivateCourt(court.id);
                   }
-                  ref.invalidate(_clubCourtsProvider(clubId));
+                  ref.invalidate(_clubCourtsProvider(providerKey));
                   ref.invalidate(courtsListProvider);
                 },
               )).toList(),
@@ -791,6 +796,16 @@ class _CourtsSection extends ConsumerWidget {
   }
 
   void _showCourtDialog(BuildContext context, WidgetRef ref, {CourtModel? court}) {
+    final sportId = ref.read(currentSportIdProvider);
+    final currentSport = ref.read(currentSportProvider).valueOrNull;
+    final config = currentSport?.facilityConfig;
+    final providerKey = (clubId: clubId, sportId: sportId);
+
+    if (sportId == null) {
+      SnackbarUtils.showInfo(context, 'Selecione um esporte primeiro');
+      return;
+    }
+
     final nameController = TextEditingController(text: court?.name ?? '');
     final notesController = TextEditingController(text: court?.notes ?? '');
     String? selectedSurface = court?.surfaceType;
@@ -800,34 +815,34 @@ class _CourtsSection extends ConsumerWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
-          title: Text(court == null ? 'Nova Quadra' : 'Editar Quadra'),
+          title: Text(court == null
+              ? (config?.newTitle ?? 'Novo Local')
+              : (config?.editTitle ?? 'Editar Local')),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nome da quadra',
-                    hintText: 'Ex: Quadra 1',
+                  decoration: InputDecoration(
+                    labelText: config?.nameLabel ?? 'Nome',
+                    hintText: config?.nameHint ?? 'Ex: Local 1',
                   ),
                   textCapitalization: TextCapitalization.words,
                 ),
                 const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedSurface,
-                  decoration: const InputDecoration(labelText: 'Tipo de piso'),
-                  items: const [
-                    DropdownMenuItem(value: 'saibro', child: Text('Saibro')),
-                    DropdownMenuItem(value: 'dura', child: Text('Quadra Dura')),
-                    DropdownMenuItem(value: 'grama', child: Text('Grama')),
-                    DropdownMenuItem(value: 'carpet', child: Text('Carpet')),
-                  ],
-                  onChanged: (v) => setState(() => selectedSurface = v),
-                ),
+                if (config != null && config.surfaces.isNotEmpty)
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedSurface,
+                    decoration: const InputDecoration(labelText: 'Tipo de piso'),
+                    items: config.surfaces
+                        .map((s) => DropdownMenuItem(value: s.value, child: Text(s.label)))
+                        .toList(),
+                    onChanged: (v) => setState(() => selectedSurface = v),
+                  ),
                 const SizedBox(height: 12),
                 SwitchListTile(
-                  title: const Text('Quadra coberta'),
+                  title: Text(config?.coveredLabel ?? 'Coberto'),
                   value: isCovered,
                   onChanged: (v) => setState(() => isCovered = v),
                   contentPadding: EdgeInsets.zero,
@@ -857,6 +872,7 @@ class _CourtsSection extends ConsumerWidget {
                 if (court == null) {
                   await repo.createCourt(
                     clubId: clubId,
+                    sportId: sportId,
                     name: name,
                     surfaceType: selectedSurface,
                     isCovered: isCovered,
@@ -875,7 +891,7 @@ class _CourtsSection extends ConsumerWidget {
                         : notesController.text.trim(),
                   );
                 }
-                ref.invalidate(_clubCourtsProvider(clubId));
+                ref.invalidate(_clubCourtsProvider(providerKey));
                 ref.invalidate(courtsListProvider);
                 if (ctx.mounted) Navigator.pop(ctx);
               },

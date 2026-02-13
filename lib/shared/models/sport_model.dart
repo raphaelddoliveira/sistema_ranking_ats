@@ -1,5 +1,32 @@
 import 'package:flutter/material.dart';
 
+/// Configuration for facility terminology and surface types per sport
+class FacilityConfig {
+  final String label;        // "Quadra", "Campo"
+  final String plural;       // "Quadras", "Campos"
+  final String coveredLabel; // "Quadra coberta", "Campo coberto"
+  final String emptyState;   // "Nenhuma quadra disponivel"
+  final String emptyAdmin;   // "Nenhuma quadra cadastrada"
+  final String nameLabel;    // "Nome da quadra"
+  final String nameHint;     // "Ex: Quadra 1"
+  final String newTitle;     // "Nova Quadra"
+  final String editTitle;    // "Editar Quadra"
+  final List<({String value, String label})> surfaces;
+
+  const FacilityConfig({
+    required this.label,
+    required this.plural,
+    required this.coveredLabel,
+    required this.emptyState,
+    required this.emptyAdmin,
+    required this.nameLabel,
+    required this.nameHint,
+    required this.newTitle,
+    required this.editTitle,
+    required this.surfaces,
+  });
+}
+
 class SportModel {
   final String id;
   final String name;
@@ -47,6 +74,115 @@ class SportModel {
         return Icons.sports_soccer;
       default:
         return Icons.emoji_events;
+    }
+  }
+
+  FacilityConfig get facilityConfig {
+    switch (name.toLowerCase()) {
+      case 'tenis':
+      case 'tênis':
+        return const FacilityConfig(
+          label: 'Quadra',
+          plural: 'Quadras',
+          coveredLabel: 'Quadra coberta',
+          emptyState: 'Nenhuma quadra disponivel',
+          emptyAdmin: 'Nenhuma quadra cadastrada',
+          nameLabel: 'Nome da quadra',
+          nameHint: 'Ex: Quadra 1',
+          newTitle: 'Nova Quadra',
+          editTitle: 'Editar Quadra',
+          surfaces: [
+            (value: 'saibro', label: 'Saibro'),
+            (value: 'dura', label: 'Quadra Dura'),
+            (value: 'grama', label: 'Grama'),
+            (value: 'carpet', label: 'Carpet'),
+            (value: 'sintetica', label: 'Sintetica'),
+          ],
+        );
+      case 'futsal':
+        return const FacilityConfig(
+          label: 'Quadra',
+          plural: 'Quadras',
+          coveredLabel: 'Quadra coberta',
+          emptyState: 'Nenhuma quadra disponivel',
+          emptyAdmin: 'Nenhuma quadra cadastrada',
+          nameLabel: 'Nome da quadra',
+          nameHint: 'Ex: Quadra 1',
+          newTitle: 'Nova Quadra',
+          editTitle: 'Editar Quadra',
+          surfaces: [
+            (value: 'grama_sintetica', label: 'Grama Sintetica'),
+            (value: 'piso', label: 'Piso'),
+            (value: 'cimento', label: 'Cimento'),
+          ],
+        );
+      case 'futebol de campo':
+        return const FacilityConfig(
+          label: 'Campo',
+          plural: 'Campos',
+          coveredLabel: 'Campo coberto',
+          emptyState: 'Nenhum campo disponivel',
+          emptyAdmin: 'Nenhum campo cadastrado',
+          nameLabel: 'Nome do campo',
+          nameHint: 'Ex: Campo 1',
+          newTitle: 'Novo Campo',
+          editTitle: 'Editar Campo',
+          surfaces: [
+            (value: 'grama_natural', label: 'Grama Natural'),
+            (value: 'grama_sintetica', label: 'Grama Sintetica'),
+            (value: 'society', label: 'Society'),
+          ],
+        );
+      case 'volei quadra':
+      case 'vôlei quadra':
+      case 'volei de quadra':
+      case 'vôlei de quadra':
+        return const FacilityConfig(
+          label: 'Quadra',
+          plural: 'Quadras',
+          coveredLabel: 'Quadra coberta',
+          emptyState: 'Nenhuma quadra disponivel',
+          emptyAdmin: 'Nenhuma quadra cadastrada',
+          nameLabel: 'Nome da quadra',
+          nameHint: 'Ex: Quadra 1',
+          newTitle: 'Nova Quadra',
+          editTitle: 'Editar Quadra',
+          surfaces: [
+            (value: 'piso', label: 'Piso'),
+            (value: 'areia', label: 'Areia'),
+          ],
+        );
+      case 'volei de areia':
+      case 'vôlei de areia':
+      case 'futevolei':
+      case 'futevôlei':
+        return const FacilityConfig(
+          label: 'Quadra',
+          plural: 'Quadras',
+          coveredLabel: 'Quadra coberta',
+          emptyState: 'Nenhuma quadra disponivel',
+          emptyAdmin: 'Nenhuma quadra cadastrada',
+          nameLabel: 'Nome da quadra',
+          nameHint: 'Ex: Quadra 1',
+          newTitle: 'Nova Quadra',
+          editTitle: 'Editar Quadra',
+          surfaces: [
+            (value: 'areia', label: 'Areia'),
+          ],
+        );
+      default:
+        return const FacilityConfig(
+          label: 'Local',
+          plural: 'Locais',
+          coveredLabel: 'Local coberto',
+          emptyState: 'Nenhum local disponivel',
+          emptyAdmin: 'Nenhum local cadastrado',
+          nameLabel: 'Nome do local',
+          nameHint: 'Ex: Local 1',
+          newTitle: 'Novo Local',
+          editTitle: 'Editar Local',
+          surfaces: [],
+        );
     }
   }
 

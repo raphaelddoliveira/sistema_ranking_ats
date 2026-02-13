@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/court_model.dart';
 import '../../clubs/view/club_selector_widget.dart';
+import '../../clubs/viewmodel/club_providers.dart';
 import '../viewmodel/courts_viewmodel.dart';
 
 class CourtsScreen extends ConsumerWidget {
@@ -13,10 +14,12 @@ class CourtsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final courtsAsync = ref.watch(courtsListProvider);
+    final currentSport = ref.watch(currentSportProvider).valueOrNull;
+    final facilityConfig = currentSport?.facilityConfig;
 
     return Scaffold(
       appBar: AppBar(
-        title: clubAppBarTitle('Quadras', context, ref),
+        title: clubAppBarTitle(facilityConfig?.plural ?? 'Reservas', context, ref),
         centerTitle: true,
         actions: [
           IconButton(
@@ -29,15 +32,15 @@ class CourtsScreen extends ConsumerWidget {
       body: courtsAsync.when(
         data: (courts) {
           if (courts.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.event_available, size: 64, color: AppColors.onBackgroundLight),
-                  SizedBox(height: 16),
+                  const Icon(Icons.event_available, size: 64, color: AppColors.onBackgroundLight),
+                  const SizedBox(height: 16),
                   Text(
-                    'Nenhuma quadra disponivel',
-                    style: TextStyle(fontSize: 16, color: AppColors.onBackgroundLight),
+                    facilityConfig?.emptyState ?? 'Nenhum local disponivel',
+                    style: const TextStyle(fontSize: 16, color: AppColors.onBackgroundLight),
                   ),
                 ],
               ),

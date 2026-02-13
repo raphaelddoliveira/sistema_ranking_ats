@@ -17,38 +17,45 @@ class CourtRepository {
 
   CourtRepository(this._client);
 
-  /// Get all active courts for a club
-  Future<List<CourtModel>> getCourts({required String clubId}) async {
+  /// Get all active courts for a club, optionally filtered by sport
+  Future<List<CourtModel>> getCourts({required String clubId, String? sportId}) async {
     try {
-      final data = await _client
+      var query = _client
           .from(SupabaseConstants.courtsTable)
           .select()
           .eq('club_id', clubId)
-          .eq('is_active', true)
-          .order('name');
+          .eq('is_active', true);
+      if (sportId != null) {
+        query = query.eq('sport_id', sportId);
+      }
+      final data = await query.order('name');
       return data.map((e) => CourtModel.fromJson(e)).toList();
     } catch (e) {
       throw ErrorHandler.handle(e);
     }
   }
 
-  /// Get all courts for a club (including inactive — for admin)
-  Future<List<CourtModel>> getAllCourts({required String clubId}) async {
+  /// Get all courts for a club (including inactive — for admin), optionally filtered by sport
+  Future<List<CourtModel>> getAllCourts({required String clubId, String? sportId}) async {
     try {
-      final data = await _client
+      var query = _client
           .from(SupabaseConstants.courtsTable)
           .select()
-          .eq('club_id', clubId)
-          .order('name');
+          .eq('club_id', clubId);
+      if (sportId != null) {
+        query = query.eq('sport_id', sportId);
+      }
+      final data = await query.order('name');
       return data.map((e) => CourtModel.fromJson(e)).toList();
     } catch (e) {
       throw ErrorHandler.handle(e);
     }
   }
 
-  /// Create a new court
+  /// Create a new court linked to a sport
   Future<void> createCourt({
     required String clubId,
+    required String sportId,
     required String name,
     String? surfaceType,
     bool isCovered = false,
@@ -57,6 +64,7 @@ class CourtRepository {
     try {
       await _client.from(SupabaseConstants.courtsTable).insert({
         'club_id': clubId,
+        'sport_id': sportId,
         'name': name,
         'surface_type': surfaceType,
         'is_covered': isCovered,

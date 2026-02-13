@@ -1,6 +1,7 @@
 class CourtModel {
   final String id;
   final String name;
+  final String sportId;
   final String? surfaceType;
   final bool isCovered;
   final bool isActive;
@@ -11,6 +12,7 @@ class CourtModel {
   const CourtModel({
     required this.id,
     required this.name,
+    required this.sportId,
     this.surfaceType,
     this.isCovered = false,
     this.isActive = true,
@@ -19,18 +21,20 @@ class CourtModel {
     required this.updatedAt,
   });
 
-  String get surfaceLabel => switch (surfaceType) {
-        'saibro' => 'Saibro',
-        'dura' => 'Quadra Dura',
-        'grama' => 'Grama',
-        'carpet' => 'Carpet',
-        _ => surfaceType ?? 'N/A',
-      };
+  String get surfaceLabel {
+    if (surfaceType == null) return 'N/A';
+    return surfaceType!
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+        .join(' ');
+  }
 
   factory CourtModel.fromJson(Map<String, dynamic> json) {
     return CourtModel(
       id: json['id'] as String,
       name: json['name'] as String,
+      sportId: json['sport_id'] as String,
       surfaceType: json['surface_type'] as String?,
       isCovered: json['is_covered'] as bool? ?? false,
       isActive: json['is_active'] as bool? ?? true,
@@ -43,6 +47,7 @@ class CourtModel {
   Map<String, dynamic> toJson() {
     return {
       'name': name,
+      'sport_id': sportId,
       'surface_type': surfaceType,
       'is_covered': isCovered,
       'is_active': isActive,

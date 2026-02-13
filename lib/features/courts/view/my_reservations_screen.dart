@@ -32,7 +32,7 @@ class MyReservationsScreen extends ConsumerWidget {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Reserve uma quadra na aba Quadras',
+                    'Reserve um horario na aba Reservas',
                     style: TextStyle(fontSize: 13, color: AppColors.onBackgroundLight),
                   ),
                 ],
@@ -128,7 +128,7 @@ class _ReservationCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    reservation.courtName ?? 'Quadra',
+                    reservation.courtName ?? 'Local',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -194,7 +194,7 @@ class _ReservationCard extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('Cancelar Reserva'),
         content: Text(
-          'Cancelar reserva de ${reservation.courtName ?? 'quadra'} '
+          'Cancelar reserva de ${reservation.courtName ?? 'local'} '
           'em ${reservation.formattedDate} das ${reservation.timeRange}?',
         ),
         actions: [

@@ -6,7 +6,8 @@ import '../data/court_repository.dart';
 
 final courtsListProvider = FutureProvider<List<CourtModel>>((ref) async {
   final clubId = ref.watch(currentClubIdProvider);
+  final sportId = ref.watch(currentSportIdProvider);
   if (clubId == null) return [];
   final repository = ref.watch(courtRepositoryProvider);
-  return repository.getCourts(clubId: clubId);
+  return repository.getCourts(clubId: clubId, sportId: sportId);
 });
