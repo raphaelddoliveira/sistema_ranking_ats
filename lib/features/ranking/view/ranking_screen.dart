@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/club_member_model.dart';
 import '../../clubs/view/club_selector_widget.dart';
+import '../../clubs/view/no_club_screen.dart';
 import '../../clubs/viewmodel/club_providers.dart';
 import '../viewmodel/ranking_list_viewmodel.dart';
 import 'widgets/ranking_list_tile.dart';
@@ -46,24 +47,7 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
         ],
       ),
       body: clubId == null
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.groups_outlined, size: 64, color: AppColors.onBackgroundLight),
-                  SizedBox(height: 16),
-                  Text(
-                    'Selecione ou crie um clube',
-                    style: TextStyle(fontSize: 16, color: AppColors.onBackgroundLight),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'O ranking e organizado por clube',
-                    style: TextStyle(fontSize: 13, color: AppColors.onBackgroundLight),
-                  ),
-                ],
-              ),
-            )
+          ? const NoClubScreen()
           : rankingAsync.when(
               data: (members) {
                 if (members.isEmpty) {

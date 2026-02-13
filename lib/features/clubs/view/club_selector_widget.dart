@@ -50,8 +50,72 @@ void openClubSelector(BuildContext context, WidgetRef ref) {
   final currentClubId = ref.read(currentClubIdProvider);
 
   if (clubs.isEmpty) {
-    // No clubs — go to create
-    context.push('/clubs/create');
+    // No clubs — show options to create or join
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.divider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Comece agora',
+                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Crie um clube ou entre em um existente',
+                style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                  color: AppColors.onBackgroundLight,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: const CircleAvatar(
+                  radius: 18,
+                  backgroundColor: AppColors.surfaceVariant,
+                  child: Icon(Icons.add, size: 18, color: AppColors.onBackgroundLight),
+                ),
+                title: const Text('Criar novo clube'),
+                subtitle: const Text('Voce sera o administrador'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push('/clubs/create');
+                },
+              ),
+              ListTile(
+                leading: const CircleAvatar(
+                  radius: 18,
+                  backgroundColor: AppColors.surfaceVariant,
+                  child: Icon(Icons.vpn_key_outlined, size: 18, color: AppColors.onBackgroundLight),
+                ),
+                title: const Text('Entrar com codigo'),
+                subtitle: const Text('Digite o codigo de convite do clube'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push('/clubs/join');
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
     return;
   }
 
