@@ -54,6 +54,18 @@ final currentSportProvider = FutureProvider<SportModel?>((ref) async {
   }
 });
 
+/// Currently selected ClubSportModel (includes rules)
+final currentClubSportProvider = Provider<ClubSportModel?>((ref) {
+  final sportId = ref.watch(currentSportIdProvider);
+  final clubSports = ref.watch(clubSportsProvider).valueOrNull ?? [];
+  if (sportId == null || clubSports.isEmpty) return null;
+  try {
+    return clubSports.firstWhere((cs) => cs.sportId == sportId);
+  } catch (_) {
+    return null;
+  }
+});
+
 /// Current player's membership in the selected club + sport
 final currentClubMemberProvider = FutureProvider<ClubMemberModel?>((ref) async {
   final clubId = ref.watch(currentClubIdProvider);

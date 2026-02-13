@@ -10,8 +10,16 @@ final eligibleOpponentsProvider =
   final clubId = ref.watch(currentClubIdProvider);
   final sportId = ref.watch(currentSportIdProvider);
   if (clubId == null || sportId == null) return [];
+
+  // Read position gap rule from current club sport
+  final clubSport = ref.watch(currentClubSportProvider);
+
   final repository = ref.watch(challengeRepositoryProvider);
-  return repository.getEligibleOpponents(clubId: clubId, sportId: sportId);
+  return repository.getEligibleOpponents(
+    clubId: clubId,
+    sportId: sportId,
+    rulePositionGapEnabled: clubSport?.rulePositionGapEnabled ?? true,
+  );
 });
 
 final createChallengeProvider =

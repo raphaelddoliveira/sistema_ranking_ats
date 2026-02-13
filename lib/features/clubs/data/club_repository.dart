@@ -285,6 +285,29 @@ class ClubRepository {
     }
   }
 
+  /// Update rules for a club sport
+  Future<void> updateClubSportRules({
+    required String clubId,
+    required String sportId,
+    required bool ruleAmbulanceEnabled,
+    required bool ruleCooldownEnabled,
+    required bool rulePositionGapEnabled,
+  }) async {
+    try {
+      await _client
+          .from('club_sports')
+          .update({
+            'rule_ambulance_enabled': ruleAmbulanceEnabled,
+            'rule_cooldown_enabled': ruleCooldownEnabled,
+            'rule_position_gap_enabled': rulePositionGapEnabled,
+          })
+          .eq('club_id', clubId)
+          .eq('sport_id', sportId);
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
   /// Get members of a club for a specific sport
   Future<List<ClubMemberModel>> getMembersBySport(String clubId, String sportId) async {
     try {

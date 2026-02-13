@@ -477,43 +477,53 @@ class _SportsSection extends ConsumerWidget {
                       _scoringLabel(sport.scoringType),
                       style: const TextStyle(fontSize: 12),
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.remove_circle_outline, color: AppColors.error, size: 20),
-                      tooltip: 'Remover esporte',
-                      onPressed: () async {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('Remover esporte'),
-                            content: Text('Deseja remover ${sport.name} do clube?'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, false),
-                                child: const Text('Cancelar'),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.tune, color: AppColors.primary, size: 20),
+                          tooltip: 'Regras',
+                          onPressed: () => _showRulesSheet(context, ref, cs),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle_outline, color: AppColors.error, size: 20),
+                          tooltip: 'Remover esporte',
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Remover esporte'),
+                                content: Text('Deseja remover ${sport.name} do clube?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    child: const Text('Cancelar'),
+                                  ),
+                                  FilledButton(
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+                                    child: const Text('Remover'),
+                                  ),
+                                ],
                               ),
-                              FilledButton(
-                                onPressed: () => Navigator.pop(ctx, true),
-                                style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-                                child: const Text('Remover'),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (confirm == true) {
-                          try {
-                            await ref.read(clubRepositoryProvider)
-                                .removeClubSport(clubId, cs.sportId);
-                            ref.invalidate(clubSportsProvider);
-                            if (context.mounted) {
-                              SnackbarUtils.showSuccess(context, '${sport.name} removido');
+                            );
+                            if (confirm == true) {
+                              try {
+                                await ref.read(clubRepositoryProvider)
+                                    .removeClubSport(clubId, cs.sportId);
+                                ref.invalidate(clubSportsProvider);
+                                if (context.mounted) {
+                                  SnackbarUtils.showSuccess(context, '${sport.name} removido');
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  SnackbarUtils.showError(context, 'Erro: $e');
+                                }
+                              }
                             }
-                          } catch (e) {
-                            if (context.mounted) {
-                              SnackbarUtils.showError(context, 'Erro: $e');
-                            }
-                          }
-                        }
-                      },
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 );
@@ -594,6 +604,92 @@ class _SportsSection extends ConsumerWidget {
                 },
               )),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showRulesSheet(BuildContext context, WidgetRef ref, ClubSportModel cs) {
+    bool ambulance = cs.ruleAmbulanceEnabled;
+    bool cooldown = cs.ruleCooldownEnabled;
+    bool positionGap = cs.rulePositionGapEnabled;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Regras - ${cs.sport?.name ?? "Esporte"}',
+                  style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SwitchListTile(
+                  title: const Text('Ambulancia'),
+                  subtitle: const Text('Permite ativar ambulancia com penalizacao'),
+                  value: ambulance,
+                  onChanged: (v) => setState(() => ambulance = v),
+                ),
+                SwitchListTile(
+                  title: const Text('Cooldown / Protecao'),
+                  subtitle: const Text('48h cooldown desafiante + 24h protecao desafiado'),
+                  value: cooldown,
+                  onChanged: (v) => setState(() => cooldown = v),
+                ),
+                SwitchListTile(
+                  title: const Text('Limite de posicoes'),
+                  subtitle: const Text('So pode desafiar ate 2 posicoes acima'),
+                  value: positionGap,
+                  onChanged: (v) => setState(() => positionGap = v),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      try {
+                        await ref.read(clubRepositoryProvider).updateClubSportRules(
+                          clubId: cs.clubId,
+                          sportId: cs.sportId,
+                          ruleAmbulanceEnabled: ambulance,
+                          ruleCooldownEnabled: cooldown,
+                          rulePositionGapEnabled: positionGap,
+                        );
+                        ref.invalidate(clubSportsProvider);
+                        if (context.mounted) {
+                          SnackbarUtils.showSuccess(context, 'Regras atualizadas!');
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          SnackbarUtils.showError(context, 'Erro: $e');
+                        }
+                      }
+                    },
+                    child: const Text('Salvar'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

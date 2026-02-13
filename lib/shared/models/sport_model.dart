@@ -89,6 +89,11 @@ class ClubSportModel {
   final DateTime createdAt;
   final SportModel? sport;
 
+  // Configurable rules (defaults: all enabled)
+  final bool ruleAmbulanceEnabled;
+  final bool ruleCooldownEnabled;
+  final bool rulePositionGapEnabled;
+
   const ClubSportModel({
     required this.id,
     required this.clubId,
@@ -96,6 +101,9 @@ class ClubSportModel {
     this.isActive = true,
     required this.createdAt,
     this.sport,
+    this.ruleAmbulanceEnabled = true,
+    this.ruleCooldownEnabled = true,
+    this.rulePositionGapEnabled = true,
   });
 
   factory ClubSportModel.fromJson(Map<String, dynamic> json) {
@@ -108,6 +116,9 @@ class ClubSportModel {
       sport: json['sport'] != null
           ? SportModel.fromJson(json['sport'] as Map<String, dynamic>)
           : null,
+      ruleAmbulanceEnabled: json['rule_ambulance_enabled'] as bool? ?? true,
+      ruleCooldownEnabled: json['rule_cooldown_enabled'] as bool? ?? true,
+      rulePositionGapEnabled: json['rule_position_gap_enabled'] as bool? ?? true,
     );
   }
 }

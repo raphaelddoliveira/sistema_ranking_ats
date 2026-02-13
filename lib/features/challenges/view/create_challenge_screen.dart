@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/snackbar_utils.dart';
 import '../../../shared/models/club_member_model.dart';
+import '../../clubs/viewmodel/club_providers.dart';
 import '../viewmodel/challenge_list_viewmodel.dart';
 import '../viewmodel/create_challenge_viewmodel.dart';
 
@@ -16,6 +17,7 @@ class CreateChallengeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final opponentsAsync = ref.watch(eligibleOpponentsProvider);
     final createState = ref.watch(createChallengeProvider);
+    final hasPositionGap = ref.watch(currentClubSportProvider)?.rulePositionGapEnabled ?? true;
 
     ref.listen(createChallengeProvider, (_, state) {
       state.whenOrNull(
@@ -32,22 +34,24 @@ class CreateChallengeScreen extends ConsumerWidget {
       body: opponentsAsync.when(
         data: (opponents) {
           if (opponents.isEmpty) {
-            return const Center(
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.person_off, size: 64, color: AppColors.onBackgroundLight),
-                    SizedBox(height: 16),
-                    Text(
+                    const Icon(Icons.person_off, size: 64, color: AppColors.onBackgroundLight),
+                    const SizedBox(height: 16),
+                    const Text(
                       'Nenhum oponente disponivel',
                       style: TextStyle(fontSize: 16, color: AppColors.onBackgroundLight),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'Voce so pode desafiar jogadores ate 2 posicoes acima no ranking.',
-                      style: TextStyle(fontSize: 13, color: AppColors.onBackgroundLight),
+                      hasPositionGap
+                          ? 'Voce so pode desafiar jogadores ate 2 posicoes acima no ranking.'
+                          : 'Voce so pode desafiar jogadores acima de voce no ranking.',
+                      style: const TextStyle(fontSize: 13, color: AppColors.onBackgroundLight),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -71,7 +75,9 @@ class CreateChallengeScreen extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
-                  'Jogadores ate 2 posicoes acima de voce',
+                  hasPositionGap
+                      ? 'Jogadores ate 2 posicoes acima de voce'
+                      : 'Todos os jogadores acima de voce',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.onBackgroundMedium,
                       ),

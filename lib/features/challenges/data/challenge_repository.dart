@@ -250,7 +250,11 @@ class ChallengeRepository {
   }
 
   /// Get eligible opponents from club_members (filtered by sport)
-  Future<List<ClubMemberModel>> getEligibleOpponents({required String clubId, required String sportId}) async {
+  Future<List<ClubMemberModel>> getEligibleOpponents({
+    required String clubId,
+    required String sportId,
+    bool rulePositionGapEnabled = true,
+  }) async {
     try {
       final playerId = await _getCurrentPlayerId();
 
@@ -264,18 +268,23 @@ class ChallengeRepository {
           .single();
 
       final myPosition = myMember['ranking_position'] as int;
-      final minPosition = myPosition - 2;
 
-      final opponents = await _client
+      var query = _client
           .from('club_members')
           .select('*, player:players(full_name, nickname, avatar_url, email, phone)')
           .eq('club_id', clubId)
           .eq('sport_id', sportId)
           .eq('status', 'active')
           .neq('player_id', playerId)
-          .gte('ranking_position', minPosition < 1 ? 1 : minPosition)
-          .lt('ranking_position', myPosition)
-          .order('ranking_position');
+          .lt('ranking_position', myPosition);
+
+      // Only apply position gap filter if rule is enabled
+      if (rulePositionGapEnabled) {
+        final minPosition = myPosition - 2;
+        query = query.gte('ranking_position', minPosition < 1 ? 1 : minPosition);
+      }
+
+      final opponents = await query.order('ranking_position');
 
       return opponents.map((e) => ClubMemberModel.fromJson(e)).toList();
     } catch (e) {
