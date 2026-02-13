@@ -116,47 +116,114 @@ class ClubManagementScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               // Pending requests (admin only)
-              if (isAdmin)
-                requestsAsync.when(
-                  data: (requests) {
-                    if (requests.isEmpty) return const SizedBox.shrink();
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(left: 4, bottom: 8),
-                          child: Text(
+              if (isAdmin) ...[
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 8),
+                  child: requestsAsync.when(
+                    data: (requests) {
+                      final pending = requests.length;
+                      return Row(
+                        children: [
+                          Text(
                             'Solicitacoes Pendentes',
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w700,
                             ),
                           ),
+                          if (pending > 0) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.error,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '$pending',
+                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
+                    loading: () => Text(
+                      'Solicitacoes Pendentes',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    error: (_, _) => Text(
+                      'Solicitacoes Pendentes',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                requestsAsync.when(
+                  data: (requests) {
+                    if (requests.isEmpty) {
+                      return const Card(
+                        child: ListTile(
+                          leading: Icon(Icons.check_circle_outline, color: AppColors.onBackgroundLight),
+                          title: Text('Nenhuma solicitacao pendente'),
                         ),
-                        ...requests.map((req) => _RequestTile(
-                          request: req,
-                          onApprove: () async {
-                            final player = ref.read(currentPlayerProvider).valueOrNull;
-                            if (player == null) return;
+                      );
+                    }
+                    return Column(
+                      children: requests.map((req) => _RequestTile(
+                        request: req,
+                        onApprove: () async {
+                          final player = ref.read(currentPlayerProvider).valueOrNull;
+                          if (player == null) return;
+                          try {
                             await ref.read(clubRepositoryProvider)
                                 .approveJoinRequest(req['id'], player.authId);
                             ref.invalidate(clubJoinRequestsProvider(clubId));
                             ref.invalidate(clubMembersProvider(clubId));
-                          },
-                          onReject: () async {
-                            final player = ref.read(currentPlayerProvider).valueOrNull;
-                            if (player == null) return;
+                            if (context.mounted) {
+                              SnackbarUtils.showSuccess(context, 'Solicitacao aprovada!');
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              SnackbarUtils.showError(context, 'Erro ao aprovar: $e');
+                            }
+                          }
+                        },
+                        onReject: () async {
+                          final player = ref.read(currentPlayerProvider).valueOrNull;
+                          if (player == null) return;
+                          try {
                             await ref.read(clubRepositoryProvider)
                                 .rejectJoinRequest(req['id'], player.authId);
                             ref.invalidate(clubJoinRequestsProvider(clubId));
-                          },
-                        )),
-                        const SizedBox(height: 16),
-                      ],
+                            if (context.mounted) {
+                              SnackbarUtils.showSuccess(context, 'Solicitacao rejeitada');
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              SnackbarUtils.showError(context, 'Erro ao rejeitar: $e');
+                            }
+                          }
+                        },
+                      )).toList(),
                     );
                   },
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
+                  loading: () => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (e, _) => Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.error_outline, color: AppColors.error),
+                      title: const Text('Erro ao carregar solicitacoes'),
+                      subtitle: Text('$e', style: const TextStyle(fontSize: 12)),
+                    ),
+                  ),
                 ),
+                const SizedBox(height: 16),
+              ],
 
               // Members list
               Padding(
@@ -169,7 +236,7 @@ class ClubManagementScreen extends ConsumerWidget {
                     ),
                   ),
                   loading: () => const Text('Membros'),
-                  error: (_, __) => const Text('Membros'),
+                  error: (_, _) => const Text('Membros'),
                 ),
               ),
               membersAsync.when(
@@ -187,8 +254,20 @@ class ClubManagementScreen extends ConsumerWidget {
                         : null,
                     onRemove: isAdmin
                         ? () async {
-                            await ref.read(clubRepositoryProvider).removeMember(member.id);
-                            ref.invalidate(clubMembersProvider(clubId));
+                            final player = ref.read(currentPlayerProvider).valueOrNull;
+                            if (player == null) return;
+                            try {
+                              await ref.read(clubRepositoryProvider)
+                                  .removeMember(member.id, player.authId);
+                              ref.invalidate(clubMembersProvider(clubId));
+                              if (context.mounted) {
+                                SnackbarUtils.showSuccess(context, 'Membro removido');
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                SnackbarUtils.showError(context, 'Erro: $e');
+                              }
+                            }
                           }
                         : null,
                   )).toList(),
@@ -350,7 +429,7 @@ class _CourtsSection extends ConsumerWidget {
                     ),
                   ),
                   loading: () => const Text('Quadras'),
-                  error: (_, __) => const Text('Quadras'),
+                  error: (_, _) => const Text('Quadras'),
                 ),
               ),
             ),

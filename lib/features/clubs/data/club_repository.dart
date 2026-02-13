@@ -116,7 +116,7 @@ class ClubRepository {
     try {
       final data = await _client
           .from('club_join_requests')
-          .select('*, player:players(full_name, avatar_url)')
+          .select('*, player:players!club_join_requests_player_id_fkey(full_name, avatar_url)')
           .eq('club_id', clubId)
           .eq('status', 'pending')
           .order('requested_at', ascending: false);
@@ -162,13 +162,13 @@ class ClubRepository {
     }
   }
 
-  /// Remove a member from the club
-  Future<void> removeMember(String memberId) async {
+  /// Remove a member from the club (with ranking recompaction)
+  Future<void> removeMember(String memberId, String adminAuthId) async {
     try {
-      await _client
-          .from('club_members')
-          .update({'status': 'inactive'})
-          .eq('id', memberId);
+      await _client.rpc('remove_club_member', params: {
+        'p_member_id': memberId,
+        'p_admin_auth_id': adminAuthId,
+      });
     } catch (e) {
       throw ErrorHandler.handle(e);
     }
