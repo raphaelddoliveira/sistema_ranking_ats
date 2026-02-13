@@ -92,6 +92,20 @@ enum JoinRequestStatus {
       JoinRequestStatus.values.firstWhere((e) => e.name == value);
 }
 
+enum ScoringType {
+  setsGames('sets_games'),
+  setsPoints('sets_points'),
+  simpleScore('simple_score');
+
+  final String dbValue;
+  const ScoringType(this.dbValue);
+
+  static ScoringType fromString(String value) =>
+      ScoringType.values.firstWhere(
+        (e) => e.dbValue == value || e.name == value,
+      );
+}
+
 enum NotificationType {
   challengeReceived('challenge_received'),
   datesProposed('dates_proposed'),

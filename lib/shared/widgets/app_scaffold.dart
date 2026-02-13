@@ -47,6 +47,15 @@ class AppScaffold extends ConsumerWidget {
       });
     }
 
+    // Auto-select first sport if none selected
+    final sportId = ref.watch(currentSportIdProvider);
+    final clubSports = ref.watch(clubSportsProvider);
+    if (clubId != null && sportId == null && clubSports.valueOrNull != null && clubSports.valueOrNull!.isNotEmpty) {
+      Future.microtask(() {
+        ref.read(currentSportIdProvider.notifier).state = clubSports.valueOrNull!.first.sportId;
+      });
+    }
+
     return Scaffold(
       body: Stack(
         children: [

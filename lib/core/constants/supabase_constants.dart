@@ -14,6 +14,8 @@ abstract final class SupabaseConstants {
   static const String clubsTable = 'clubs';
   static const String clubMembersTable = 'club_members';
   static const String clubJoinRequestsTable = 'club_join_requests';
+  static const String sportsTable = 'sports';
+  static const String clubSportsTable = 'club_sports';
 
   // RPC function names
   static const String rpcSwapRanking = 'swap_ranking_after_challenge';
@@ -29,6 +31,8 @@ abstract final class SupabaseConstants {
   static const String rpcJoinClubByCode = 'join_club_by_code';
   static const String rpcApproveJoinRequest = 'approve_join_request';
   static const String rpcRejectJoinRequest = 'reject_join_request';
+  static const String rpcEnrollMemberInSport = 'enroll_member_in_sport';
+  static const String rpcRemoveClubMember = 'remove_club_member';
 
   // Storage buckets
   static const String avatarsBucket = 'avatars';

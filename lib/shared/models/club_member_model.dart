@@ -4,6 +4,7 @@ class ClubMemberModel {
   final String id;
   final String clubId;
   final String playerId;
+  final String? sportId;
   final ClubMemberRole role;
   final int? rankingPosition;
   final int challengesThisMonth;
@@ -26,10 +27,15 @@ class ClubMemberModel {
   final String? playerEmail;
   final String? playerPhone;
 
+  // Joined from sports table
+  final String? sportName;
+  final String? sportScoringType;
+
   const ClubMemberModel({
     required this.id,
     required this.clubId,
     required this.playerId,
+    this.sportId,
     this.role = ClubMemberRole.member,
     this.rankingPosition,
     this.challengesThisMonth = 0,
@@ -49,6 +55,8 @@ class ClubMemberModel {
     this.playerAvatarUrl,
     this.playerEmail,
     this.playerPhone,
+    this.sportName,
+    this.sportScoringType,
   });
 
   bool get isClubAdmin => role == ClubMemberRole.admin;
@@ -69,11 +77,14 @@ class ClubMemberModel {
   factory ClubMemberModel.fromJson(Map<String, dynamic> json) {
     // Handle nested player data from join query
     final player = json['player'] as Map<String, dynamic>?;
+    // Handle nested sport data from join query
+    final sport = json['sport'] as Map<String, dynamic>?;
 
     return ClubMemberModel(
       id: json['id'] as String,
       clubId: json['club_id'] as String,
       playerId: json['player_id'] as String,
+      sportId: json['sport_id'] as String?,
       role: ClubMemberRole.fromString(json['role'] as String),
       rankingPosition: json['ranking_position'] as int?,
       challengesThisMonth: json['challenges_this_month'] as int? ?? 0,
@@ -103,6 +114,8 @@ class ClubMemberModel {
       playerAvatarUrl: player?['avatar_url'] as String? ?? json['player_avatar_url'] as String?,
       playerEmail: player?['email'] as String? ?? json['player_email'] as String?,
       playerPhone: player?['phone'] as String? ?? json['player_phone'] as String?,
+      sportName: sport?['name'] as String?,
+      sportScoringType: sport?['scoring_type'] as String?,
     );
   }
 }

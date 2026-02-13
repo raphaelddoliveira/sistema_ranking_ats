@@ -2,6 +2,7 @@ import 'enums.dart';
 
 class ChallengeModel {
   final String id;
+  final String? sportId;
   final String challengerId;
   final String challengedId;
   final ChallengeStatus status;
@@ -34,6 +35,7 @@ class ChallengeModel {
 
   const ChallengeModel({
     required this.id,
+    this.sportId,
     required this.challengerId,
     required this.challengedId,
     required this.status,
@@ -102,6 +104,7 @@ class ChallengeModel {
 
     return ChallengeModel(
       id: json['id'] as String,
+      sportId: json['sport_id'] as String?,
       challengerId: json['challenger_id'] as String,
       challengedId: json['challenged_id'] as String,
       status: ChallengeStatus.fromString(json['status'] as String),
@@ -157,6 +160,7 @@ class ChallengeModel {
       'id': id,
       'challenger_id': challengerId,
       'challenged_id': challengedId,
+      if (sportId != null) 'sport_id': sportId,
       'status': status.dbValue,
       'challenger_position': challengerPosition,
       'challenged_position': challengedPosition,

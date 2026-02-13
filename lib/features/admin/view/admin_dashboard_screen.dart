@@ -39,7 +39,7 @@ class AdminDashboardScreen extends StatelessWidget {
             onTap: () {},
           ),
           _AdminCard(
-            icon: Icons.sports_tennis,
+            icon: Icons.calendar_month,
             title: 'Quadras',
             subtitle: 'CRUD de quadras e slots',
             onTap: () {},

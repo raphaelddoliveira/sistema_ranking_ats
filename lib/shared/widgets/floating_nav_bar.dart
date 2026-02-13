@@ -60,8 +60,8 @@ class FloatingNavBar extends StatelessWidget {
                   onTap: () => onTap(0),
                 ),
                 _NavItem(
-                  icon: Icons.sports_tennis_outlined,
-                  activeIcon: Icons.sports_tennis,
+                  icon: Icons.flash_on_outlined,
+                  activeIcon: Icons.flash_on,
                   label: 'Desafios',
                   isActive: currentIndex == 1,
                   onTap: () => onTap(1),

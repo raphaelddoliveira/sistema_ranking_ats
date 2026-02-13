@@ -8,9 +8,10 @@ import '../data/challenge_repository.dart';
 final eligibleOpponentsProvider =
     FutureProvider<List<ClubMemberModel>>((ref) async {
   final clubId = ref.watch(currentClubIdProvider);
-  if (clubId == null) return [];
+  final sportId = ref.watch(currentSportIdProvider);
+  if (clubId == null || sportId == null) return [];
   final repository = ref.watch(challengeRepositoryProvider);
-  return repository.getEligibleOpponents(clubId: clubId);
+  return repository.getEligibleOpponents(clubId: clubId, sportId: sportId);
 });
 
 final createChallengeProvider =
@@ -18,23 +19,26 @@ final createChallengeProvider =
   return CreateChallengeNotifier(
     ref.watch(challengeRepositoryProvider),
     ref.watch(currentClubIdProvider),
+    ref.watch(currentSportIdProvider),
   );
 });
 
 class CreateChallengeNotifier extends StateNotifier<AsyncValue<void>> {
   final ChallengeRepository _repository;
   final String? _clubId;
+  final String? _sportId;
 
-  CreateChallengeNotifier(this._repository, this._clubId)
+  CreateChallengeNotifier(this._repository, this._clubId, this._sportId)
       : super(const AsyncData(null));
 
   Future<String?> createChallenge(String challengedId) async {
-    if (_clubId == null) return null;
+    if (_clubId == null || _sportId == null) return null;
     state = const AsyncLoading();
     try {
       final challengeId = await _repository.createChallenge(
         challengedId,
         clubId: _clubId,
+        sportId: _sportId,
       );
       state = const AsyncData(null);
       return challengeId;

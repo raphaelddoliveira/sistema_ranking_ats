@@ -7,7 +7,8 @@ import '../data/ranking_repository.dart';
 final rankingListProvider =
     FutureProvider<List<ClubMemberModel>>((ref) async {
   final clubId = ref.watch(currentClubIdProvider);
+  final sportId = ref.watch(currentSportIdProvider);
   if (clubId == null) return [];
   final repository = ref.watch(rankingRepositoryProvider);
-  return repository.getRanking(clubId);
+  return repository.getRanking(clubId, sportId: sportId);
 });

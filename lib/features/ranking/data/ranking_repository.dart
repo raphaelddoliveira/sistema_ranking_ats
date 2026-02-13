@@ -16,16 +16,19 @@ class RankingRepository {
 
   RankingRepository(this._client);
 
-  /// Get ranking for a club (from club_members joined with players)
-  Future<List<ClubMemberModel>> getRanking(String clubId) async {
+  /// Get ranking for a club + sport (from club_members joined with players)
+  Future<List<ClubMemberModel>> getRanking(String clubId, {String? sportId}) async {
     try {
-      final data = await _client
+      var query = _client
           .from('club_members')
-          .select('*, player:players(full_name, nickname, avatar_url, email, phone)')
+          .select('*, player:players(full_name, nickname, avatar_url, email, phone), sport:sports(name, scoring_type)')
           .eq('club_id', clubId)
           .eq('status', 'active')
-          .not('ranking_position', 'is', null)
-          .order('ranking_position', ascending: true);
+          .not('ranking_position', 'is', null);
+      if (sportId != null) {
+        query = query.eq('sport_id', sportId);
+      }
+      final data = await query.order('ranking_position', ascending: true);
       return data.map((e) => ClubMemberModel.fromJson(e)).toList();
     } catch (e) {
       throw ErrorHandler.handle(e);
@@ -35,6 +38,7 @@ class RankingRepository {
   Future<List<RankingHistoryModel>> getPlayerHistory(
     String playerId, {
     String? clubId,
+    String? sportId,
     int limit = 50,
   }) async {
     try {
@@ -45,6 +49,9 @@ class RankingRepository {
 
       if (clubId != null) {
         query = query.eq('club_id', clubId);
+      }
+      if (sportId != null) {
+        query = query.eq('sport_id', sportId);
       }
 
       final data = await query

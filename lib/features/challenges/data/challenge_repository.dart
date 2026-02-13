@@ -24,7 +24,7 @@ class ChallengeRepository {
   ''';
 
   /// Create a challenge via RPC
-  Future<String> createChallenge(String challengedId, {required String clubId}) async {
+  Future<String> createChallenge(String challengedId, {required String clubId, required String sportId}) async {
     try {
       final authId = _client.auth.currentUser!.id;
       final result = await _client.rpc(
@@ -33,6 +33,7 @@ class ChallengeRepository {
           'p_challenger_auth_id': authId,
           'p_challenged_id': challengedId,
           'p_club_id': clubId,
+          'p_sport_id': sportId,
         },
       );
       return result as String;
@@ -41,37 +42,42 @@ class ChallengeRepository {
     }
   }
 
-  /// Get only active challenges for current player in a club
-  Future<List<ChallengeModel>> getActiveChallenges({required String clubId}) async {
+  /// Get only active challenges for current player in a club + sport
+  Future<List<ChallengeModel>> getActiveChallenges({required String clubId, String? sportId}) async {
     try {
       final playerId = await _getCurrentPlayerId();
-      final data = await _client
+      var query = _client
           .from(SupabaseConstants.challengesTable)
           .select(_selectWithJoins)
           .eq('club_id', clubId)
           .or('challenger_id.eq.$playerId,challenged_id.eq.$playerId')
-          .inFilter('status', ['pending', 'dates_proposed', 'scheduled'])
-          .order('created_at', ascending: false);
+          .inFilter('status', ['pending', 'dates_proposed', 'scheduled']);
+      if (sportId != null) {
+        query = query.eq('sport_id', sportId);
+      }
+      final data = await query.order('created_at', ascending: false);
       return data.map((e) => ChallengeModel.fromJson(e)).toList();
     } catch (e) {
       throw ErrorHandler.handle(e);
     }
   }
 
-  /// Get challenge history for current player in a club
-  Future<List<ChallengeModel>> getChallengeHistory({required String clubId}) async {
+  /// Get challenge history for current player in a club + sport
+  Future<List<ChallengeModel>> getChallengeHistory({required String clubId, String? sportId}) async {
     try {
       final playerId = await _getCurrentPlayerId();
-      final data = await _client
+      var query = _client
           .from(SupabaseConstants.challengesTable)
           .select(_selectWithJoins)
           .eq('club_id', clubId)
           .or('challenger_id.eq.$playerId,challenged_id.eq.$playerId')
           .inFilter('status', [
             'completed', 'wo_challenger', 'wo_challenged', 'expired', 'cancelled'
-          ])
-          .order('completed_at', ascending: false)
-          .limit(50);
+          ]);
+      if (sportId != null) {
+        query = query.eq('sport_id', sportId);
+      }
+      final data = await query.order('completed_at', ascending: false).limit(50);
       return data.map((e) => ChallengeModel.fromJson(e)).toList();
     } catch (e) {
       throw ErrorHandler.handle(e);
@@ -243,8 +249,8 @@ class ChallengeRepository {
     }
   }
 
-  /// Get eligible opponents from club_members
-  Future<List<ClubMemberModel>> getEligibleOpponents({required String clubId}) async {
+  /// Get eligible opponents from club_members (filtered by sport)
+  Future<List<ClubMemberModel>> getEligibleOpponents({required String clubId, required String sportId}) async {
     try {
       final playerId = await _getCurrentPlayerId();
 
@@ -252,6 +258,7 @@ class ChallengeRepository {
           .from('club_members')
           .select('ranking_position')
           .eq('club_id', clubId)
+          .eq('sport_id', sportId)
           .eq('player_id', playerId)
           .eq('status', 'active')
           .single();
@@ -263,6 +270,7 @@ class ChallengeRepository {
           .from('club_members')
           .select('*, player:players(full_name, nickname, avatar_url, email, phone)')
           .eq('club_id', clubId)
+          .eq('sport_id', sportId)
           .eq('status', 'active')
           .neq('player_id', playerId)
           .gte('ranking_position', minPosition < 1 ? 1 : minPosition)
@@ -279,6 +287,7 @@ class ChallengeRepository {
   Future<Map<String, dynamic>> validateChallenge(
     String challengedId, {
     required String clubId,
+    required String sportId,
   }) async {
     try {
       final playerId = await _getCurrentPlayerId();
@@ -288,6 +297,7 @@ class ChallengeRepository {
           'p_challenger_id': playerId,
           'p_challenged_id': challengedId,
           'p_club_id': clubId,
+          'p_sport_id': sportId,
         },
       );
       return Map<String, dynamic>.from(result as Map);

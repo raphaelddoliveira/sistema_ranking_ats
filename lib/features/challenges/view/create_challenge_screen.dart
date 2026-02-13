@@ -137,7 +137,7 @@ class CreateChallengeScreen extends ConsumerWidget {
                                 child: CircularProgressIndicator(
                                     strokeWidth: 2),
                               )
-                            : const Icon(Icons.sports_tennis),
+                            : const Icon(Icons.flash_on),
                         enabled: !opponent.isProtected && !createState.isLoading,
                         onTap: opponent.isProtected || createState.isLoading
                             ? null

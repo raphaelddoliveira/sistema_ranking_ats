@@ -80,7 +80,7 @@ class ProfileScreen extends ConsumerWidget {
                       child: StatsCard(
                         label: 'Desafios/Mes',
                         value: '${member?.challengesThisMonth ?? 0}',
-                        icon: Icons.sports_tennis,
+                        icon: Icons.flash_on,
                         color: AppColors.primary,
                       ),
                     ),

@@ -83,7 +83,7 @@ class _CreateClubScreenState extends ConsumerState<CreateClubScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                'Crie seu clube de tenis',
+                'Crie seu clube',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
@@ -102,7 +102,7 @@ class _CreateClubScreenState extends ConsumerState<CreateClubScreen> {
                 controller: _nameController,
                 decoration: const InputDecoration(
                   labelText: 'Nome do clube',
-                  hintText: 'Ex: Academia Tenis SP',
+                  hintText: 'Ex: Clube Esportivo SP',
                   prefixIcon: Icon(Icons.badge_outlined),
                 ),
                 validator: (v) => v == null || v.trim().isEmpty

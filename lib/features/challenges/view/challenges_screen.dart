@@ -59,7 +59,7 @@ class _ActiveChallengesTab extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.sports_tennis, size: 64, color: AppColors.onBackgroundLight),
+                Icon(Icons.flash_on, size: 64, color: AppColors.onBackgroundLight),
                 SizedBox(height: 16),
                 Text(
                   'Nenhum desafio ativo',

@@ -85,7 +85,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ],
                     ),
                     child: const Icon(
-                      Icons.sports_tennis,
+                      Icons.emoji_events,
                       size: 46,
                       color: AppColors.secondary,
                     ),
@@ -103,7 +103,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Sistema de Ranking de Tenis',
+                    'Sistema de Ranking Esportivo',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.onBackgroundMedium,

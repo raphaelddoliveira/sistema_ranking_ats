@@ -33,7 +33,7 @@ class CourtsScreen extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.sports_tennis, size: 64, color: AppColors.onBackgroundLight),
+                  Icon(Icons.event_available, size: 64, color: AppColors.onBackgroundLight),
                   SizedBox(height: 16),
                   Text(
                     'Nenhuma quadra disponivel',

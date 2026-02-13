@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/snackbar_utils.dart';
 import '../../../shared/models/club_member_model.dart';
 import '../../../shared/models/court_model.dart';
+import '../../../shared/models/sport_model.dart';
 import '../../../shared/providers/current_player_provider.dart';
 import '../../courts/data/court_repository.dart';
 import '../../courts/viewmodel/courts_viewmodel.dart';
@@ -114,6 +115,12 @@ class ClubManagementScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
+
+              // Sports section (admin only)
+              if (isAdmin) ...[
+                _SportsSection(clubId: clubId),
+                const SizedBox(height: 16),
+              ],
 
               // Pending requests (admin only)
               if (isAdmin) ...[
@@ -306,6 +313,7 @@ class _RequestTile extends StatelessWidget {
     final name = player?['full_name'] ?? 'Jogador';
 
     return Card(
+      margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: AppColors.primaryLight,
@@ -352,6 +360,7 @@ class _MemberTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: member.isClubAdmin ? AppColors.secondary : AppColors.primaryLight,
@@ -395,6 +404,213 @@ class _MemberTile extends StatelessWidget {
             : null,
       ),
     );
+  }
+}
+
+// ─── Sports Section ───
+
+class _SportsSection extends ConsumerWidget {
+  final String clubId;
+
+  const _SportsSection({required this.clubId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final clubSportsAsync = ref.watch(clubSportsProvider);
+    final allSportsAsync = ref.watch(allSportsProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: clubSportsAsync.when(
+                  data: (sports) => Text(
+                    'Esportes (${sports.length})',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  loading: () => const Text('Esportes'),
+                  error: (_, _) => const Text('Esportes'),
+                ),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () => _showAddSportDialog(context, ref, clubSportsAsync, allSportsAsync),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Adicionar'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        clubSportsAsync.when(
+          data: (clubSports) {
+            if (clubSports.isEmpty) {
+              return const Card(
+                child: ListTile(
+                  leading: Icon(Icons.sports, color: AppColors.onBackgroundLight),
+                  title: Text('Nenhum esporte cadastrado'),
+                  subtitle: Text('Adicione esportes ao clube'),
+                ),
+              );
+            }
+            return Column(
+              children: clubSports.map((cs) {
+                final sport = cs.sport;
+                if (sport == null) return const SizedBox.shrink();
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: AppColors.primary.withAlpha(25),
+                      child: Icon(sport.iconData, size: 20, color: AppColors.primary),
+                    ),
+                    title: Text(
+                      sport.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      _scoringLabel(sport.scoringType),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.remove_circle_outline, color: AppColors.error, size: 20),
+                      tooltip: 'Remover esporte',
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Remover esporte'),
+                            content: Text('Deseja remover ${sport.name} do clube?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('Cancelar'),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+                                child: const Text('Remover'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) {
+                          try {
+                            await ref.read(clubRepositoryProvider)
+                                .removeClubSport(clubId, cs.sportId);
+                            ref.invalidate(clubSportsProvider);
+                            if (context.mounted) {
+                              SnackbarUtils.showSuccess(context, '${sport.name} removido');
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              SnackbarUtils.showError(context, 'Erro: $e');
+                            }
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                );
+              }).toList(),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Text('Erro: $e'),
+        ),
+      ],
+    );
+  }
+
+  void _showAddSportDialog(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue<List<ClubSportModel>> clubSportsAsync,
+    AsyncValue<List<SportModel>> allSportsAsync,
+  ) {
+    final clubSports = clubSportsAsync.valueOrNull ?? [];
+    final allSports = allSportsAsync.valueOrNull ?? [];
+    final activeSportIds = clubSports.map((cs) => cs.sportId).toSet();
+    final available = allSports.where((s) => !activeSportIds.contains(s.id)).toList();
+
+    if (available.isEmpty) {
+      SnackbarUtils.showInfo(context, 'Todos os esportes ja estao adicionados');
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.divider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Adicionar esporte',
+                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...available.map((sport) => ListTile(
+                leading: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: AppColors.surfaceVariant,
+                  child: Icon(sport.iconData, size: 18, color: AppColors.onBackgroundLight),
+                ),
+                title: Text(sport.name),
+                subtitle: Text(_scoringLabel(sport.scoringType), style: const TextStyle(fontSize: 12)),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  try {
+                    await ref.read(clubRepositoryProvider).addClubSport(clubId, sport.id);
+                    ref.invalidate(clubSportsProvider);
+                    if (context.mounted) {
+                      SnackbarUtils.showSuccess(context, '${sport.name} adicionado!');
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      SnackbarUtils.showError(context, 'Erro: $e');
+                    }
+                  }
+                },
+              )),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _scoringLabel(String scoringType) {
+    switch (scoringType) {
+      case 'sets_games':
+        return 'Sets e games';
+      case 'sets_points':
+        return 'Sets e pontos';
+      case 'simple_score':
+        return 'Placar simples';
+      default:
+        return scoringType;
+    }
   }
 }
 
@@ -447,7 +663,7 @@ class _CourtsSection extends ConsumerWidget {
             if (courts.isEmpty) {
               return const Card(
                 child: ListTile(
-                  leading: Icon(Icons.sports_tennis, color: AppColors.onBackgroundLight),
+                  leading: Icon(Icons.sports, color: AppColors.onBackgroundLight),
                   title: Text('Nenhuma quadra cadastrada'),
                   subtitle: Text('Adicione quadras para reservas'),
                 ),
@@ -592,6 +808,7 @@ class _CourtTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: court.isActive

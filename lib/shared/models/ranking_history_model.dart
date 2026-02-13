@@ -1,6 +1,7 @@
 class RankingHistoryModel {
   final String id;
   final String playerId;
+  final String? sportId;
   final int? oldPosition;
   final int newPosition;
   final String reason;
@@ -10,6 +11,7 @@ class RankingHistoryModel {
   const RankingHistoryModel({
     required this.id,
     required this.playerId,
+    this.sportId,
     this.oldPosition,
     required this.newPosition,
     required this.reason,
@@ -42,6 +44,7 @@ class RankingHistoryModel {
     return RankingHistoryModel(
       id: json['id'] as String,
       playerId: json['player_id'] as String,
+      sportId: json['sport_id'] as String?,
       oldPosition: json['old_position'] as int?,
       newPosition: json['new_position'] as int,
       reason: json['reason'] as String,

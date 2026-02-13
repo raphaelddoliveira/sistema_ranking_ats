@@ -1,6 +1,7 @@
 class MatchModel {
   final String id;
   final String challengeId;
+  final String? sportId;
   final String winnerId;
   final String loserId;
   final List<SetScore> sets;
@@ -14,6 +15,7 @@ class MatchModel {
   const MatchModel({
     required this.id,
     required this.challengeId,
+    this.sportId,
     required this.winnerId,
     required this.loserId,
     required this.sets,
@@ -35,6 +37,7 @@ class MatchModel {
     return MatchModel(
       id: json['id'] as String,
       challengeId: json['challenge_id'] as String,
+      sportId: json['sport_id'] as String?,
       winnerId: json['winner_id'] as String,
       loserId: json['loser_id'] as String,
       sets: setsJson
@@ -52,6 +55,7 @@ class MatchModel {
   Map<String, dynamic> toJson() {
     return {
       'challenge_id': challengeId,
+      if (sportId != null) 'sport_id': sportId,
       'winner_id': winnerId,
       'loser_id': loserId,
       'sets': sets.map((s) => s.toJson()).toList(),

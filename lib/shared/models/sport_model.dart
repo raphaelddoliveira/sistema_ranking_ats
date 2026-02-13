@@ -1,0 +1,113 @@
+import 'package:flutter/material.dart';
+
+class SportModel {
+  final String id;
+  final String name;
+  final String scoringType; // 'sets_games', 'sets_points', 'simple_score'
+  final Map<String, dynamic> config;
+  final String icon;
+  final int displayOrder;
+
+  const SportModel({
+    required this.id,
+    required this.name,
+    required this.scoringType,
+    this.config = const {},
+    this.icon = 'sports',
+    this.displayOrder = 0,
+  });
+
+  bool get isSetsGames => scoringType == 'sets_games';
+  bool get isSetsPoints => scoringType == 'sets_points';
+  bool get isSimpleScore => scoringType == 'simple_score';
+
+  int get maxSets => config['max_sets'] as int? ?? 3;
+  int get gamesToWin => config['games_to_win'] as int? ?? 6;
+  bool get hasTiebreak => config['has_tiebreak'] as bool? ?? false;
+  bool get hasSuperTiebreak => config['has_super_tiebreak'] as bool? ?? false;
+  int get pointsToWin => config['points_to_win'] as int? ?? 25;
+  int get finalSetPoints => config['final_set_points'] as int? ?? 15;
+  int get minDiff => config['min_diff'] as int? ?? 2;
+  int get halves => config['halves'] as int? ?? 2;
+
+  IconData get iconData {
+    switch (name.toLowerCase()) {
+      case 'tenis':
+      case 'tênis':
+        return Icons.sports_tennis;
+      case 'volei quadra':
+      case 'vôlei quadra':
+      case 'volei de areia':
+      case 'vôlei de areia':
+      case 'futevôlei':
+      case 'futevolei':
+        return Icons.sports_volleyball;
+      case 'futsal':
+      case 'futebol de campo':
+        return Icons.sports_soccer;
+      default:
+        return Icons.emoji_events;
+    }
+  }
+
+  factory SportModel.fromJson(Map<String, dynamic> json) {
+    return SportModel(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      scoringType: json['scoring_type'] as String,
+      config: json['config'] as Map<String, dynamic>? ?? {},
+      icon: json['icon'] as String? ?? 'sports',
+      displayOrder: json['display_order'] as int? ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'scoring_type': scoringType,
+      'config': config,
+      'icon': icon,
+      'display_order': displayOrder,
+    };
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is SportModel && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+}
+
+/// Model for club_sports join table
+class ClubSportModel {
+  final String id;
+  final String clubId;
+  final String sportId;
+  final bool isActive;
+  final DateTime createdAt;
+  final SportModel? sport;
+
+  const ClubSportModel({
+    required this.id,
+    required this.clubId,
+    required this.sportId,
+    this.isActive = true,
+    required this.createdAt,
+    this.sport,
+  });
+
+  factory ClubSportModel.fromJson(Map<String, dynamic> json) {
+    return ClubSportModel(
+      id: json['id'] as String,
+      clubId: json['club_id'] as String,
+      sportId: json['sport_id'] as String,
+      isActive: json['is_active'] as bool? ?? true,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      sport: json['sport'] != null
+          ? SportModel.fromJson(json['sport'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+}
