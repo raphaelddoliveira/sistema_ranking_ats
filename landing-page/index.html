@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmashRank - Ranking de Tênis e Gestão de Clubes</title>
+  <meta name="description" content="Plataforma completa para clubes de tênis: ranking em tempo real, sistema de desafios com regras automatizadas, reserva de quadras e gestão do seu clube.">
+  <meta name="keywords" content="ranking tênis, gestão clube tênis, desafios tênis, reserva quadra tênis, app tênis clube, ranking clube">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="SmashRank - Ranking de Tênis e Gestão de Clubes">
+  <meta property="og:description" content="Ranking de tênis em tempo real, desafios automatizados e reserva de quadras. Tudo que seu clube precisa em um app.">
+  <meta property="og:image" content="assets/images/og-image.jpg">
+  <meta property="og:locale" content="pt_BR">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SmashRank - Ranking de Tênis e Gestão de Clubes">
+  <meta name="twitter:description" content="Ranking de tênis em tempo real, desafios automatizados e reserva de quadras.">
+
+  <!-- Theme -->
+  <meta name="theme-color" content="#1B4332">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+  <!-- Skip Link -->
+  <a href="#main" class="skip-link">Pular para conteúdo</a>
+
+  <!-- ========== NAVBAR ========== -->
+  <header id="navbar" class="navbar">
+    <nav class="navbar__inner container">
+      <a href="#" class="navbar__logo">
+        <!-- Tennis ball icon -->
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <circle cx="16" cy="16" r="14" fill="#C9A84C"/>
+          <path d="M8 4C12 10 12 22 8 28" stroke="#A38A30" stroke-width="2" fill="none"/>
+          <path d="M24 4C20 10 20 22 24 28" stroke="#A38A30" stroke-width="2" fill="none"/>
+        </svg>
+        <span>SmashRank</span>
+      </a>
+
+      <ul class="navbar__links" id="navLinks">
+        <li><a href="#funcionalidades">Funcionalidades</a></li>
+        <li><a href="#para-jogadores">Para Jogadores</a></li>
+        <li><a href="#para-clubes">Para Clubes</a></li>
+        <li><a href="#como-funciona">Como Funciona</a></li>
+        <li><a href="#em-breve">Em Breve</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+
+      <a href="#download" class="btn btn--gold navbar__cta">Baixar App</a>
+
+      <button class="navbar__hamburger" id="hamburger" aria-label="Abrir menu" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </nav>
+
+  </header>
+
+  <!-- Mobile Menu (outside header to avoid stacking context issues) -->
+  <div class="navbar__mobile" id="mobileMenu">
+    <ul>
+      <li><a href="#funcionalidades">Funcionalidades</a></li>
+      <li><a href="#para-jogadores">Para Jogadores</a></li>
+      <li><a href="#para-clubes">Para Clubes</a></li>
+      <li><a href="#como-funciona">Como Funciona</a></li>
+      <li><a href="#em-breve">Em Breve</a></li>
+      <li><a href="#faq">FAQ</a></li>
+      <li><a href="#download" class="btn btn--gold">Baixar App</a></li>
+    </ul>
+  </div>
+
+  <main id="main">
+
+    <!-- ========== HERO ========== -->
+    <section id="hero" class="hero">
+      <div class="hero__inner container">
+        <div class="hero__content">
+          <span class="pill pill--gold reveal">O app do seu clube de tênis</span>
+          <h1 class="hero__title reveal">Ranking de Tênis em Tempo Real para o Seu Clube</h1>
+          <p class="hero__subtitle reveal">
+            Gerencie o ranking, desafie adversários e reserve quadras com regras automatizadas.
+            Tudo que seu clube de tênis precisa, em um único app.
+          </p>
+          <div class="hero__ctas reveal">
+            <a href="#download" class="btn btn--gold btn--lg">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              Sou Jogador
+            </a>
+            <a href="#para-clubes" class="btn btn--outline btn--lg">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+              Sou Administrador
+            </a>
+          </div>
+          <div class="hero__trust reveal">
+            <div class="trust-badge">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2L2 7v5c0 5.55 3.84 10.74 10 12 6.16-1.26 10-6.45 10-12V7l-10-5zm-1 15l-4-4 1.41-1.41L11 14.17l6.59-6.59L19 9l-8 8z"/></svg>
+              <span>Login Google &amp; Apple</span>
+            </div>
+            <div class="trust-badge">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              <span>100% Gratuito</span>
+            </div>
+            <div class="trust-badge">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.52 2.49c-3.12-3.12-8.19-3.12-11.31 0-3.12 3.12-3.12 8.19 0 11.31l11.31-11.31zM3.17 10.48c-2.09 3.07-1.74 7.27.98 9.99 2.72 2.72 6.92 3.07 9.99.98L3.17 10.48z"/></svg>
+              <span>Feito para Tênis</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero__mockup reveal-right">
+          <!-- CSS-only phone frame with podium -->
+          <div class="phone-frame">
+            <div class="phone-screen">
+              <div class="phone-header">
+                <span class="phone-header__title">Ranking</span>
+              </div>
+              <div class="podium">
+                <div class="podium__player podium__player--silver">
+                  <div class="podium__avatar">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="#A8A8A8"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                  </div>
+                  <span class="podium__medal">&#127944;</span>
+                  <span class="podium__name">Ana R.</span>
+                  <div class="podium__bar podium__bar--silver"></div>
+                </div>
+                <div class="podium__player podium__player--gold">
+                  <div class="podium__avatar podium__avatar--gold">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="#D4AF37"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                  </div>
+                  <span class="podium__medal">&#127942;</span>
+                  <span class="podium__name">Carlos M.</span>
+                  <div class="podium__bar podium__bar--gold"></div>
+                </div>
+                <div class="podium__player podium__player--bronze">
+                  <div class="podium__avatar">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="#B87333"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                  </div>
+                  <span class="podium__medal">&#129353;</span>
+                  <span class="podium__name">Roberto S.</span>
+                  <div class="podium__bar podium__bar--bronze"></div>
+                </div>
+              </div>
+              <!-- Ranking list items -->
+              <div class="phone-list">
+                <div class="phone-list__item"><span class="phone-list__pos">4</span><span class="phone-list__name">Fernanda L.</span><span class="phone-list__pts">1250</span></div>
+                <div class="phone-list__item"><span class="phone-list__pos">5</span><span class="phone-list__name">Marcelo P.</span><span class="phone-list__pts">1180</span></div>
+                <div class="phone-list__item"><span class="phone-list__pos">6</span><span class="phone-list__name">Julia K.</span><span class="phone-list__pts">1120</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wave divider -->
+      <div class="hero__wave">
+        <svg viewBox="0 0 1440 120" fill="none" preserveAspectRatio="none">
+          <path d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H0Z" fill="#FAF8F5"/>
+        </svg>
+      </div>
+    </section>
+
+    <!-- ========== FUNCIONALIDADES ========== -->
+    <section id="funcionalidades" class="section">
+      <div class="container">
+        <div class="section__header reveal">
+          <h2 class="section__title">Tudo que Seu Clube de Tênis Precisa</h2>
+          <p class="section__subtitle">Uma plataforma completa para organizar competições, gerenciar jogadores e manter seu clube ativo.</p>
+        </div>
+
+        <div class="features-grid">
+          <!-- Card 1: Ranking -->
+          <div class="feature-card reveal delay-1">
+            <div class="feature-card__icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="var(--primary)"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/></svg>
+            </div>
+            <h3 class="feature-card__title">Ranking em Tempo Real</h3>
+            <p class="feature-card__desc">Acompanhe posições com atualização instantânea. Pódio com ouro, prata e bronze, histórico completo e gráfico de evolução.</p>
+          </div>
+
+          <!-- Card 2: Desafios -->
+          <div class="feature-card reveal delay-2">
+            <div class="feature-card__icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="var(--primary)"><path d="M17 10.43V2H7v8.43c0 .35.18.68.49.86l4.18 2.51-.99 2.34-3.41.29 2.59 2.24L9.07 22 12 20.23 14.93 22l-.79-3.33 2.59-2.24-3.41-.29-.99-2.34 4.18-2.51c.31-.18.49-.51.49-.86z"/></svg>
+            </div>
+            <h3 class="feature-card__title">Sistema de Desafios</h3>
+            <p class="feature-card__desc">11 regras automatizadas: limite de posições, cooldown, proteção, prazos e WO automático. Zero trabalho manual.</p>
+          </div>
+
+          <!-- Card 3: Quadras -->
+          <div class="feature-card reveal delay-3">
+            <div class="feature-card__icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="var(--primary)"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 5h5v5h-5v-5z"/></svg>
+            </div>
+            <h3 class="feature-card__title">Reserva de Quadras</h3>
+            <p class="feature-card__desc">Calendário visual com slots por horário. Reservas instantâneas, histórico e cancelamento fácil. Saibro, dura, grama e mais.</p>
+          </div>
+
+          <!-- Card 4: Placar -->
+          <div class="feature-card reveal delay-4">
+            <div class="feature-card__icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="var(--primary)"><path d="M19.52 2.49c-3.12-3.12-8.19-3.12-11.31 0-3.12 3.12-3.12 8.19 0 11.31l11.31-11.31zM3.17 10.48c-2.09 3.07-1.74 7.27.98 9.99 2.72 2.72 6.92 3.07 9.99.98L3.17 10.48z"/></svg>
+            </div>
+            <h3 class="feature-card__title">Placar Set a Set</h3>
+            <p class="feature-card__desc">Registro detalhado de placares com sets, games e tiebreak. Suporte a super tiebreak no set decisivo.</p>
+          </div>
+
+          <!-- Card 5: Notificações -->
+          <div class="feature-card reveal delay-5">
+            <div class="feature-card__icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="var(--primary)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+            </div>
+            <h3 class="feature-card__title">Notificações Inteligentes</h3>
+            <p class="feature-card__desc">12 tipos de alerta: desafio recebido, resultado, mudança de ranking, WO, pagamento e mais. Nada passa despercebido.</p>
+          </div>
+
+          <!-- Card 6: Admin -->
+          <div class="feature-card reveal delay-6">
+            <div class="feature-card__icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="var(--primary)"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+            </div>
+            <h3 class="feature-card__title">Painel Administrativo</h3>
+            <p class="feature-card__desc">Gerencie jogadores, ambulâncias, mensalidades e quadras. Códigos de convite e regras configuráveis.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== PARA JOGADORES ========== -->
+    <section id="para-jogadores" class="section section--alt">
+      <div class="container">
+        <div class="section__header reveal">
+          <span class="pill pill--green">Para Jogadores</span>
+          <h2 class="section__title">Suba no Ranking. Desafie. Conquiste.</h2>
+          <p class="section__subtitle">Acompanhe sua evolução, desafie oponentes e reserve quadras &mdash; tudo na palma da mão.</p>
+        </div>
+
+        <!-- Block 1: Ranking -->
+        <div class="split-block">
+          <div class="split-block__text reveal-left">
+            <h3>Sua Posição em Tempo Real</h3>
+            <p>Veja sua posição atualizar instantaneamente após cada resultado. Confira o pódio dos 3 primeiros com medalhas de ouro, prata e bronze.</p>
+            <ul class="check-list">
+              <li>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--success)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                Atualização em tempo real
+              </li>
+              <li>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--success)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                Pódio com ouro, prata e bronze
+              </li>
+              <li>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--success)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                Histórico e gráfico de evolução
+              </li>
+            </ul>
+          </div>
+          <div class="split-block__visual reveal-right">
+            <div class="visual-card visual-card--ranking">
+              <div class="visual-card__header">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--gold)"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2z"/></svg>
+                <span>Ranking Atualizado</span>
+              </div>
+              <div class="visual-card__row"><span class="pos pos--up">1 &#9650;</span> Carlos M. <span class="pts">1480</span></div>
+              <div class="visual-card__row"><span class="pos pos--down">2 &#9660;</span> Ana R. <span class="pts">1350</span></div>
+              <div class="visual-card__row"><span class="pos pos--same">3 &#9644;</span> Roberto S. <span class="pts">1290</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Block 2: Desafios -->
+        <div class="split-block split-block--reverse">
+          <div class="split-block__text reveal-right">
+            <h3>Desafie Quem Está Acima</h3>
+            <p>Desafie jogadores até 2 posições acima de você. O sistema cuida de tudo: valida regras, controla prazos e aplica WO automático.</p>
+            <ul class="check-list">
+              <li>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--success)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                Desafie até 2 posições acima
+              </li>
+              <li>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--success)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                48h de cooldown após cada desafio
+              </li>
+              <li>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--success)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                Registro de placar set a set
+              </li>
+            </ul>
+          </div>
+          <div class="split-block__visual reveal-left">
+            <div class="visual-card visual-card--challenge">
+              <div class="visual-card__header">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--warning)"><path d="M17 10.43V2H7v8.43c0 .35.18.68.49.86l4.18 2.51-.99 2.34-3.41.29 2.59 2.24L9.07 22 12 20.23 14.93 22l-.79-3.33 2.59-2.24-3.41-.29-.99-2.34 4.18-2.51c.31-.18.49-.51.49-.86z"/></svg>
+                <span>Novo Desafio!</span>
+              </div>
+              <div class="challenge-card">
+                <div class="challenge-card__vs">
+                  <div class="challenge-card__player">
+                    <span class="challenge-card__pos">#4</span>
+                    <span>Você</span>
+                  </div>
+                  <span class="challenge-card__badge">VS</span>
+                  <div class="challenge-card__player">
+                    <span class="challenge-card__pos">#2</span>
+                    <span>Ana R.</span>
+                  </div>
+                </div>
+                <div class="challenge-card__status">Aguardando resposta...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Block 3: Quadras -->
+        <div class="split-block">
+          <div class="split-block__text reveal-left">
+            <h3>Reserve Sua Quadra em Segundos</h3>
+            <p>Escolha a quadra, veja os horários disponíveis no calendário e reserve com um toque. Acompanhe todas as suas reservas em um só lugar.</p>
+            <ul class="check-list">
+              <li>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--success)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                Calendário visual por semana/mês
+              </li>
+              <li>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--success)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                Slots por horário com disponibilidade
+              </li>
+              <li>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--success)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                Cancelamento fácil
+              </li>
+            </ul>
+          </div>
+          <div class="split-block__visual reveal-right">
+            <div class="visual-card visual-card--calendar">
+              <div class="visual-card__header">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--info)"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10z"/></svg>
+                <span>Quadra 1 - Saibro</span>
+              </div>
+              <div class="calendar-slots">
+                <div class="slot slot--past">08:00</div>
+                <div class="slot slot--past">09:00</div>
+                <div class="slot slot--booked">10:00</div>
+                <div class="slot slot--available">11:00</div>
+                <div class="slot slot--available">12:00</div>
+                <div class="slot slot--available">13:00</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== PARA CLUBES ========== -->
+    <section id="para-clubes" class="section section--dark">
+      <div class="container">
+        <div class="section__header reveal">
+          <span class="pill pill--gold">Para Clubes &amp; Administradores</span>
+          <h2 class="section__title section__title--light">Gestão Completa do Seu Clube de Tênis</h2>
+          <p class="section__subtitle section__subtitle--light">Automatize o ranking, gerencie membros e configure regras &mdash; sem planilhas, sem grupos de WhatsApp.</p>
+        </div>
+
+        <div class="club-grid">
+          <div class="club-card reveal delay-1">
+            <div class="club-card__icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--secondary)"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+            </div>
+            <h3 class="club-card__title">Códigos de Convite</h3>
+            <p class="club-card__desc">Cada clube recebe um código exclusivo. Compartilhe com novos membros e aprove solicitações de entrada no painel admin.</p>
+          </div>
+
+          <div class="club-card reveal delay-2">
+            <div class="club-card__icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--secondary)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            </div>
+            <h3 class="club-card__title">Regras Configuráveis</h3>
+            <p class="club-card__desc">Ative ou desative regras como ambulância, cooldown e limite de posições. Personalize o funcionamento do ranking do seu clube.</p>
+          </div>
+
+          <div class="club-card reveal delay-3">
+            <div class="club-card__icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--secondary)"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+            </div>
+            <h3 class="club-card__title">Painel Admin Completo</h3>
+            <p class="club-card__desc">Gerencie jogadores, controle ambulâncias com penalizações automáticas, acompanhe mensalidades e administre suas quadras.</p>
+          </div>
+
+          <div class="club-card reveal delay-4">
+            <div class="club-card__icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--secondary)"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+            </div>
+            <h3 class="club-card__title">Penalizações Automáticas</h3>
+            <p class="club-card__desc">Cron jobs automatizados: WO por não responder em 48h, penalização diária de ambulância e mensal por inatividade. Zero intervenção.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== COMO FUNCIONA ========== -->
+    <section id="como-funciona" class="section">
+      <div class="container">
+        <div class="section__header reveal">
+          <h2 class="section__title">Como Funciona</h2>
+          <p class="section__subtitle">Do cadastro ao primeiro desafio em 4 passos simples.</p>
+        </div>
+
+        <div class="steps">
+          <div class="step reveal delay-1">
+            <div class="step__number">1</div>
+            <div class="step__icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--primary)"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </div>
+            <h3 class="step__title">Crie sua Conta</h3>
+            <p class="step__desc">Cadastre-se com email ou entre com Google / Apple. Rápido e seguro.</p>
+          </div>
+
+          <div class="step__connector"></div>
+
+          <div class="step reveal delay-2">
+            <div class="step__number">2</div>
+            <div class="step__icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--primary)"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+            </div>
+            <h3 class="step__title">Entre no Clube</h3>
+            <p class="step__desc">Use o código de convite do seu clube ou crie o seu próprio. O admin aprova sua entrada.</p>
+          </div>
+
+          <div class="step__connector"></div>
+
+          <div class="step reveal delay-3">
+            <div class="step__number">3</div>
+            <div class="step__icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--primary)"><path d="M19.52 2.49c-3.12-3.12-8.19-3.12-11.31 0-3.12 3.12-3.12 8.19 0 11.31l11.31-11.31zM3.17 10.48c-2.09 3.07-1.74 7.27.98 9.99 2.72 2.72 6.92 3.07 9.99.98L3.17 10.48z"/></svg>
+            </div>
+            <h3 class="step__title">Desafie um Adversário</h3>
+            <p class="step__desc">Escolha quem desafiar (até 2 posições acima), proponha datas e agende sua partida.</p>
+          </div>
+
+          <div class="step__connector"></div>
+
+          <div class="step reveal delay-4">
+            <div class="step__number">4</div>
+            <div class="step__icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--primary)"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2z"/></svg>
+            </div>
+            <h3 class="step__title">Vença e Suba no Ranking</h3>
+            <p class="step__desc">Registre o placar, suba de posição e acompanhe sua evolução em tempo real.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== EM BREVE - Novos Esportes ========== -->
+    <section id="em-breve" class="section section--alt">
+      <div class="container">
+        <div class="section__header reveal">
+          <span class="pill pill--gold">Em Breve</span>
+          <h2 class="section__title">Novos Esportes Chegando</h2>
+          <p class="section__subtitle">O SmashRank nasceu para o tênis, mas em breve vai expandir para outros esportes. Fique ligado!</p>
+        </div>
+
+        <div class="sports-grid">
+          <!-- Tênis (disponível) -->
+          <div class="sport-card sport-card--active reveal delay-1">
+            <div class="sport-card__icon sport-card__icon--tennis">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M19.52 2.49c-3.12-3.12-8.19-3.12-11.31 0-3.12 3.12-3.12 8.19 0 11.31l11.31-11.31zM3.17 10.48c-2.09 3.07-1.74 7.27.98 9.99 2.72 2.72 6.92 3.07 9.99.98L3.17 10.48z"/></svg>
+            </div>
+            <span class="sport-card__badge-available">Disponível</span>
+            <h3 class="sport-card__name">Tênis</h3>
+            <div class="sport-card__info">
+              <span class="sport-card__tag">Sets &amp; Games</span>
+              <span class="sport-card__tag">Tiebreak</span>
+            </div>
+            <p class="sport-card__surfaces">Saibro, Dura, Grama, Carpet, Sintética</p>
+          </div>
+
+          <!-- Futsal (em breve) -->
+          <div class="sport-card sport-card--soon reveal delay-2">
+            <div class="sport-card__icon sport-card__icon--futsal">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 3.3l1.35-.95c1.82.56 3.37 1.76 4.38 3.34l-.39 1.34-1.35.46L13 6.7V5.3zm-3.35-.95L11 5.3v1.4L7.01 9.49l-1.35-.46-.39-1.34c1.01-1.58 2.56-2.78 4.38-3.34zM7.08 17.11l-1.14.1C4.73 15.81 4 13.99 4 12c0-.12.01-.23.02-.35l1-.73 1.38.48 1.46 4.34-.78 1.37zm7.42 2.48c-.79.26-1.63.41-2.5.41-.87 0-1.71-.15-2.5-.41l-.69-1.49.64-1.1h5.11l.64 1.11-.7 1.48zM14.27 15H9.73l-1.35-4.02L12 8.44l3.63 2.54L14.27 15zm3.79 2.21l-1.14-.1-.78-1.37 1.46-4.34 1.38-.48 1 .73c.01.12.02.23.02.35 0 1.99-.73 3.81-1.94 5.21z"/></svg>
+            </div>
+            <span class="sport-card__badge-soon">Em Breve</span>
+            <h3 class="sport-card__name">Futsal</h3>
+            <div class="sport-card__info">
+              <span class="sport-card__tag">Placar Simples</span>
+            </div>
+            <p class="sport-card__surfaces">Grama Sintética, Piso, Cimento</p>
+          </div>
+
+          <!-- Futebol (em breve) -->
+          <div class="sport-card sport-card--soon reveal delay-3">
+            <div class="sport-card__icon sport-card__icon--football">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 3.3l1.35-.95c1.82.56 3.37 1.76 4.38 3.34l-.39 1.34-1.35.46L13 6.7V5.3zm-3.35-.95L11 5.3v1.4L7.01 9.49l-1.35-.46-.39-1.34c1.01-1.58 2.56-2.78 4.38-3.34zM7.08 17.11l-1.14.1C4.73 15.81 4 13.99 4 12c0-.12.01-.23.02-.35l1-.73 1.38.48 1.46 4.34-.78 1.37zm7.42 2.48c-.79.26-1.63.41-2.5.41-.87 0-1.71-.15-2.5-.41l-.69-1.49.64-1.1h5.11l.64 1.11-.7 1.48zM14.27 15H9.73l-1.35-4.02L12 8.44l3.63 2.54L14.27 15zm3.79 2.21l-1.14-.1-.78-1.37 1.46-4.34 1.38-.48 1 .73c.01.12.02.23.02.35 0 1.99-.73 3.81-1.94 5.21z"/></svg>
+            </div>
+            <span class="sport-card__badge-soon">Em Breve</span>
+            <h3 class="sport-card__name">Futebol</h3>
+            <div class="sport-card__info">
+              <span class="sport-card__tag">Placar Simples</span>
+            </div>
+            <p class="sport-card__surfaces">Grama Natural, Sintética, Society</p>
+          </div>
+
+          <!-- Vôlei (em breve) -->
+          <div class="sport-card sport-card--soon reveal delay-4">
+            <div class="sport-card__icon sport-card__icon--volleyball">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4.01C3.58 5.84 2 8.73 2 12c0 1.46.32 2.85.89 4.11L6 14.31V4.01zM11 2.05c-.34.02-.67.06-1 .11V14l6.88-4.07C15.79 6.17 13.61 3.19 11 2.05zM12 22c2.3 0 4.41-.82 6.06-2.18L6.38 14.06l-2.92 1.73C5.07 19.14 8.27 22 12 22zM22 12c0-2.82-1.22-5.35-3.16-7.1L12.35 9l5.97 3.53C20.65 18.03 22 15.2 22 12z"/></svg>
+            </div>
+            <span class="sport-card__badge-soon">Em Breve</span>
+            <h3 class="sport-card__name">Vôlei</h3>
+            <div class="sport-card__info">
+              <span class="sport-card__tag">Sets &amp; Pontos</span>
+            </div>
+            <p class="sport-card__surfaces">Quadra e Areia</p>
+          </div>
+
+          <!-- Beach Vôlei (em breve) -->
+          <div class="sport-card sport-card--soon reveal delay-5">
+            <div class="sport-card__icon sport-card__icon--beach">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4.01C3.58 5.84 2 8.73 2 12c0 1.46.32 2.85.89 4.11L6 14.31V4.01zM11 2.05c-.34.02-.67.06-1 .11V14l6.88-4.07C15.79 6.17 13.61 3.19 11 2.05zM12 22c2.3 0 4.41-.82 6.06-2.18L6.38 14.06l-2.92 1.73C5.07 19.14 8.27 22 12 22zM22 12c0-2.82-1.22-5.35-3.16-7.1L12.35 9l5.97 3.53C20.65 18.03 22 15.2 22 12z"/></svg>
+            </div>
+            <span class="sport-card__badge-soon">Em Breve</span>
+            <h3 class="sport-card__name">Beach Vôlei</h3>
+            <div class="sport-card__info">
+              <span class="sport-card__tag">Sets &amp; Pontos</span>
+            </div>
+            <p class="sport-card__surfaces">Areia</p>
+          </div>
+
+          <!-- Futevôlei (em breve) -->
+          <div class="sport-card sport-card--soon reveal delay-6">
+            <div class="sport-card__icon sport-card__icon--footvolley">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4.01C3.58 5.84 2 8.73 2 12c0 1.46.32 2.85.89 4.11L6 14.31V4.01zM11 2.05c-.34.02-.67.06-1 .11V14l6.88-4.07C15.79 6.17 13.61 3.19 11 2.05zM12 22c2.3 0 4.41-.82 6.06-2.18L6.38 14.06l-2.92 1.73C5.07 19.14 8.27 22 12 22zM22 12c0-2.82-1.22-5.35-3.16-7.1L12.35 9l5.97 3.53C20.65 18.03 22 15.2 22 12z"/></svg>
+            </div>
+            <span class="sport-card__badge-soon">Em Breve</span>
+            <h3 class="sport-card__name">Futevôlei</h3>
+            <div class="sport-card__info">
+              <span class="sport-card__tag">Sets &amp; Pontos</span>
+            </div>
+            <p class="sport-card__surfaces">Areia</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== NÚMEROS ========== -->
+    <section id="numeros" class="section section--stats">
+      <div class="container">
+        <div class="stats-row">
+          <div class="stat reveal delay-1">
+            <span class="stat__number" data-target="11">0</span>
+            <span class="stat__label">Regras Automatizadas</span>
+          </div>
+          <div class="stat reveal delay-2">
+            <span class="stat__number" data-target="5">0</span>
+            <span class="stat__label">Tipos de Quadra</span>
+          </div>
+          <div class="stat reveal delay-3">
+            <span class="stat__number" data-target="12">0</span>
+            <span class="stat__label">Tipos de Notificação</span>
+          </div>
+          <div class="stat reveal delay-4">
+            <span class="stat__number" data-target="3">0</span>
+            <span class="stat__label">Cron Jobs Automáticos</span>
+          </div>
+        </div>
+
+        <!-- Depoimentos -->
+        <div class="testimonials">
+          <div class="testimonial reveal delay-1">
+            <p class="testimonial__text">"Antes usávamos planilhas e grupos de WhatsApp. Com o SmashRank, tudo funciona automaticamente."</p>
+            <span class="testimonial__author">Carlos M., Admin do Clube Tennis Park</span>
+          </div>
+          <div class="testimonial reveal delay-2">
+            <p class="testimonial__text">"O sistema de desafios é genial. As regras são justas e ninguém precisa discutir nada."</p>
+            <span class="testimonial__author">Ana R., Jogadora</span>
+          </div>
+          <div class="testimonial reveal delay-3">
+            <p class="testimonial__text">"Reservar quadra ficou muito mais fácil. Consigo ver os horários e agendar na hora."</p>
+            <span class="testimonial__author">Roberto S., Jogador</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== FAQ ========== -->
+    <section id="faq" class="section">
+      <div class="container container--narrow">
+        <div class="section__header reveal">
+          <h2 class="section__title">Perguntas Frequentes</h2>
+        </div>
+
+        <div class="faq-list">
+          <div class="faq-item reveal">
+            <button class="faq-question" aria-expanded="false">
+              <span>O SmashRank é gratuito?</span>
+              <svg class="faq-chevron" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+            </button>
+            <div class="faq-answer" role="region">
+              <p>Sim, o app é 100% gratuito para jogadores e administradores.</p>
+            </div>
+          </div>
+
+          <div class="faq-item reveal">
+            <button class="faq-question" aria-expanded="false">
+              <span>Como funciona o sistema de desafios?</span>
+              <svg class="faq-chevron" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+            </button>
+            <div class="faq-answer" role="region">
+              <p>Você pode desafiar jogadores até 2 posições acima no ranking. O desafiado tem 48h para responder e propor 3 datas. O desafiante escolhe uma data e a partida deve acontecer em até 7 dias. Se o desafiante vencer, ele toma a posição do adversário.</p>
+            </div>
+          </div>
+
+          <div class="faq-item reveal">
+            <button class="faq-question" aria-expanded="false">
+              <span>O que é a ambulância?</span>
+              <svg class="faq-chevron" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+            </button>
+            <div class="faq-answer" role="region">
+              <p>A ambulância é um recurso para jogadores que precisam se afastar temporariamente (lesão, viagem, etc). Ao ativar, o jogador perde 3 posições imediatamente, mas fica protegido por 10 dias. Após esse período, perde 1 posição por dia até retornar.</p>
+            </div>
+          </div>
+
+          <div class="faq-item reveal">
+            <button class="faq-question" aria-expanded="false">
+              <span>Quais tipos de quadra são suportados?</span>
+              <svg class="faq-chevron" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+            </button>
+            <div class="faq-answer" role="region">
+              <p>O SmashRank suporta quadras de saibro, dura (hard court), grama, carpet e sintética. Cada quadra pode ser cadastrada com seu tipo de piso no painel administrativo.</p>
+            </div>
+          </div>
+
+          <div class="faq-item reveal">
+            <button class="faq-question" aria-expanded="false">
+              <span>Como entro em um clube?</span>
+              <svg class="faq-chevron" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+            </button>
+            <div class="faq-answer" role="region">
+              <p>Peça o código de convite ao administrador do seu clube. No app, vá em "Entrar no Clube" e insira o código. O admin irá aprovar sua solicitação.</p>
+            </div>
+          </div>
+
+          <div class="faq-item reveal">
+            <button class="faq-question" aria-expanded="false">
+              <span>Posso criar meu próprio clube?</span>
+              <svg class="faq-chevron" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+            </button>
+            <div class="faq-answer" role="region">
+              <p>Sim! Qualquer usuário pode criar um clube e se tornar administrador. Você recebe um código de convite exclusivo para compartilhar com membros.</p>
+            </div>
+          </div>
+
+          <div class="faq-item reveal">
+            <button class="faq-question" aria-expanded="false">
+              <span>As regras podem ser personalizadas?</span>
+              <svg class="faq-chevron" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+            </button>
+            <div class="faq-answer" role="region">
+              <p>Sim. Administradores podem ativar ou desativar regras como ambulância, cooldown e limite de posições no painel do clube.</p>
+            </div>
+          </div>
+
+          <div class="faq-item reveal">
+            <button class="faq-question" aria-expanded="false">
+              <span>Vai ter suporte a outros esportes?</span>
+              <svg class="faq-chevron" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+            </button>
+            <div class="faq-answer" role="region">
+              <p>Sim! Em breve vamos expandir para Futsal, Futebol, Vôlei, Beach Vôlei e Futevôlei. Cada esporte terá terminologia, pisos e sistema de pontuação próprios.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== CTA / DOWNLOAD ========== -->
+    <section id="download" class="section section--cta">
+      <div class="container">
+        <div class="cta-content reveal">
+          <h2 class="cta__title">Pronto para Transformar o Ranking do Seu Clube?</h2>
+          <p class="cta__subtitle">Baixe o SmashRank agora e comece a organizar competições de tênis em minutos.</p>
+          <div class="cta__buttons">
+            <a href="#" class="store-badge" aria-label="Baixar na Google Play">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.18 23.04c.17.09.36.14.56.14.21 0 .42-.06.6-.17l14.1-8.16-3.42-3.42L3.18 23.04zM1.26 1.26C1.1 1.56 1 1.9 1 2.28v19.44c0 .38.1.72.26 1.02l10.6-10.6L1.26 1.26zM21.82 10.47l-3.37-1.95-3.69 3.69 3.69 3.69 3.37-1.95c.78-.45.78-1.58 0-2.03v-.45zM4.34.96L18.44 9.1l-3.42 3.42L3.18.96C3.52.75 3.93.71 4.34.96z"/></svg>
+              <div>
+                <small>Disponível no</small>
+                <strong>Google Play</strong>
+              </div>
+            </a>
+            <a href="#" class="store-badge" aria-label="Baixar na App Store">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+              <div>
+                <small>Baixe na</small>
+                <strong>App Store</strong>
+              </div>
+            </a>
+          </div>
+          <p class="cta__note">Disponível para Android e iOS. Login com Google ou Apple.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div class="footer__brand">
+          <div class="footer__logo">
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+              <circle cx="16" cy="16" r="14" fill="#C9A84C"/>
+              <path d="M8 4C12 10 12 22 8 28" stroke="#A38A30" stroke-width="2" fill="none"/>
+              <path d="M24 4C20 10 20 22 24 28" stroke="#A38A30" stroke-width="2" fill="none"/>
+            </svg>
+            <span>SmashRank</span>
+          </div>
+          <p class="footer__tagline">Ranking de tênis e gestão de clubes.</p>
+          <div class="footer__social">
+            <a href="#" aria-label="Instagram">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6m9.65 1.5a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5M12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10m0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+            </a>
+            <a href="#" aria-label="Twitter / X">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <div class="footer__col">
+          <h4>Produto</h4>
+          <ul>
+            <li><a href="#funcionalidades">Funcionalidades</a></li>
+            <li><a href="#para-jogadores">Para Jogadores</a></li>
+            <li><a href="#para-clubes">Para Clubes</a></li>
+            <li><a href="#em-breve">Em Breve</a></li>
+          </ul>
+        </div>
+
+        <div class="footer__col">
+          <h4>Suporte</h4>
+          <ul>
+            <li><a href="#faq">FAQ</a></li>
+            <li><a href="mailto:contato@smashrank.app">Contato</a></li>
+          </ul>
+        </div>
+
+        <div class="footer__col">
+          <h4>Legal</h4>
+          <ul>
+            <li><a href="#">Política de Privacidade</a></li>
+            <li><a href="#">Termos de Uso</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer__bottom">
+        <p>&copy; 2026 SmashRank. Todos os direitos reservados.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js" defer></script>
+</body>
+</html>

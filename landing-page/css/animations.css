@@ -1,0 +1,165 @@
+/* ========================================
+   SmashRank Landing Page - Animations
+   ======================================== */
+
+/* ─── Scroll Reveal Base ─── */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-40px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal-left.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.reveal-right {
+  opacity: 0;
+  transform: translateX(40px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal-right.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ─── Stagger Delays ─── */
+.delay-1 { transition-delay: 0.1s; }
+.delay-2 { transition-delay: 0.2s; }
+.delay-3 { transition-delay: 0.3s; }
+.delay-4 { transition-delay: 0.4s; }
+.delay-5 { transition-delay: 0.5s; }
+.delay-6 { transition-delay: 0.6s; }
+
+/* ─── FAQ Chevron ─── */
+.faq-chevron {
+  transition: transform 0.3s ease;
+}
+
+.faq-item.active .faq-chevron {
+  transform: rotate(180deg);
+}
+
+/* ─── Phone Mockup Float ─── */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.phone-frame {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* ─── Stat Counter Pop ─── */
+@keyframes countPop {
+  0% { transform: scale(0.8); opacity: 0; }
+  60% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.stat.visible .stat__number {
+  animation: countPop 0.6s ease-out forwards;
+}
+
+/* ─── Feature Card Subtle Shine ─── */
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -75%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
+  transition: left 0.6s ease;
+}
+
+.feature-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card:hover::before {
+  left: 125%;
+}
+
+/* ─── Sport Card Hover Glow ─── */
+.sport-card__icon {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.sport-card:hover .sport-card__icon {
+  transform: scale(1.1);
+  box-shadow: 0 4px 20px rgba(27, 67, 50, 0.2);
+}
+
+/* ─── Step Number Pulse on Visible ─── */
+@keyframes stepPulse {
+  0% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.4); }
+  70% { box-shadow: 0 0 0 12px rgba(201, 168, 76, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0); }
+}
+
+.step.visible .step__number {
+  animation: stepPulse 1s ease-out;
+}
+
+/* ─── Store Badge Hover ─── */
+.store-badge {
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.store-badge:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* ─── Trust Badge Fade In ─── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Reduced Motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .reveal,
+  .reveal-left,
+  .reveal-right {
+    opacity: 1;
+    transform: none;
+  }
+
+  .phone-frame {
+    animation: none;
+  }
+}
