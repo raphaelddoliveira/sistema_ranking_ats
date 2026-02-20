@@ -18,8 +18,7 @@ abstract final class RouteNames {
   // Challenges
   static const String createChallenge = '/challenges/create';
   static const String challengeDetail = '/challenges/:challengeId';
-  static const String proposeDates = '/challenges/:challengeId/propose-dates';
-  static const String chooseDate = '/challenges/:challengeId/choose-date';
+  static const String selectCourt = '/challenges/:challengeId/select-court';
   static const String recordResult = '/challenges/:challengeId/record-result';
 
   // Courts

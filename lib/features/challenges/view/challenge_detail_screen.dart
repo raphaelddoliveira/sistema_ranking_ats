@@ -181,8 +181,43 @@ class _ChallengeDetailBody extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
 
-          // Proposed dates
-          if (challenge.proposedDates.isNotEmpty) ...[
+          // Court + date info (new flow: court selected)
+          if (challenge.courtId != null &&
+              challenge.chosenDate != null) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Quadra e Horário',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    _InfoRow(
+                      icon: Icons.place,
+                      label: 'Quadra',
+                      value: challenge.courtName ?? 'Quadra',
+                    ),
+                    _InfoRow(
+                      icon: Icons.calendar_today,
+                      label: 'Data',
+                      value: challenge.chosenDate!.formattedDateTime,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Legacy: proposed dates (old flow, for backward compatibility)
+          if (challenge.courtId == null &&
+              challenge.proposedDates.isNotEmpty) ...[
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -191,36 +226,40 @@ class _ChallengeDetailBody extends ConsumerWidget {
                   children: [
                     Text(
                       'Datas Propostas',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
-                    ...challenge.proposedDates.map((date) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Row(
-                            children: [
-                              Icon(
-                                date == challenge.chosenDate
-                                    ? Icons.check_circle
-                                    : Icons.circle_outlined,
-                                size: 18,
-                                color: date == challenge.chosenDate
-                                    ? AppColors.success
-                                    : AppColors.onBackgroundLight,
+                    ...challenge.proposedDates.map(
+                      (date) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            Icon(
+                              date == challenge.chosenDate
+                                  ? Icons.check_circle
+                                  : Icons.circle_outlined,
+                              size: 18,
+                              color: date == challenge.chosenDate
+                                  ? AppColors.success
+                                  : AppColors.onBackgroundLight,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              date.formattedDateTime,
+                              style: TextStyle(
+                                fontWeight:
+                                    date == challenge.chosenDate
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                date.formattedDateTime,
-                                style: TextStyle(
-                                  fontWeight: date == challenge.chosenDate
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -292,18 +331,17 @@ class _ChallengeDetailBody extends ConsumerWidget {
 
     switch (challenge.status) {
       case ChallengeStatus.pending:
-        if (isChallenged) {
+        if (isChallenger) {
           actions.add(
             ElevatedButton.icon(
               onPressed: () {
-                context.push('/challenges/$challengeId/propose-dates');
+                context.push(
+                    '/challenges/$challengeId/select-court');
               },
-              icon: const Icon(Icons.calendar_month),
-              label: const Text('Propor Datas'),
+              icon: const Icon(Icons.event_note),
+              label: const Text('Escolher Quadra e Horário'),
             ),
           );
-        }
-        if (isChallenger) {
           actions.add(const SizedBox(height: 8));
           actions.add(
             OutlinedButton.icon(
@@ -314,23 +352,20 @@ class _ChallengeDetailBody extends ConsumerWidget {
             ),
           );
         }
-        break;
-
-      case ChallengeStatus.datesProposed:
-        if (challenge.allProposedDatesExpired) {
+        if (isChallenged) {
           actions.add(
             Card(
-              color: AppColors.error.withAlpha(20),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    const Icon(Icons.timer_off, color: AppColors.error),
+                    Icon(Icons.hourglass_top,
+                        color: AppColors.warning),
                     const SizedBox(width: 12),
-                    Expanded(
+                    const Expanded(
                       child: Text(
-                        'Todas as datas propostas já passaram. Este desafio será expirado automaticamente.',
-                        style: TextStyle(color: AppColors.error, fontSize: 13),
+                        'Aguardando o desafiante escolher quadra e horário.',
+                        style: TextStyle(fontSize: 13),
                       ),
                     ),
                   ],
@@ -338,17 +373,61 @@ class _ChallengeDetailBody extends ConsumerWidget {
               ),
             ),
           );
+        }
+        break;
+
+      case ChallengeStatus.datesProposed:
+        if (isChallenged) {
+          actions.add(
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () =>
+                    _confirmAccept(context, ref),
+                icon: const Icon(Icons.check),
+                label: const Text('Aceitar'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.success,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          );
+          actions.add(const SizedBox(height: 8));
+          actions.add(
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () =>
+                    _confirmDecline(context, ref),
+                icon: const Icon(Icons.close,
+                    color: AppColors.error),
+                label: const Text('Recusar Horário',
+                    style: TextStyle(color: AppColors.error)),
+              ),
+            ),
+          );
         } else if (isChallenger) {
           actions.add(
-            ElevatedButton.icon(
-              onPressed: () {
-                context.push(
-                  '/challenges/$challengeId/choose-date',
-                  extra: {'proposedDates': challenge.proposedDates},
-                );
-              },
-              icon: const Icon(Icons.event_available),
-              label: const Text('Escolher Data'),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Icon(Icons.hourglass_top,
+                        color: AppColors.warning),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Aguardando seu oponente aceitar ou recusar o horário.',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           );
         }
@@ -390,6 +469,75 @@ class _ChallengeDetailBody extends ConsumerWidget {
     }
 
     return actions;
+  }
+
+  void _confirmAccept(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Aceitar Desafio'),
+        content:
+            const Text('Confirma que jogará nesta quadra e horário?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              final success = await ref
+                  .read(challengeActionProvider.notifier)
+                  .acceptChallenge(challengeId);
+              if (success && context.mounted) {
+                SnackbarUtils.showSuccess(
+                    context, 'Desafio aceito! Jogo agendado.');
+                ref.invalidate(
+                    challengeDetailProvider(challengeId));
+                ref.invalidate(activeChallengesProvider);
+              }
+            },
+            child: const Text('Aceitar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDecline(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Recusar Horário'),
+        content: const Text(
+          'A reserva da quadra será cancelada e o desafiante precisará escolher outro horário.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Voltar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              final success = await ref
+                  .read(challengeActionProvider.notifier)
+                  .declineChallenge(challengeId);
+              if (success && context.mounted) {
+                SnackbarUtils.showSuccess(context,
+                    'Horário recusado. O desafiante escolherá outro.');
+                ref.invalidate(
+                    challengeDetailProvider(challengeId));
+                ref.invalidate(activeChallengesProvider);
+              }
+            },
+            child: const Text('Recusar'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _confirmWeatherExtension(BuildContext context, WidgetRef ref) {
@@ -531,8 +679,8 @@ class _StatusChip extends StatelessWidget {
     };
 
     final label = switch (status) {
-      ChallengeStatus.pending => 'Aguardando resposta',
-      ChallengeStatus.datesProposed => 'Datas propostas',
+      ChallengeStatus.pending => 'Aguardando agendamento',
+      ChallengeStatus.datesProposed => 'Aguardando confirmação',
       ChallengeStatus.scheduled => 'Agendado',
       ChallengeStatus.completed => 'Finalizado',
       ChallengeStatus.woChallenger => 'WO Desafiante',

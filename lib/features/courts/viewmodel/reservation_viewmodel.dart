@@ -1,19 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/app_exception.dart';
-import '../../../shared/models/court_slot_model.dart';
 import '../../../shared/models/reservation_model.dart';
 import '../data/court_repository.dart';
-
-/// Provider for slots of a court on a specific day of week
-final courtSlotsProvider = FutureProvider.autoDispose.family<List<CourtSlotModel>,
-    ({String courtId, int dayOfWeek})>((ref, params) async {
-  final repository = ref.watch(courtRepositoryProvider);
-  return repository.getSlotsForCourt(
-    params.courtId,
-    dayOfWeek: params.dayOfWeek,
-  );
-});
 
 /// Provider for reservations of a court on a specific date
 final courtReservationsProvider = FutureProvider.family<List<ReservationModel>,
@@ -52,7 +41,6 @@ class ReservationActionNotifier extends StateNotifier<AsyncValue<void>> {
       : super(const AsyncData(null));
 
   Future<bool> createReservation({
-    required String courtSlotId,
     required String courtId,
     required DateTime date,
     required String startTime,
@@ -62,7 +50,6 @@ class ReservationActionNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
     try {
       await _repository.createReservation(
-        courtSlotId: courtSlotId,
         courtId: courtId,
         date: date,
         startTime: startTime,

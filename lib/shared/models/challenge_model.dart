@@ -23,6 +23,7 @@ class ChallengeModel {
   final DateTime? dateChosenAt;
   final DateTime? completedAt;
   final DateTime? cancelledAt;
+  final String? courtId;
   final String? notes;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -32,6 +33,7 @@ class ChallengeModel {
   final String? challengedName;
   final String? challengerAvatarUrl;
   final String? challengedAvatarUrl;
+  final String? courtName;
 
   const ChallengeModel({
     required this.id,
@@ -56,6 +58,7 @@ class ChallengeModel {
     this.dateChosenAt,
     this.completedAt,
     this.cancelledAt,
+    this.courtId,
     this.notes,
     required this.createdAt,
     required this.updatedAt,
@@ -63,6 +66,7 @@ class ChallengeModel {
     this.challengedName,
     this.challengerAvatarUrl,
     this.challengedAvatarUrl,
+    this.courtName,
   });
 
   bool get isActive => status.isActive;
@@ -81,8 +85,8 @@ class ChallengeModel {
   bool didLose(String playerId) => loserId == playerId;
 
   String get statusLabel => switch (status) {
-        ChallengeStatus.pending => 'Aguardando resposta',
-        ChallengeStatus.datesProposed => 'Datas propostas',
+        ChallengeStatus.pending => 'Aguardando agendamento',
+        ChallengeStatus.datesProposed => 'Aguardando confirmação',
         ChallengeStatus.scheduled => 'Agendado',
         ChallengeStatus.completed => 'Finalizado',
         ChallengeStatus.woChallenger => 'WO Desafiante',
@@ -97,7 +101,14 @@ class ChallengeModel {
         ?proposedDate3,
       ];
 
-  /// True when status is dates_proposed but ALL proposed dates are in the past
+  /// True when status is dates_proposed but the chosen date is in the past
+  bool get isCourtDateExpired {
+    if (status != ChallengeStatus.datesProposed) return false;
+    if (chosenDate == null) return false;
+    return chosenDate!.isBefore(DateTime.now());
+  }
+
+  /// Legacy: True when all proposed dates are in the past (old flow)
   bool get allProposedDatesExpired {
     if (status != ChallengeStatus.datesProposed) return false;
     final dates = proposedDates;
@@ -107,9 +118,10 @@ class ChallengeModel {
   }
 
   factory ChallengeModel.fromJson(Map<String, dynamic> json) {
-    // Handle nested joins: challenger:players!challenger_id(full_name, avatar_url)
+    // Handle nested joins
     final challenger = json['challenger'] as Map<String, dynamic>?;
     final challenged = json['challenged'] as Map<String, dynamic>?;
+    final court = json['court'] as Map<String, dynamic>?;
 
     return ChallengeModel(
       id: json['id'] as String,
@@ -154,6 +166,7 @@ class ChallengeModel {
       cancelledAt: json['cancelled_at'] != null
           ? DateTime.parse(json['cancelled_at'] as String)
           : null,
+      courtId: json['court_id'] as String?,
       notes: json['notes'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
@@ -161,6 +174,7 @@ class ChallengeModel {
       challengedName: challenged?['full_name'] as String?,
       challengerAvatarUrl: challenger?['avatar_url'] as String?,
       challengedAvatarUrl: challenged?['avatar_url'] as String?,
+      courtName: court?['name'] as String?,
     );
   }
 
@@ -170,6 +184,7 @@ class ChallengeModel {
       'challenger_id': challengerId,
       'challenged_id': challengedId,
       if (sportId != null) 'sport_id': sportId,
+      if (courtId != null) 'court_id': courtId,
       'status': status.dbValue,
       'challenger_position': challengerPosition,
       'challenged_position': challengedPosition,

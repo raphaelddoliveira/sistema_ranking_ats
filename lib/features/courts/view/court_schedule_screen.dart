@@ -4,14 +4,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/snackbar_utils.dart';
 import '../../../shared/models/court_model.dart';
-import '../../../shared/models/court_slot_model.dart';
 import '../../../shared/models/reservation_model.dart';
+import '../../../shared/models/time_slot.dart';
+import '../../../shared/utils/slot_generator.dart';
+import '../data/court_repository.dart';
 import '../viewmodel/reservation_viewmodel.dart';
 
-class CourtScheduleScreen extends ConsumerStatefulWidget {
-  final CourtModel court;
+/// Provider to load a single court by ID
+final _courtProvider =
+    FutureProvider.autoDispose.family<CourtModel, String>((ref, courtId) async {
+  final repo = ref.watch(courtRepositoryProvider);
+  return repo.getCourtById(courtId);
+});
 
-  const CourtScheduleScreen({super.key, required this.court});
+class CourtScheduleScreen extends ConsumerStatefulWidget {
+  final String courtId;
+
+  const CourtScheduleScreen({super.key, required this.courtId});
 
   @override
   ConsumerState<CourtScheduleScreen> createState() =>
@@ -45,20 +54,34 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final courtAsync = ref.watch(_courtProvider(widget.courtId));
+
+    return courtAsync.when(
+      data: (court) => _buildContent(context, court),
+      loading: () => Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        appBar: AppBar(),
+        body: Center(child: Text('Erro: $e')),
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, CourtModel court) {
     // Convert DateTime.weekday (1=Mon, 7=Sun) to DB format (0=Sun, 6=Sat)
     final dbDayOfWeek =
         _selectedDate.weekday == 7 ? 0 : _selectedDate.weekday;
 
-    final slotsAsync = ref.watch(courtSlotsProvider(
-      (courtId: widget.court.id, dayOfWeek: dbDayOfWeek),
-    ));
+    final slots = generateSlots(court, dbDayOfWeek);
     final reservationsAsync = ref.watch(courtReservationsProvider(
-      (courtId: widget.court.id, date: _selectedDate),
+      (courtId: court.id, date: _selectedDate),
     ));
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.court.name),
+        title: Text(court.name),
         actions: [
           IconButton(
             onPressed: _openDatePicker,
@@ -69,10 +92,8 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
       ),
       body: Column(
         children: [
-          // Date selector strip
           _buildDateSelector(),
           const Divider(height: 1),
-          // Selected date info
           Padding(
             padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -93,34 +114,22 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
               ],
             ),
           ),
-          // Slots list
           Expanded(
-            child: slotsAsync.when(
-              data: (slots) {
-                if (slots.isEmpty) {
-                  return const Center(
+            child: slots.isEmpty
+                ? const Center(
                     child: Text(
-                      'Sem horários disponíveis neste dia',
+                      'Quadra fechada neste dia',
                       style: TextStyle(color: AppColors.onBackgroundLight),
                     ),
-                  );
-                }
-
-                return reservationsAsync.when(
-                  data: (reservations) => _buildSlotsList(slots, reservations),
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (err, _) => Center(
-                    child: Text('Erro ao carregar reservas: $err'),
+                  )
+                : reservationsAsync.when(
+                    data: (reservations) => _buildSlotsList(slots, reservations),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (err, _) => Center(
+                      child: Text('Erro ao carregar reservas: $err'),
+                    ),
                   ),
-                );
-              },
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
-              error: (err, _) => Center(
-                child: Text('Erro ao carregar horários: $err'),
-              ),
-            ),
           ),
         ],
       ),
@@ -201,7 +210,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
   }
 
   Widget _buildSlotsList(
-    List<CourtSlotModel> slots,
+    List<TimeSlot> slots,
     List<ReservationModel> reservations,
   ) {
     final now = DateTime.now();
@@ -233,7 +242,6 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
               children: [
-                // Time box
                 Container(
                   width: 50,
                   height: 50,
@@ -243,7 +251,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                   ),
                   child: Center(
                     child: Text(
-                      _formatTime(slot.startTime),
+                      slot.startTime,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
@@ -253,7 +261,6 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,7 +285,6 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                     ],
                   ),
                 ),
-                // Action
                 if (!isReserved && !isSlotPast)
                   ElevatedButton(
                     onPressed: () => _confirmReservation(slot),
@@ -310,7 +316,6 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
-      // Scroll to the selected date in the strip
       final dayIndex = _dates.indexWhere((d) =>
           d.year == picked.year &&
           d.month == picked.month &&
@@ -325,13 +330,15 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
     }
   }
 
-  void _confirmReservation(CourtSlotModel slot) {
+  void _confirmReservation(TimeSlot slot) {
+    final courtName =
+        ref.read(_courtProvider(widget.courtId)).valueOrNull?.name ?? 'Quadra';
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirmar Reserva'),
         content: Text(
-          'Reservar ${widget.court.name} em '
+          'Reservar $courtName em '
           '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')} '
           'das ${slot.timeRange}?',
         ),
@@ -346,8 +353,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
               final success = await ref
                   .read(reservationActionProvider.notifier)
                   .createReservation(
-                    courtSlotId: slot.id,
-                    courtId: widget.court.id,
+                    courtId: widget.courtId,
                     date: _selectedDate,
                     startTime: slot.startTime,
                     endTime: slot.endTime,
@@ -357,7 +363,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                 if (success) {
                   SnackbarUtils.showSuccess(context, 'Reserva confirmada!');
                   ref.invalidate(courtReservationsProvider(
-                    (courtId: widget.court.id, date: _selectedDate),
+                    (courtId: widget.courtId, date: _selectedDate),
                   ));
                   ref.invalidate(myReservationsProvider);
                 } else {
@@ -373,17 +379,16 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
   }
 
   ReservationModel? _findReservation(
-    CourtSlotModel slot,
+    TimeSlot slot,
     List<ReservationModel> reservations,
   ) {
-    final slotTime = _formatTime(slot.startTime);
     for (final r in reservations) {
-      if (_formatTime(r.startTime) == slotTime) return r;
+      if (_normalizeTime(r.startTime) == slot.startTime) return r;
     }
     return null;
   }
 
-  static String _formatTime(String time) {
+  static String _normalizeTime(String time) {
     final parts = time.split(':');
     if (parts.length >= 2) return '${parts[0]}:${parts[1]}';
     return time;

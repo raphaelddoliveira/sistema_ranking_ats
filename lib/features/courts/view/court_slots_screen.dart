@@ -3,20 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/snackbar_utils.dart';
-import '../../../shared/models/court_slot_model.dart';
+import '../../../shared/models/court_model.dart';
+import '../../../shared/utils/slot_generator.dart';
 import '../data/court_repository.dart';
-import '../viewmodel/court_slots_admin_viewmodel.dart';
-import '../viewmodel/reservation_viewmodel.dart';
 
-class _DayConfig {
-  bool enabled = false;
-  TimeOfDay startTime;
-  TimeOfDay endTime;
-
-  _DayConfig()
-      : startTime = const TimeOfDay(hour: 7, minute: 0),
-        endTime = const TimeOfDay(hour: 21, minute: 0);
-}
+/// Provider to load a single court by ID
+final _courtByIdProvider =
+    FutureProvider.autoDispose.family<CourtModel, String>((ref, courtId) async {
+  final repo = ref.watch(courtRepositoryProvider);
+  return repo.getCourtById(courtId);
+});
 
 class CourtSlotsScreen extends ConsumerStatefulWidget {
   final String courtId;
@@ -46,128 +42,65 @@ class _CourtSlotsScreenState extends ConsumerState<CourtSlotsScreen> {
   };
 
   int _slotDurationMinutes = 60;
-  final Map<int, _DayConfig> _dayConfigs = {};
+  TimeOfDay _openingTime = const TimeOfDay(hour: 7, minute: 0);
+  TimeOfDay _closingTime = const TimeOfDay(hour: 22, minute: 0);
+  final Set<int> _enabledDays = {};
   bool _isSaving = false;
   bool _configLoaded = false;
 
-  @override
-  void initState() {
-    super.initState();
-    for (final day in _dayOrder) {
-      _dayConfigs[day] = _DayConfig();
-    }
-  }
-
-  /// Derive config from existing slots (called once when data loads)
-  void _loadConfigFromSlots(List<CourtSlotModel> slots) {
+  void _loadConfigFromCourt(CourtModel court) {
     if (_configLoaded) return;
 
-    if (slots.isNotEmpty) {
-      // Detect duration from first active slot
-      final activeSlots = slots.where((s) => s.isActive).toList();
-      if (activeSlots.isNotEmpty) {
-        final firstSlot = activeSlots.first;
-        final startParts = firstSlot.startTime.split(':');
-        final endParts = firstSlot.endTime.split(':');
-        final startMin = int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
-        final endMin = int.parse(endParts[0]) * 60 + int.parse(endParts[1]);
-        final detected = endMin - startMin;
-        if (detected > 0) _slotDurationMinutes = detected;
-      }
+    _slotDurationMinutes = court.slotDurationMinutes;
 
-      // Group active slots by day
-      final grouped = <int, List<CourtSlotModel>>{};
-      for (final slot in activeSlots) {
-        grouped.putIfAbsent(slot.dayOfWeek, () => []).add(slot);
-      }
+    final openParts = court.openingTime.split(':');
+    _openingTime = TimeOfDay(
+      hour: int.parse(openParts[0]),
+      minute: int.parse(openParts[1]),
+    );
 
-      // Configure each day from existing slots
-      for (final day in _dayOrder) {
-        final daySlots = grouped[day];
-        if (daySlots != null && daySlots.isNotEmpty) {
-          daySlots.sort((a, b) => a.startTime.compareTo(b.startTime));
-          final firstStart = daySlots.first.startTime.split(':');
-          final lastEnd = daySlots.last.endTime.split(':');
-          _dayConfigs[day]!.enabled = true;
-          _dayConfigs[day]!.startTime = TimeOfDay(
-            hour: int.parse(firstStart[0]),
-            minute: int.parse(firstStart[1]),
-          );
-          _dayConfigs[day]!.endTime = TimeOfDay(
-            hour: int.parse(lastEnd[0]),
-            minute: int.parse(lastEnd[1]),
-          );
-        }
-      }
-    } else {
-      // No slots: default Mon-Sat enabled
-      for (final day in _dayOrder) {
-        _dayConfigs[day]!.enabled = day != 0;
-      }
-    }
+    final closeParts = court.closingTime.split(':');
+    _closingTime = TimeOfDay(
+      hour: int.parse(closeParts[0]),
+      minute: int.parse(closeParts[1]),
+    );
+
+    _enabledDays
+      ..clear()
+      ..addAll(court.operatingDays);
 
     _configLoaded = true;
   }
 
-  int _calculateSlotCount(_DayConfig config) {
-    final startMinutes = config.startTime.hour * 60 + config.startTime.minute;
-    final endMinutes = config.endTime.hour * 60 + config.endTime.minute;
+  int _calculateSlotCount() {
+    final startMinutes = _openingTime.hour * 60 + _openingTime.minute;
+    final endMinutes = _closingTime.hour * 60 + _closingTime.minute;
     if (endMinutes <= startMinutes) return 0;
     return (endMinutes - startMinutes) ~/ _slotDurationMinutes;
   }
 
-  int get _totalSlots => _dayOrder
-      .where((d) => _dayConfigs[d]!.enabled)
-      .map((d) => _calculateSlotCount(_dayConfigs[d]!))
-      .fold(0, (a, b) => a + b);
+  int get _totalSlots => _enabledDays.length * _calculateSlotCount();
 
-  List<Map<String, dynamic>> _buildNewSlots() {
-    final slots = <Map<String, dynamic>>[];
-    for (final day in _dayOrder) {
-      final config = _dayConfigs[day]!;
-      if (!config.enabled) continue;
+  String get _openingTimeStr =>
+      '${_openingTime.hour.toString().padLeft(2, '0')}:${_openingTime.minute.toString().padLeft(2, '0')}';
 
-      final startMinutes = config.startTime.hour * 60 + config.startTime.minute;
-      final endMinutes = config.endTime.hour * 60 + config.endTime.minute;
-      if (endMinutes <= startMinutes) continue;
-
-      int minutes = startMinutes;
-      while (minutes + _slotDurationMinutes <= endMinutes) {
-        final sH = minutes ~/ 60;
-        final sM = minutes % 60;
-        final eH = (minutes + _slotDurationMinutes) ~/ 60;
-        final eM = (minutes + _slotDurationMinutes) % 60;
-        slots.add({
-          'court_id': widget.courtId,
-          'day_of_week': day,
-          'start_time': '${sH.toString().padLeft(2, '0')}:${sM.toString().padLeft(2, '0')}',
-          'end_time': '${eH.toString().padLeft(2, '0')}:${eM.toString().padLeft(2, '0')}',
-          'is_active': true,
-        });
-        minutes += _slotDurationMinutes;
-      }
-    }
-    return slots;
-  }
+  String get _closingTimeStr =>
+      '${_closingTime.hour.toString().padLeft(2, '0')}:${_closingTime.minute.toString().padLeft(2, '0')}';
 
   Future<void> _saveConfiguration() async {
     setState(() => _isSaving = true);
-
     try {
-      final slots = _buildNewSlots();
-      await ref.read(courtRepositoryProvider).saveSlotConfiguration(
-        widget.courtId,
-        slots,
-      );
-      ref.invalidate(allCourtSlotsProvider(widget.courtId));
-      // Invalidate schedule providers so they refetch fresh data
-      for (int day = 0; day < 7; day++) {
-        ref.invalidate(courtSlotsProvider(
-          (courtId: widget.courtId, dayOfWeek: day),
-        ));
-      }
+      await ref.read(courtRepositoryProvider).updateCourtSchedule(
+            widget.courtId,
+            slotDurationMinutes: _slotDurationMinutes,
+            openingTime: _openingTimeStr,
+            closingTime: _closingTimeStr,
+            operatingDays: _enabledDays.toList()..sort(),
+          );
+      ref.invalidate(_courtByIdProvider(widget.courtId));
       if (mounted) {
-        SnackbarUtils.showSuccess(context, 'Configuração salva! $_totalSlots horários.');
+        SnackbarUtils.showSuccess(
+            context, 'Configuração salva! $_totalSlots horários por semana.');
       }
     } catch (e) {
       if (mounted) {
@@ -180,13 +113,12 @@ class _CourtSlotsScreenState extends ConsumerState<CourtSlotsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final slotsAsync = ref.watch(allCourtSlotsProvider(widget.courtId));
+    final courtAsync = ref.watch(_courtByIdProvider(widget.courtId));
 
-    // Load config from existing slots once
-    slotsAsync.whenData((slots) {
+    courtAsync.whenData((court) {
       if (!_configLoaded) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) setState(() => _loadConfigFromSlots(slots));
+          if (mounted) setState(() => _loadConfigFromCourt(court));
         });
       }
     });
@@ -196,14 +128,18 @@ class _CourtSlotsScreenState extends ConsumerState<CourtSlotsScreen> {
         title: Text('${widget.courtName} - Horários'),
       ),
       bottomNavigationBar: _buildSaveBar(),
-      body: slotsAsync.when(
+      body: courtAsync.when(
         data: (_) => _configLoaded
             ? ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
                   _buildDurationSelector(),
                   const SizedBox(height: 12),
-                  ..._dayOrder.map(_buildDayRow),
+                  _buildTimeRangeCard(),
+                  const SizedBox(height: 12),
+                  _buildDaysCard(),
+                  const SizedBox(height: 12),
+                  _buildPreviewCard(),
                 ],
               )
             : const Center(child: CircularProgressIndicator()),
@@ -234,10 +170,11 @@ class _CourtSlotsScreenState extends ConsumerState<CourtSlotsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.access_time, size: 16, color: AppColors.onBackgroundMedium),
+                Icon(Icons.access_time,
+                    size: 16, color: AppColors.onBackgroundMedium),
                 const SizedBox(width: 6),
                 Text(
-                  '$total horários no total',
+                  '$total horários por semana',
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.onBackgroundMedium,
@@ -256,10 +193,12 @@ class _CourtSlotsScreenState extends ConsumerState<CourtSlotsScreen> {
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
                       )
                     : const Icon(Icons.save),
-                label: Text(_isSaving ? 'Salvando...' : 'Salvar Configuração'),
+                label:
+                    Text(_isSaving ? 'Salvando...' : 'Salvar Configuração'),
               ),
             ),
           ],
@@ -278,8 +217,8 @@ class _CourtSlotsScreenState extends ConsumerState<CourtSlotsScreen> {
             Text(
               'Duração do horário',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
             const SizedBox(height: 12),
             InputDecorator(
@@ -312,72 +251,41 @@ class _CourtSlotsScreenState extends ConsumerState<CourtSlotsScreen> {
     );
   }
 
-  Widget _buildDayRow(int day) {
-    final config = _dayConfigs[day]!;
-    final slotCount = config.enabled ? _calculateSlotCount(config) : 0;
-
+  Widget _buildTimeRangeCard() {
     return Card(
-      margin: const EdgeInsets.only(bottom: 6),
-      color: config.enabled ? null : Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(
+              'Horário de funcionamento',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: 12),
             Row(
               children: [
-                Switch(
-                  value: config.enabled,
-                  onChanged: (v) => setState(() => config.enabled = v),
-                ),
-                const SizedBox(width: 4),
                 Expanded(
-                  child: Text(
-                    _dayLabels[day]!,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: config.enabled ? null : AppColors.onBackgroundLight,
-                    ),
+                  child: _buildTimePicker(
+                    time: _openingTime,
+                    onChanged: (t) => setState(() => _openingTime = t),
                   ),
                 ),
-                if (config.enabled && slotCount > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withAlpha(20),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '$slotCount horários',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('até',
+                      style: TextStyle(color: AppColors.onBackgroundLight)),
+                ),
+                Expanded(
+                  child: _buildTimePicker(
+                    time: _closingTime,
+                    onChanged: (t) => setState(() => _closingTime = t),
                   ),
+                ),
               ],
             ),
-            if (config.enabled) ...[
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const SizedBox(width: 48),
-                  _buildTimePicker(
-                    time: config.startTime,
-                    onChanged: (t) => setState(() => config.startTime = t),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('até', style: TextStyle(color: AppColors.onBackgroundLight)),
-                  ),
-                  _buildTimePicker(
-                    time: config.endTime,
-                    onChanged: (t) => setState(() => config.endTime = t),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-            ],
           ],
         ),
       ),
@@ -398,14 +306,112 @@ class _CourtSlotsScreenState extends ConsumerState<CourtSlotsScreen> {
       },
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.onBackgroundLight.withAlpha(80)),
+          border:
+              Border.all(color: AppColors.onBackgroundLight.withAlpha(80)),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(
-          _formatTimeOfDay(time),
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        child: Row(
+          children: [
+            Icon(Icons.access_time, size: 18, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Text(
+              _formatTimeOfDay(time),
+              style:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDaysCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Dias de funcionamento',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _dayOrder.map((day) {
+                final enabled = _enabledDays.contains(day);
+                return FilterChip(
+                  label: Text(_dayLabels[day]!),
+                  selected: enabled,
+                  onSelected: (v) {
+                    setState(() {
+                      if (v) {
+                        _enabledDays.add(day);
+                      } else {
+                        _enabledDays.remove(day);
+                      }
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPreviewCard() {
+    final slotsPerDay = _calculateSlotCount();
+    if (_enabledDays.isEmpty || slotsPerDay <= 0) {
+      return const SizedBox.shrink();
+    }
+
+    // Build a CourtModel to use generateSlots for preview
+    final previewCourt = CourtModel(
+      id: '',
+      name: '',
+      sportId: '',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      slotDurationMinutes: _slotDurationMinutes,
+      openingTime: _openingTimeStr,
+      closingTime: _closingTimeStr,
+      operatingDays: _enabledDays.toList(),
+    );
+    final previewSlots = generateSlots(previewCourt, _enabledDays.first);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Preview ($slotsPerDay por dia)',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: previewSlots
+                  .map((s) => Chip(
+                        label: Text(s.timeRange,
+                            style: const TextStyle(fontSize: 12)),
+                        visualDensity: VisualDensity.compact,
+                      ))
+                  .toList(),
+            ),
+          ],
         ),
       ),
     );

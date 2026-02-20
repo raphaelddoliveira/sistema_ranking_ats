@@ -137,6 +137,9 @@ enum NotificationType {
   paymentOverdue('payment_overdue'),
   woWarning('wo_warning'),
   monthlyChallengeWarning('monthly_challenge_warning'),
+  courtSelected('court_selected'),
+  challengeAccepted('challenge_accepted'),
+  challengeDeclined('challenge_declined'),
   general('general');
 
   final String dbValue;

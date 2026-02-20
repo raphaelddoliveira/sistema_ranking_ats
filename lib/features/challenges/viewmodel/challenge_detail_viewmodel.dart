@@ -28,19 +28,23 @@ class ChallengeActionNotifier extends StateNotifier<AsyncValue<void>> {
   ChallengeActionNotifier(this._repository)
       : super(const AsyncData(null));
 
-  Future<bool> proposeDates(
+  Future<bool> selectCourtAndDate(
     String challengeId, {
-    required DateTime date1,
-    required DateTime date2,
-    required DateTime date3,
+    required String courtId,
+    required DateTime date,
+    required String startTime,
+    required String endTime,
+    required String clubId,
   }) async {
     state = const AsyncLoading();
     try {
-      await _repository.proposeDates(
+      await _repository.selectCourtAndDate(
         challengeId,
-        date1: date1,
-        date2: date2,
-        date3: date3,
+        courtId: courtId,
+        date: date,
+        startTime: startTime,
+        endTime: endTime,
+        clubId: clubId,
       );
       state = const AsyncData(null);
       return true;
@@ -50,10 +54,22 @@ class ChallengeActionNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  Future<bool> chooseDate(String challengeId, DateTime chosenDate) async {
+  Future<bool> acceptChallenge(String challengeId) async {
     state = const AsyncLoading();
     try {
-      await _repository.chooseDate(challengeId, chosenDate);
+      await _repository.acceptChallenge(challengeId);
+      state = const AsyncData(null);
+      return true;
+    } on AppException catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
+  Future<bool> declineChallenge(String challengeId) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.declineChallenge(challengeId);
       state = const AsyncData(null);
       return true;
     } on AppException catch (e, st) {

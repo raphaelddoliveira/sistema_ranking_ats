@@ -33,6 +33,9 @@ class NotificationModel {
         NotificationType.paymentOverdue => (icon: 'warning', color: 0xFFE53935),
         NotificationType.woWarning => (icon: 'timer_off', color: 0xFFE53935),
         NotificationType.monthlyChallengeWarning => (icon: 'notifications_active', color: 0xFFFF9800),
+        NotificationType.courtSelected => (icon: 'event_note', color: 0xFF2196F3),
+        NotificationType.challengeAccepted => (icon: 'check_circle', color: 0xFF4CAF50),
+        NotificationType.challengeDeclined => (icon: 'cancel', color: 0xFFE53935),
         NotificationType.general => (icon: 'info', color: 0xFF2196F3),
       };
 

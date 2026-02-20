@@ -5,7 +5,6 @@ import '../../../core/constants/supabase_constants.dart';
 import '../../../core/errors/error_handler.dart';
 import '../../../services/supabase_service.dart';
 import '../../../shared/models/court_model.dart';
-import '../../../shared/models/court_slot_model.dart';
 import '../../../shared/models/reservation_model.dart';
 
 final courtRepositoryProvider = Provider<CourtRepository>((ref) {
@@ -52,7 +51,21 @@ class CourtRepository {
     }
   }
 
-  /// Create a new court linked to a sport
+  /// Get a single court by ID
+  Future<CourtModel> getCourtById(String courtId) async {
+    try {
+      final data = await _client
+          .from(SupabaseConstants.courtsTable)
+          .select()
+          .eq('id', courtId)
+          .single();
+      return CourtModel.fromJson(data);
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Create a new court linked to a sport (with schedule config defaults)
   Future<void> createCourt({
     required String clubId,
     required String sportId,
@@ -98,6 +111,26 @@ class CourtRepository {
     }
   }
 
+  /// Update court schedule configuration
+  Future<void> updateCourtSchedule(
+    String courtId, {
+    required int slotDurationMinutes,
+    required String openingTime,
+    required String closingTime,
+    required List<int> operatingDays,
+  }) async {
+    try {
+      await _client.from(SupabaseConstants.courtsTable).update({
+        'slot_duration_minutes': slotDurationMinutes,
+        'opening_time': openingTime,
+        'closing_time': closingTime,
+        'operating_days': operatingDays,
+      }).eq('id', courtId);
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
   /// Deactivate a court (soft delete)
   Future<void> deactivateCourt(String courtId) async {
     try {
@@ -122,176 +155,7 @@ class CourtRepository {
     }
   }
 
-  /// Get slots for a specific court and day of week (active only — for players)
-  Future<List<CourtSlotModel>> getSlotsForCourt(
-    String courtId, {
-    required int dayOfWeek,
-  }) async {
-    try {
-      final data = await _client
-          .from(SupabaseConstants.courtSlotsTable)
-          .select()
-          .eq('court_id', courtId)
-          .eq('day_of_week', dayOfWeek)
-          .eq('is_active', true)
-          .order('start_time');
-      return data.map((e) => CourtSlotModel.fromJson(e)).toList();
-    } catch (e) {
-      throw ErrorHandler.handle(e);
-    }
-  }
-
-  // ─── Slot Admin CRUD ───
-
-  /// Get ALL slots for a court (including inactive — for admin)
-  Future<List<CourtSlotModel>> getAllSlotsForCourt(String courtId) async {
-    try {
-      final data = await _client
-          .from(SupabaseConstants.courtSlotsTable)
-          .select()
-          .eq('court_id', courtId)
-          .order('day_of_week')
-          .order('start_time');
-      return data.map((e) => CourtSlotModel.fromJson(e)).toList();
-    } catch (e) {
-      throw ErrorHandler.handle(e);
-    }
-  }
-
-  /// Create a single slot
-  Future<void> createSlot({
-    required String courtId,
-    required int dayOfWeek,
-    required String startTime,
-    required String endTime,
-  }) async {
-    try {
-      await _client.from(SupabaseConstants.courtSlotsTable).insert({
-        'court_id': courtId,
-        'day_of_week': dayOfWeek,
-        'start_time': startTime,
-        'end_time': endTime,
-      });
-    } catch (e) {
-      throw ErrorHandler.handle(e);
-    }
-  }
-
-  /// Bulk-create slots (upsert to avoid duplicate errors)
-  Future<void> bulkCreateSlots(List<Map<String, dynamic>> slots) async {
-    try {
-      await _client
-          .from(SupabaseConstants.courtSlotsTable)
-          .upsert(slots, onConflict: 'court_id,day_of_week,start_time');
-    } catch (e) {
-      throw ErrorHandler.handle(e);
-    }
-  }
-
-  /// Normalize TIME values to HH:MM (strip seconds if present).
-  static String _normalizeTime(String time) {
-    final parts = time.split(':');
-    return '${parts[0]}:${parts[1]}';
-  }
-
-  /// Save slot configuration: upsert new slots and remove old ones that don't match.
-  /// Returns the number of removed slots (excluding those with reservations).
-  Future<int> saveSlotConfiguration(String courtId, List<Map<String, dynamic>> newSlots) async {
-    try {
-      // 1. Upsert new slots
-      if (newSlots.isNotEmpty) {
-        await _client
-            .from(SupabaseConstants.courtSlotsTable)
-            .upsert(newSlots, onConflict: 'court_id,day_of_week,start_time');
-      }
-
-      // 2. Build set of (day_of_week, start_time) keys for new config
-      // Normalize times to HH:MM to match DB format
-      final newKeys = <String>{};
-      for (final s in newSlots) {
-        final t = _normalizeTime(s['start_time'] as String);
-        newKeys.add('${s['day_of_week']}_$t');
-      }
-
-      // 3. Get all existing slots for court
-      final existing = await _client
-          .from(SupabaseConstants.courtSlotsTable)
-          .select('id, day_of_week, start_time')
-          .eq('court_id', courtId);
-
-      // 4. Find slots to remove (not in new config)
-      // DB returns TIME as "HH:MM:SS", normalize to "HH:MM" for comparison
-      final toRemoveIds = <String>[];
-      for (final slot in existing) {
-        final t = _normalizeTime(slot['start_time'] as String);
-        final key = '${slot['day_of_week']}_$t';
-        if (!newKeys.contains(key)) {
-          toRemoveIds.add(slot['id'] as String);
-        }
-      }
-
-      // 5. For each slot to remove, check if it has reservations
-      int removed = 0;
-      for (final id in toRemoveIds) {
-        final hasRes = await slotHasReservations(id);
-        if (!hasRes) {
-          await _client
-              .from(SupabaseConstants.courtSlotsTable)
-              .delete()
-              .eq('id', id);
-          removed++;
-        } else {
-          // Deactivate instead of deleting
-          await _client
-              .from(SupabaseConstants.courtSlotsTable)
-              .update({'is_active': false})
-              .eq('id', id);
-        }
-      }
-
-      return removed;
-    } catch (e) {
-      throw ErrorHandler.handle(e);
-    }
-  }
-
-  /// Toggle slot active status
-  Future<void> toggleSlotActive(String slotId, bool isActive) async {
-    try {
-      await _client
-          .from(SupabaseConstants.courtSlotsTable)
-          .update({'is_active': isActive})
-          .eq('id', slotId);
-    } catch (e) {
-      throw ErrorHandler.handle(e);
-    }
-  }
-
-  /// Delete a slot permanently
-  Future<void> deleteSlot(String slotId) async {
-    try {
-      await _client
-          .from(SupabaseConstants.courtSlotsTable)
-          .delete()
-          .eq('id', slotId);
-    } catch (e) {
-      throw ErrorHandler.handle(e);
-    }
-  }
-
-  /// Check if a slot has any reservations
-  Future<bool> slotHasReservations(String slotId) async {
-    try {
-      final data = await _client
-          .from(SupabaseConstants.courtReservationsTable)
-          .select('id')
-          .eq('court_slot_id', slotId)
-          .limit(1);
-      return data.isNotEmpty;
-    } catch (e) {
-      throw ErrorHandler.handle(e);
-    }
-  }
+  // ─── Reservations ───
 
   /// Get reservations for a court on a specific date
   Future<List<ReservationModel>> getReservationsForDate(
@@ -320,7 +184,6 @@ class CourtRepository {
 
   /// Create a reservation
   Future<void> createReservation({
-    required String courtSlotId,
     required String courtId,
     required DateTime date,
     required String startTime,
@@ -335,7 +198,6 @@ class CourtRepository {
           '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
       await _client.from(SupabaseConstants.courtReservationsTable).insert({
-        'court_slot_id': courtSlotId,
         'court_id': courtId,
         'reserved_by': playerId,
         'reservation_date': dateStr,
@@ -404,6 +266,27 @@ class CourtRepository {
           .order('start_time', ascending: false)
           .limit(50);
       return data.map((e) => ReservationModel.fromJson(e)).toList();
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Get the reservation linked to a challenge
+  Future<ReservationModel?> getReservationForChallenge(
+      String challengeId) async {
+    try {
+      final data = await _client
+          .from(SupabaseConstants.courtReservationsTable)
+          .select('''
+            *,
+            court:courts!court_id(name),
+            player:players!reserved_by(full_name)
+          ''')
+          .eq('challenge_id', challengeId)
+          .eq('status', 'confirmed')
+          .maybeSingle();
+      if (data == null) return null;
+      return ReservationModel.fromJson(data);
     } catch (e) {
       throw ErrorHandler.handle(e);
     }

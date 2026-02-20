@@ -6,7 +6,6 @@ abstract final class SupabaseConstants {
   static const String matchesTable = 'matches';
   static const String ambulancesTable = 'ambulances';
   static const String courtsTable = 'courts';
-  static const String courtSlotsTable = 'court_slots';
   static const String courtReservationsTable = 'court_reservations';
   static const String notificationsTable = 'notifications';
   static const String monthlyFeesTable = 'monthly_fees';

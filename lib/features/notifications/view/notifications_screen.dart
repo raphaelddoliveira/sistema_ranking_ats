@@ -157,6 +157,9 @@ class _NotificationTile extends ConsumerWidget {
       case NotificationType.dateChosen:
       case NotificationType.matchResult:
       case NotificationType.woWarning:
+      case NotificationType.courtSelected:
+      case NotificationType.challengeAccepted:
+      case NotificationType.challengeDeclined:
         if (challengeId != null) {
           context.push('/challenges/$challengeId');
         }
@@ -189,6 +192,9 @@ class _NotificationTile extends ConsumerWidget {
       'warning' => Icons.warning,
       'timer_off' => Icons.timer_off,
       'notifications_active' => Icons.notifications_active,
+      'event_note' => Icons.event_note,
+      'check_circle' => Icons.check_circle,
+      'cancel' => Icons.cancel,
       _ => Icons.info,
     };
   }

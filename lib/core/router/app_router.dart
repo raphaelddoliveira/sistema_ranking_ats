@@ -16,8 +16,7 @@ import '../../features/ranking/view/ranking_history_screen.dart';
 import '../../features/challenges/view/challenges_screen.dart';
 import '../../features/challenges/view/create_challenge_screen.dart';
 import '../../features/challenges/view/challenge_detail_screen.dart';
-import '../../features/challenges/view/propose_dates_screen.dart';
-import '../../features/challenges/view/choose_date_screen.dart';
+import '../../features/challenges/view/challenge_court_selection_screen.dart';
 import '../../features/challenges/view/record_result_screen.dart';
 import '../../features/courts/view/courts_screen.dart';
 import '../../features/courts/view/court_schedule_screen.dart';
@@ -28,7 +27,6 @@ import '../../features/profile/view/edit_profile_screen.dart';
 import '../../features/profile/view/profile_screen.dart';
 import '../../features/admin/view/admin_dashboard_screen.dart';
 import '../../shared/widgets/app_scaffold.dart';
-import '../../shared/models/court_model.dart';
 import '../../services/supabase_service.dart';
 import '../constants/route_names.dart';
 
@@ -103,23 +101,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ),
                 routes: [
                   GoRoute(
-                    path: 'propose-dates',
-                    builder: (context, state) => ProposeDatesScreen(
+                    path: 'select-court',
+                    builder: (context, state) => ChallengeCourtSelectionScreen(
                       challengeId: state.pathParameters['challengeId']!,
                     ),
-                  ),
-                  GoRoute(
-                    path: 'choose-date',
-                    builder: (context, state) {
-                      final extra =
-                          state.extra as Map<String, dynamic>? ?? {};
-                      final proposedDates =
-                          extra['proposedDates'] as List<DateTime>? ?? [];
-                      return ChooseDateScreen(
-                        challengeId: state.pathParameters['challengeId']!,
-                        proposedDates: proposedDates,
-                      );
-                    },
                   ),
                   GoRoute(
                     path: 'record-result',
@@ -156,8 +141,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: ':courtId/schedule',
                 builder: (context, state) {
-                  final court = state.extra as CourtModel;
-                  return CourtScheduleScreen(court: court);
+                  return CourtScheduleScreen(
+                    courtId: state.pathParameters['courtId']!,
+                  );
                 },
               ),
             ],

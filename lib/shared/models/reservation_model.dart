@@ -2,7 +2,7 @@ import 'enums.dart';
 
 class ReservationModel {
   final String id;
-  final String courtSlotId;
+  final String? courtSlotId;
   final String courtId;
   final String reservedBy;
   final DateTime reservationDate;
@@ -20,7 +20,7 @@ class ReservationModel {
 
   const ReservationModel({
     required this.id,
-    required this.courtSlotId,
+    this.courtSlotId,
     required this.courtId,
     required this.reservedBy,
     required this.reservationDate,
@@ -62,7 +62,7 @@ class ReservationModel {
 
     return ReservationModel(
       id: json['id'] as String,
-      courtSlotId: json['court_slot_id'] as String,
+      courtSlotId: json['court_slot_id'] as String?,
       courtId: json['court_id'] as String,
       reservedBy: json['reserved_by'] as String,
       reservationDate: DateTime.parse(json['reservation_date'] as String),
@@ -80,7 +80,7 @@ class ReservationModel {
 
   Map<String, dynamic> toJson() {
     return {
-      'court_slot_id': courtSlotId,
+      if (courtSlotId != null) 'court_slot_id': courtSlotId,
       'court_id': courtId,
       'reserved_by': reservedBy,
       'reservation_date': '${reservationDate.year}-${reservationDate.month.toString().padLeft(2, '0')}-${reservationDate.day.toString().padLeft(2, '0')}',

@@ -90,7 +90,7 @@ class _CourtCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
-          context.push('/courts/${court.id}/schedule', extra: court);
+          context.push('/courts/${court.id}/schedule');
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -20,7 +20,8 @@ class ChallengeRepository {
   static const _selectWithJoins = '''
     *,
     challenger:players!challenger_id(full_name, avatar_url),
-    challenged:players!challenged_id(full_name, avatar_url)
+    challenged:players!challenged_id(full_name, avatar_url),
+    court:courts!court_id(name)
   ''';
 
   /// Create a challenge via RPC
@@ -59,11 +60,10 @@ class ChallengeRepository {
       final data = await query.order('created_at', ascending: false);
       final challenges = data.map((e) => ChallengeModel.fromJson(e)).toList();
 
-      // Auto-expire challenges where all proposed dates are in the past
+      // Auto-expire challenges where court date has passed (or legacy: all proposed dates passed)
       final active = <ChallengeModel>[];
       for (final c in challenges) {
-        if (c.allProposedDatesExpired) {
-          // Fire-and-forget: expire in DB
+        if (c.isCourtDateExpired || c.allProposedDatesExpired) {
           _expireDatesProposedChallenge(c.id, c.challengerId, c.challengedId, clubId);
         } else {
           active.add(c);
@@ -151,58 +151,89 @@ class ChallengeRepository {
     }
   }
 
-  /// Challenged player proposes 3 dates
-  Future<void> proposeDates(
+  /// Challenger selects a court + date/time and auto-creates a reservation.
+  /// Status: pending -> dates_proposed (court selected, awaiting acceptance)
+  Future<void> selectCourtAndDate(
     String challengeId, {
-    required DateTime date1,
-    required DateTime date2,
-    required DateTime date3,
+    required String courtId,
+    required DateTime date,
+    required String startTime,
+    required String endTime,
+    required String clubId,
   }) async {
     try {
-      final challenge = await _client
-          .from(SupabaseConstants.challengesTable)
-          .select('challenger_id, club_id')
-          .eq('id', challengeId)
-          .single();
+      final playerId = await _getCurrentPlayerId();
 
+      // 1. Create the court reservation linked to this challenge
+      final dateStr =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      await _client.from(SupabaseConstants.courtReservationsTable).insert({
+        'court_id': courtId,
+        'reserved_by': playerId,
+        'reservation_date': dateStr,
+        'start_time': startTime,
+        'end_time': endTime,
+        'club_id': clubId,
+        'challenge_id': challengeId,
+      });
+
+      // 2. Build chosen_date with time info
+      final chosenDateTime = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        int.parse(startTime.split(':')[0]),
+        int.parse(startTime.split(':')[1]),
+      );
+
+      // 3. Update challenge status
       await _client
           .from(SupabaseConstants.challengesTable)
           .update({
             'status': 'dates_proposed',
-            'proposed_date_1': date1.toIso8601String(),
-            'proposed_date_2': date2.toIso8601String(),
-            'proposed_date_3': date3.toIso8601String(),
+            'court_id': courtId,
+            'chosen_date': chosenDateTime.toIso8601String(),
             'dates_proposed_at': DateTime.now().toIso8601String(),
           })
           .eq('id', challengeId);
 
+      // 4. Notify challenged player
+      final challenge = await _client
+          .from(SupabaseConstants.challengesTable)
+          .select('challenged_id')
+          .eq('id', challengeId)
+          .single();
+
       await _client.from(SupabaseConstants.notificationsTable).insert({
-        'player_id': challenge['challenger_id'],
-        'type': 'dates_proposed',
-        'title': 'Datas Propostas',
-        'body': 'Seu oponente propos 3 datas para o desafio. Escolha uma!',
+        'player_id': challenge['challenged_id'],
+        'type': 'court_selected',
+        'title': 'Quadra Reservada para Desafio',
+        'body': 'Seu oponente reservou uma quadra. Aceite ou recuse o horário!',
         'data': {'challenge_id': challengeId},
-        'club_id': challenge['club_id'],
+        'club_id': clubId,
       });
     } catch (e) {
       throw ErrorHandler.handle(e);
     }
   }
 
-  /// Challenger chooses one of the 3 proposed dates
-  Future<void> chooseDate(String challengeId, DateTime chosenDate) async {
+  /// Challenged player accepts the court/date selection.
+  /// Status: dates_proposed -> scheduled
+  Future<void> acceptChallenge(String challengeId) async {
     try {
       final challenge = await _client
           .from(SupabaseConstants.challengesTable)
-          .select('challenged_id, club_id')
+          .select('challenger_id, chosen_date, club_id')
           .eq('id', challengeId)
           .single();
+
+      final chosenDate =
+          DateTime.parse(challenge['chosen_date'] as String);
 
       await _client
           .from(SupabaseConstants.challengesTable)
           .update({
             'status': 'scheduled',
-            'chosen_date': chosenDate.toIso8601String(),
             'date_chosen_at': DateTime.now().toIso8601String(),
             'play_deadline': chosenDate
                 .add(const Duration(days: 7))
@@ -211,10 +242,63 @@ class ChallengeRepository {
           .eq('id', challengeId);
 
       await _client.from(SupabaseConstants.notificationsTable).insert({
-        'player_id': challenge['challenged_id'],
-        'type': 'date_chosen',
-        'title': 'Data Confirmada',
-        'body': 'A data do seu desafio foi confirmada. Confira os detalhes!',
+        'player_id': challenge['challenger_id'],
+        'type': 'challenge_accepted',
+        'title': 'Desafio Aceito!',
+        'body': 'Seu oponente aceitou o desafio. Jogo confirmado!',
+        'data': {'challenge_id': challengeId},
+        'club_id': challenge['club_id'],
+      });
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Challenged player declines the court/date selection.
+  /// Status: dates_proposed -> pending (challenger picks again)
+  Future<void> declineChallenge(String challengeId) async {
+    try {
+      final challenge = await _client
+          .from(SupabaseConstants.challengesTable)
+          .select('challenger_id, club_id')
+          .eq('id', challengeId)
+          .single();
+
+      // 1. Cancel linked reservation(s)
+      final reservations = await _client
+          .from(SupabaseConstants.courtReservationsTable)
+          .select('id')
+          .eq('challenge_id', challengeId)
+          .eq('status', 'confirmed');
+
+      for (final r in reservations) {
+        await _client
+            .from(SupabaseConstants.courtReservationsTable)
+            .update({
+              'status': 'cancelled',
+              'updated_at': DateTime.now().toIso8601String(),
+            })
+            .eq('id', r['id']);
+      }
+
+      // 2. Reset challenge to pending
+      await _client
+          .from(SupabaseConstants.challengesTable)
+          .update({
+            'status': 'pending',
+            'court_id': null,
+            'chosen_date': null,
+            'dates_proposed_at': null,
+          })
+          .eq('id', challengeId);
+
+      // 3. Notify challenger
+      await _client.from(SupabaseConstants.notificationsTable).insert({
+        'player_id': challenge['challenger_id'],
+        'type': 'challenge_declined',
+        'title': 'Horário Recusado',
+        'body':
+            'Seu oponente recusou o horário proposto. Escolha outro!',
         'data': {'challenge_id': challengeId},
         'club_id': challenge['club_id'],
       });
