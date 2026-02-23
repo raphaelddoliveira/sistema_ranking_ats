@@ -70,33 +70,33 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
     if (picked == null) return;
 
-    // Crop image (all platforms)
+    // Crop image (mobile only — web cropper has layout issues)
     XFile fileToUpload = picked;
-    try {
-      final cropped = await ImageCropper().cropImage(
-        sourcePath: picked.path,
-        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: 'Recortar foto',
-            toolbarColor: AppColors.primary,
-            toolbarWidgetColor: Colors.white,
-            lockAspectRatio: true,
-            cropStyle: CropStyle.circle,
-          ),
-          IOSUiSettings(
-            title: 'Recortar foto',
-            aspectRatioLockEnabled: true,
-            cropStyle: CropStyle.circle,
-          ),
-          if (kIsWeb)
-            WebUiSettings(context: context),
-        ],
-      );
-      if (cropped == null) return; // user cancelled crop
-      fileToUpload = XFile(cropped.path);
-    } catch (_) {
-      // Crop unavailable — use original
+    if (!kIsWeb) {
+      try {
+        final cropped = await ImageCropper().cropImage(
+          sourcePath: picked.path,
+          aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+          uiSettings: [
+            AndroidUiSettings(
+              toolbarTitle: 'Recortar foto',
+              toolbarColor: AppColors.primary,
+              toolbarWidgetColor: Colors.white,
+              lockAspectRatio: true,
+              cropStyle: CropStyle.circle,
+            ),
+            IOSUiSettings(
+              title: 'Recortar foto',
+              aspectRatioLockEnabled: true,
+              cropStyle: CropStyle.circle,
+            ),
+          ],
+        );
+        if (cropped == null) return;
+        fileToUpload = XFile(cropped.path);
+      } catch (_) {
+        // Crop unavailable — use original
+      }
     }
 
     final player = ref.read(currentPlayerProvider).valueOrNull;

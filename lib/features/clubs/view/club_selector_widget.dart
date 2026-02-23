@@ -218,17 +218,21 @@ void openClubSelector(BuildContext context, WidgetRef ref) {
             const SizedBox(height: 12),
             ...clubs.map((club) {
               final isSelected = club.id == currentClub.id;
+              final hasLogo = club.avatarUrl != null && club.avatarUrl!.isNotEmpty;
               return ListTile(
                 leading: CircleAvatar(
                   radius: 18,
                   backgroundColor: isSelected
                       ? AppColors.primary.withAlpha(25)
                       : AppColors.surfaceVariant,
-                  child: Icon(
-                    Icons.groups_rounded,
-                    size: 18,
-                    color: isSelected ? AppColors.primary : AppColors.onBackgroundLight,
-                  ),
+                  backgroundImage: hasLogo ? NetworkImage(club.avatarUrl!) : null,
+                  child: !hasLogo
+                      ? Icon(
+                          Icons.groups_rounded,
+                          size: 18,
+                          color: isSelected ? AppColors.primary : AppColors.onBackgroundLight,
+                        )
+                      : null,
                 ),
                 title: Text(
                   club.name,

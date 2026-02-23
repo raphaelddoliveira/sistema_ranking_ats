@@ -175,7 +175,12 @@ class ProfileScreen extends ConsumerWidget {
                         child: ListTile(
                           leading: CircleAvatar(
                             backgroundColor: AppColors.primary.withAlpha(25),
-                            child: const Icon(Icons.groups, color: AppColors.primary, size: 20),
+                            backgroundImage: club.avatarUrl != null
+                                ? NetworkImage(club.avatarUrl!)
+                                : null,
+                            child: club.avatarUrl == null
+                                ? const Icon(Icons.groups, color: AppColors.primary, size: 20)
+                                : null,
                           ),
                           title: Text(club.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                           subtitle: club.description != null

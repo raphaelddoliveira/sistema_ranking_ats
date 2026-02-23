@@ -256,12 +256,42 @@ class ClubRepository {
   }
 
   /// Update club details
-  Future<void> updateClub(String clubId, {String? name, String? description}) async {
+  Future<void> updateClub(
+    String clubId, {
+    String? name,
+    String? description,
+    String? phone,
+    String? email,
+    String? website,
+    String? coverUrl,
+    String? avatarUrl,
+    String? addressStreet,
+    String? addressNumber,
+    String? addressComplement,
+    String? addressNeighborhood,
+    String? addressCity,
+    String? addressState,
+    String? addressZip,
+  }) async {
     try {
       final updates = <String, dynamic>{};
       if (name != null) updates['name'] = name;
       if (description != null) updates['description'] = description;
-      await _client.from('clubs').update(updates).eq('id', clubId);
+      if (phone != null) updates['phone'] = phone;
+      if (email != null) updates['email'] = email;
+      if (website != null) updates['website'] = website;
+      if (coverUrl != null) updates['cover_url'] = coverUrl;
+      if (avatarUrl != null) updates['avatar_url'] = avatarUrl;
+      if (addressStreet != null) updates['address_street'] = addressStreet;
+      if (addressNumber != null) updates['address_number'] = addressNumber;
+      if (addressComplement != null) updates['address_complement'] = addressComplement;
+      if (addressNeighborhood != null) updates['address_neighborhood'] = addressNeighborhood;
+      if (addressCity != null) updates['address_city'] = addressCity;
+      if (addressState != null) updates['address_state'] = addressState;
+      if (addressZip != null) updates['address_zip'] = addressZip;
+      if (updates.isNotEmpty) {
+        await _client.from('clubs').update(updates).eq('id', clubId);
+      }
     } catch (e) {
       throw ErrorHandler.handle(e);
     }

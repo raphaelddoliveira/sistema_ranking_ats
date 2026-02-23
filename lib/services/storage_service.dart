@@ -46,6 +46,50 @@ class StorageService {
     }
   }
 
+  Future<String> uploadClubLogo(String clubId, XFile file) async {
+    try {
+      final bytes = await file.readAsBytes();
+      final ext = _safeExtension(file);
+      final path = '$clubId/logo.$ext';
+
+      await _storage
+          .from(SupabaseConstants.clubsBucket)
+          .uploadBinary(path, bytes,
+              fileOptions: FileOptions(
+                upsert: true,
+                contentType: 'image/$ext',
+              ));
+
+      return _storage
+          .from(SupabaseConstants.clubsBucket)
+          .getPublicUrl(path);
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  Future<String> uploadClubCover(String clubId, XFile file) async {
+    try {
+      final bytes = await file.readAsBytes();
+      final ext = _safeExtension(file);
+      final path = '$clubId/cover.$ext';
+
+      await _storage
+          .from(SupabaseConstants.clubsBucket)
+          .uploadBinary(path, bytes,
+              fileOptions: FileOptions(
+                upsert: true,
+                contentType: 'image/$ext',
+              ));
+
+      return _storage
+          .from(SupabaseConstants.clubsBucket)
+          .getPublicUrl(path);
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
   Future<String> uploadReceipt(String playerId, String feeId, XFile file) async {
     try {
       final bytes = await file.readAsBytes();

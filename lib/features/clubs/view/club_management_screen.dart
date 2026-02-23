@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/snackbar_utils.dart';
 import '../../../shared/models/club_member_model.dart';
+import '../../../shared/models/club_model.dart';
 import '../../../shared/models/court_model.dart';
 import '../../../shared/models/sport_model.dart';
 import '../../../shared/providers/current_player_provider.dart';
@@ -46,74 +48,7 @@ class ClubManagementScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             children: [
               // Club info card
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.groups_rounded, size: 40, color: Colors.white),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        club.name,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      if (club.description != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          club.description!,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.onBackgroundLight,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      // Invite code
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.vpn_key_outlined, size: 18, color: AppColors.primary),
-                            const SizedBox(width: 8),
-                            Text(
-                              club.inviteCode,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 3,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              icon: const Icon(Icons.copy, size: 18),
-                              onPressed: () {
-                                Clipboard.setData(ClipboardData(text: club.inviteCode));
-                                SnackbarUtils.showSuccess(context, 'Código copiado!');
-                              },
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              _ClubInfoCard(club: club, isAdmin: isAdmin),
               const SizedBox(height: 16),
 
               // Sports section (admin only)
@@ -243,6 +178,235 @@ class ClubManagementScreen extends ConsumerWidget {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Erro: $e')),
+      ),
+    );
+  }
+}
+
+// ─── Club Info Card ───
+
+class _ClubInfoCard extends StatelessWidget {
+  final ClubModel club;
+  final bool isAdmin;
+
+  const _ClubInfoCard({required this.club, required this.isAdmin});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasCover = club.coverUrl != null && club.coverUrl!.isNotEmpty;
+    final hasLogo = club.avatarUrl != null && club.avatarUrl!.isNotEmpty;
+
+    return Card(
+      child: Column(
+        children: [
+          // Cover image
+          ClipRRect(
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(12)),
+            child: Container(
+              height: 120,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient:
+                    hasCover ? null : AppColors.primaryGradient,
+              ),
+              child: hasCover
+                  ? CachedNetworkImage(
+                      imageUrl: club.coverUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => Container(
+                        decoration: const BoxDecoration(
+                          gradient: AppColors.primaryGradient,
+                        ),
+                      ),
+                      errorWidget: (_, __, ___) => Container(
+                        decoration: const BoxDecoration(
+                          gradient: AppColors.primaryGradient,
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.groups_rounded,
+                              size: 40, color: Colors.white24),
+                        ),
+                      ),
+                    )
+                  : const Center(
+                      child: Icon(Icons.groups_rounded,
+                          size: 40, color: Colors.white24),
+                    ),
+            ),
+          ),
+          // Logo + edit button row
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 12, 8, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (isAdmin) const SizedBox(width: 40),
+                CircleAvatar(
+                  radius: 32,
+                  backgroundColor: AppColors.surfaceVariant,
+                  backgroundImage: hasLogo
+                      ? CachedNetworkImageProvider(club.avatarUrl!)
+                      : null,
+                  child: !hasLogo
+                      ? const Icon(Icons.groups_rounded,
+                          size: 28, color: AppColors.onBackgroundLight)
+                      : null,
+                ),
+                if (isAdmin)
+                  SizedBox(
+                    width: 40,
+                    child: IconButton(
+                      icon: const Icon(Icons.edit_outlined,
+                          size: 20, color: AppColors.primary),
+                      onPressed: () =>
+                          context.push('/clubs/${club.id}/edit'),
+                      tooltip: 'Editar clube',
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          // Content
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+            child: Column(
+              children: [
+                Text(
+                  club.name,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                if (club.description != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    club.description!,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.onBackgroundLight,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+                const SizedBox(height: 16),
+                // Invite code
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.vpn_key_outlined,
+                          size: 18, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        club.inviteCode,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 3,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.copy, size: 18),
+                        onPressed: () {
+                          Clipboard.setData(
+                              ClipboardData(text: club.inviteCode));
+                          SnackbarUtils.showSuccess(
+                              context, 'Código copiado!');
+                        },
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
+                // Address
+                if (club.hasAddress) ...[
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  const SizedBox(height: 12),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.location_on_outlined,
+                          size: 18, color: AppColors.onBackgroundLight),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          club.fullAddress!,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.onBackgroundMedium,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                // Contacts
+                if (club.hasContacts) ...[
+                  const SizedBox(height: 12),
+                  if (!club.hasAddress) ...[
+                    const Divider(height: 1),
+                    const SizedBox(height: 12),
+                  ],
+                  if (club.phone != null && club.phone!.isNotEmpty)
+                    _ContactRow(
+                      icon: Icons.phone_outlined,
+                      text: club.phone!,
+                    ),
+                  if (club.email != null && club.email!.isNotEmpty)
+                    _ContactRow(
+                      icon: Icons.email_outlined,
+                      text: club.email!,
+                    ),
+                  if (club.website != null && club.website!.isNotEmpty)
+                    _ContactRow(
+                      icon: Icons.language_outlined,
+                      text: club.website!,
+                    ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ContactRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _ContactRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: AppColors.onBackgroundLight),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.onBackgroundMedium,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
