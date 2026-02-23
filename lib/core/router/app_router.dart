@@ -11,12 +11,14 @@ import '../../features/auth/view/forgot_password_screen.dart';
 import '../../features/clubs/view/create_club_screen.dart';
 import '../../features/clubs/view/join_club_screen.dart';
 import '../../features/clubs/view/club_management_screen.dart';
+import '../../features/clubs/view/edit_club_screen.dart';
 import '../../features/ranking/view/ranking_screen.dart';
 import '../../features/ranking/view/ranking_history_screen.dart';
 import '../../features/challenges/view/challenges_screen.dart';
 import '../../features/challenges/view/create_challenge_screen.dart';
 import '../../features/challenges/view/challenge_detail_screen.dart';
 import '../../features/challenges/view/challenge_court_selection_screen.dart';
+import '../../features/challenges/view/h2h_screen.dart';
 import '../../features/challenges/view/record_result_screen.dart';
 import '../../features/courts/view/courts_screen.dart';
 import '../../features/courts/view/court_schedule_screen.dart';
@@ -123,6 +125,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       );
                     },
                   ),
+                  GoRoute(
+                    path: 'h2h',
+                    builder: (context, state) {
+                      final extra =
+                          state.extra as Map<String, dynamic>? ?? {};
+                      return H2HScreen(
+                        player1Id: extra['player1Id'] as String? ?? '',
+                        player2Id: extra['player2Id'] as String? ?? '',
+                      );
+                    },
+                  ),
                 ],
               ),
             ],
@@ -181,6 +194,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/clubs/:clubId/manage',
         builder: (context, state) => ClubManagementScreen(
+          clubId: state.pathParameters['clubId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/clubs/:clubId/edit',
+        builder: (context, state) => EditClubScreen(
           clubId: state.pathParameters['clubId']!,
         ),
       ),

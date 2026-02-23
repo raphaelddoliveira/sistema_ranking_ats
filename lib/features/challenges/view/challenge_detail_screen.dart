@@ -9,8 +9,10 @@ import '../../../core/utils/snackbar_utils.dart';
 import '../../../shared/models/challenge_model.dart';
 import '../../../shared/models/enums.dart';
 import '../../../shared/providers/current_player_provider.dart';
+import '../../clubs/viewmodel/club_providers.dart';
 import '../viewmodel/challenge_detail_viewmodel.dart';
 import '../viewmodel/challenge_list_viewmodel.dart';
+import '../viewmodel/h2h_viewmodel.dart';
 
 class ChallengeDetailScreen extends ConsumerWidget {
   final String challengeId;
@@ -118,6 +120,13 @@ class _ChallengeDetailBody extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
+
+          // H2H card (compact)
+          _H2HCard(
+            challenge: challenge,
+            currentPlayerId: currentPlayerId,
+            challengeId: challengeId,
+          ),
 
           // Status card
           Card(
@@ -742,5 +751,151 @@ class _InfoRow extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+// ─── H2H Compact Card ───
+
+class _H2HCard extends ConsumerWidget {
+  final ChallengeModel challenge;
+  final String currentPlayerId;
+  final String challengeId;
+
+  const _H2HCard({
+    required this.challenge,
+    required this.currentPlayerId,
+    required this.challengeId,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final clubId = ref.watch(currentClubIdProvider);
+    final sportId = ref.watch(currentSportIdProvider);
+    if (clubId == null) return const SizedBox.shrink();
+
+    final h2hAsync = ref.watch(h2hProvider((
+      p1: challenge.challengerId,
+      p2: challenge.challengedId,
+      clubId: clubId,
+      sportId: sportId,
+    )));
+
+    return h2hAsync.when(
+      data: (h2h) {
+        if (h2h.isEmpty) return const SizedBox.shrink();
+
+        final p1Name = _shortName(h2h.player1Name ?? 'Jogador 1');
+        final p2Name = _shortName(h2h.player2Name ?? 'Jogador 2');
+        final last = h2h.lastMatch;
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Card(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => context.push(
+                '/challenges/$challengeId/h2h',
+                extra: {
+                  'player1Id': challenge.challengerId,
+                  'player2Id': challenge.challengedId,
+                },
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.compare_arrows,
+                            size: 18, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Confronto Direto',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const Spacer(),
+                        Icon(Icons.chevron_right,
+                            size: 20, color: AppColors.onBackgroundLight),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Score row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            p1Name,
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: h2h.player1Wins >= h2h.player2Wins
+                                  ? AppColors.onBackground
+                                  : AppColors.onBackgroundMedium,
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            '${h2h.player1Wins}  x  ${h2h.player2Wins}',
+                            style: GoogleFonts.spaceGrotesk(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            p2Name,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: h2h.player2Wins >= h2h.player1Wins
+                                  ? AppColors.onBackground
+                                  : AppColors.onBackgroundMedium,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (last != null) ...[
+                      const SizedBox(height: 8),
+                      Center(
+                        child: Text(
+                          'Último: ${last.resultDisplay} · ${_formatDate(last.playedAt)}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.onBackgroundLight,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+    );
+  }
+
+  String _shortName(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.length <= 1) return name;
+    return '${parts.first} ${parts.last[0]}.';
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 }

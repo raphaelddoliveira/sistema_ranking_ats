@@ -20,6 +20,7 @@ abstract final class RouteNames {
   static const String challengeDetail = '/challenges/:challengeId';
   static const String selectCourt = '/challenges/:challengeId/select-court';
   static const String recordResult = '/challenges/:challengeId/record-result';
+  static const String h2h = '/challenges/:challengeId/h2h';
 
   // Courts
   static const String courtSchedule = '/courts/:courtId/schedule';
@@ -30,6 +31,7 @@ abstract final class RouteNames {
   static const String createClub = '/clubs/create';
   static const String joinClub = '/clubs/join';
   static const String clubManagement = '/clubs/:clubId/manage';
+  static const String editClub = '/clubs/:clubId/edit';
 
   // Admin
   static const String adminDashboard = '/admin';

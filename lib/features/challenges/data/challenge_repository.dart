@@ -6,6 +6,7 @@ import '../../../core/errors/error_handler.dart';
 import '../../../services/supabase_service.dart';
 import '../../../shared/models/challenge_model.dart';
 import '../../../shared/models/club_member_model.dart';
+import '../../../shared/models/h2h_model.dart';
 import '../../../shared/models/match_model.dart';
 
 final challengeRepositoryProvider = Provider<ChallengeRepository>((ref) {
@@ -164,7 +165,15 @@ class ChallengeRepository {
     try {
       final playerId = await _getCurrentPlayerId();
 
-      // 1. Create the court reservation linked to this challenge
+      // 1. Get the challenged player ID for opponent info + notification
+      final challenge = await _client
+          .from(SupabaseConstants.challengesTable)
+          .select('challenged_id')
+          .eq('id', challengeId)
+          .single();
+      final challengedId = challenge['challenged_id'] as String;
+
+      // 2. Create the court reservation linked to this challenge
       final dateStr =
           '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
       await _client.from(SupabaseConstants.courtReservationsTable).insert({
@@ -175,9 +184,11 @@ class ChallengeRepository {
         'end_time': endTime,
         'club_id': clubId,
         'challenge_id': challengeId,
+        'opponent_id': challengedId,
+        'opponent_type': 'member',
       });
 
-      // 2. Build chosen_date with time info
+      // 3. Build chosen_date with time info
       final chosenDateTime = DateTime(
         date.year,
         date.month,
@@ -186,7 +197,7 @@ class ChallengeRepository {
         int.parse(startTime.split(':')[1]),
       );
 
-      // 3. Update challenge status
+      // 4. Update challenge status
       await _client
           .from(SupabaseConstants.challengesTable)
           .update({
@@ -197,15 +208,9 @@ class ChallengeRepository {
           })
           .eq('id', challengeId);
 
-      // 4. Notify challenged player
-      final challenge = await _client
-          .from(SupabaseConstants.challengesTable)
-          .select('challenged_id')
-          .eq('id', challengeId)
-          .single();
-
+      // 5. Notify challenged player
       await _client.from(SupabaseConstants.notificationsTable).insert({
-        'player_id': challenge['challenged_id'],
+        'player_id': challengedId,
         'type': 'court_selected',
         'title': 'Quadra Reservada para Desafio',
         'body': 'Seu oponente reservou uma quadra. Aceite ou recuse o horário!',
@@ -487,6 +492,63 @@ class ChallengeRepository {
         },
       );
       return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Get head-to-head stats between two players
+  Future<H2HModel> getH2HStats(
+    String player1Id,
+    String player2Id, {
+    required String clubId,
+    String? sportId,
+  }) async {
+    try {
+      // Get player names
+      final players = await _client
+          .from(SupabaseConstants.playersTable)
+          .select('id, full_name')
+          .inFilter('id', [player1Id, player2Id]);
+
+      String? p1Name, p2Name;
+      for (final p in players) {
+        if (p['id'] == player1Id) p1Name = p['full_name'] as String?;
+        if (p['id'] == player2Id) p2Name = p['full_name'] as String?;
+      }
+
+      // Get completed challenges between the two players with match data
+      var query = _client
+          .from(SupabaseConstants.challengesTable)
+          .select('id, challenger_id, challenged_id, winner_id, loser_id, status, completed_at, created_at, match:${SupabaseConstants.matchesTable}!challenge_id(winner_sets, loser_sets, sets)')
+          .eq('club_id', clubId)
+          .inFilter('status', ['completed', 'wo_challenger', 'wo_challenged'])
+          .or('and(challenger_id.eq.$player1Id,challenged_id.eq.$player2Id),and(challenger_id.eq.$player2Id,challenged_id.eq.$player1Id)');
+
+      if (sportId != null) {
+        query = query.eq('sport_id', sportId);
+      }
+
+      final data = await query.order('completed_at', ascending: false);
+
+      // Flatten match join (Supabase returns array for 1-to-many, pick first)
+      final rows = data.map<Map<String, dynamic>>((row) {
+        final matchList = row['match'] as List<dynamic>?;
+        return {
+          ...row,
+          'match': matchList != null && matchList.isNotEmpty
+              ? matchList.first as Map<String, dynamic>
+              : null,
+        };
+      }).toList();
+
+      return H2HModel.fromQueryResults(
+        player1Id: player1Id,
+        player2Id: player2Id,
+        player1Name: p1Name,
+        player2Name: p2Name,
+        rows: rows,
+      );
     } catch (e) {
       throw ErrorHandler.handle(e);
     }
