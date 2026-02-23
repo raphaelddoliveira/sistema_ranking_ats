@@ -17,7 +17,9 @@ class CreateChallengeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final opponentsAsync = ref.watch(eligibleOpponentsProvider);
     final createState = ref.watch(createChallengeProvider);
-    final hasPositionGap = ref.watch(currentClubSportProvider)?.rulePositionGapEnabled ?? true;
+    final clubSport = ref.watch(currentClubSportProvider);
+    final hasPositionGap = clubSport?.rulePositionGapEnabled ?? true;
+    final hasCooldownRule = clubSport?.ruleCooldownEnabled ?? true;
 
     ref.listen(createChallengeProvider, (_, state) {
       state.whenOrNull(
@@ -124,7 +126,7 @@ class CreateChallengeScreen extends ConsumerWidget {
                                     fontStyle: FontStyle.italic),
                               ),
                             ],
-                            if (opponent.isProtected) ...[
+                            if (hasCooldownRule && opponent.isProtected) ...[
                               const SizedBox(width: 8),
                               const Icon(Icons.shield,
                                   size: 14, color: AppColors.info),
@@ -144,8 +146,8 @@ class CreateChallengeScreen extends ConsumerWidget {
                                     strokeWidth: 2),
                               )
                             : const Icon(Icons.flash_on),
-                        enabled: !opponent.isProtected && !createState.isLoading,
-                        onTap: opponent.isProtected || createState.isLoading
+                        enabled: !(hasCooldownRule && opponent.isProtected) && !createState.isLoading,
+                        onTap: (hasCooldownRule && opponent.isProtected) || createState.isLoading
                             ? null
                             : () => _confirmChallenge(
                                 context, ref, opponent),
