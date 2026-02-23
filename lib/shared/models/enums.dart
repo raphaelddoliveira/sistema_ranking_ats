@@ -73,10 +73,12 @@ enum PaymentStatus {
 
 enum ReservationStatus {
   confirmed,
-  cancelled;
+  cancelled,
+  completed;
 
   static ReservationStatus fromString(String value) =>
-      ReservationStatus.values.firstWhere((e) => e.name == value);
+      ReservationStatus.values.firstWhere((e) => e.name == value,
+          orElse: () => ReservationStatus.confirmed);
 }
 
 enum ClubMemberRole {

@@ -53,6 +53,7 @@ class ReservationModel {
 
   bool get isConfirmed => status == ReservationStatus.confirmed;
   bool get isCancelled => status == ReservationStatus.cancelled;
+  bool get isCompleted => status == ReservationStatus.completed;
   bool get isPast => reservationDate.isBefore(DateTime.now());
   bool get isChallenge => challengeId != null;
   bool get isFriendly => challengeId == null;

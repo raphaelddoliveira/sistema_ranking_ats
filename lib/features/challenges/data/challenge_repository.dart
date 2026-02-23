@@ -335,6 +335,8 @@ class ChallengeRepository {
           'p_super_tiebreak': superTiebreak,
         },
       );
+      // Mark the linked court reservation as completed
+      await _completeReservationForChallenge(challengeId);
     } catch (e) {
       throw ErrorHandler.handle(e);
     }
@@ -355,8 +357,25 @@ class ChallengeRepository {
           'p_loser_id': loserId,
         },
       );
+      // Mark the linked court reservation as completed
+      await _completeReservationForChallenge(challengeId);
     } catch (e) {
       throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Mark the court reservation linked to a challenge as completed
+  Future<void> _completeReservationForChallenge(String challengeId) async {
+    try {
+      await _client
+          .from(SupabaseConstants.courtReservationsTable)
+          .update({
+            'status': 'completed',
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('challenge_id', challengeId);
+    } catch (_) {
+      // Silent fail — reservation might not exist
     }
   }
 
