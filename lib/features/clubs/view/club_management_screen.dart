@@ -8,6 +8,7 @@ import '../../../core/utils/snackbar_utils.dart';
 import '../../../shared/models/club_member_model.dart';
 import '../../../shared/models/club_model.dart';
 import '../../../shared/models/court_model.dart';
+import '../../../shared/models/reservation_model.dart';
 import '../../../shared/models/sport_model.dart';
 import '../../../shared/providers/current_player_provider.dart';
 import '../../courts/data/court_repository.dart';
@@ -461,7 +462,7 @@ class _RequestTile extends StatelessWidget {
   }
 }
 
-// ─── Members Section (with search + suspend) ───
+// ─── Members Section (with search + pagination + admin powers) ───
 
 class _MembersSection extends ConsumerStatefulWidget {
   final String clubId;
@@ -474,8 +475,21 @@ class _MembersSection extends ConsumerStatefulWidget {
 }
 
 class _MembersSectionState extends ConsumerState<_MembersSection> {
+  static const _pageSize = 20;
+
   final _searchController = TextEditingController();
   String _searchQuery = '';
+  List<ClubMemberModel> _members = [];
+  bool _isLoading = false;
+  bool _hasMore = true;
+  bool _initialLoaded = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMembers();
+  }
 
   @override
   void dispose() {
@@ -483,28 +497,77 @@ class _MembersSectionState extends ConsumerState<_MembersSection> {
     super.dispose();
   }
 
+  Future<void> _loadMembers({bool reset = false}) async {
+    if (_isLoading) return;
+    if (!reset && !_hasMore) return;
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+      if (reset) {
+        _members = [];
+        _hasMore = true;
+      }
+    });
+
+    try {
+      final repo = ref.read(clubRepositoryProvider);
+      final search = _searchQuery.trim().isEmpty ? null : _searchQuery.trim();
+      final newMembers = await repo.getMembersPaginated(
+        widget.clubId,
+        offset: reset ? 0 : _members.length,
+        limit: _pageSize,
+        search: search,
+      );
+      if (mounted) {
+        setState(() {
+          if (reset) {
+            _members = newMembers;
+          } else {
+            _members.addAll(newMembers);
+          }
+          _hasMore = newMembers.length >= _pageSize;
+          _isLoading = false;
+          _initialLoaded = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _initialLoaded = true;
+          _error = '$e';
+        });
+      }
+    }
+  }
+
+  void _onSearchChanged(String value) {
+    setState(() => _searchQuery = value);
+    _loadMembers(reset: true);
+  }
+
+  void _refresh() {
+    _loadMembers(reset: true);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final membersAsync = ref.watch(clubMembersProvider(widget.clubId));
+    final activeCount = _members.where((m) => m.isActive).length;
+    final inactiveCount = _members.where((m) => !m.isActive).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: membersAsync.when(
-            data: (members) {
-              final activeCount = members.where((m) => m.isActive).length;
-              final inactiveCount = members.length - activeCount;
-              return Text(
-                'Membros ($activeCount)${inactiveCount > 0 ? ' · $inactiveCount suspensos' : ''}',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              );
-            },
-            loading: () => const Text('Membros'),
-            error: (_, _) => const Text('Membros'),
+          child: Text(
+            _initialLoaded
+                ? 'Membros ($activeCount)${inactiveCount > 0 ? ' · $inactiveCount suspensos' : ''}'
+                : 'Membros',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
         // Search field
@@ -520,7 +583,7 @@ class _MembersSectionState extends ConsumerState<_MembersSection> {
                       icon: const Icon(Icons.clear, size: 18),
                       onPressed: () {
                         _searchController.clear();
-                        setState(() => _searchQuery = '');
+                        _onSearchChanged('');
                       },
                     )
                   : null,
@@ -528,174 +591,75 @@ class _MembersSectionState extends ConsumerState<_MembersSection> {
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            onChanged: (value) => setState(() => _searchQuery = value),
+            onChanged: _onSearchChanged,
           ),
         ),
         // Members list
-        membersAsync.when(
-          data: (members) {
-            final query = _searchQuery.toLowerCase().trim();
-            final filtered = query.isEmpty
-                ? members
-                : members.where((m) =>
-                    m.playerName.toLowerCase().contains(query) ||
-                    (m.playerNickname?.toLowerCase().contains(query) ?? false)
-                  ).toList();
-
-            if (filtered.isEmpty && query.isNotEmpty) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Center(
-                  child: Text(
-                    'Nenhum membro encontrado',
-                    style: TextStyle(color: AppColors.onBackgroundLight),
-                  ),
-                ),
-              );
-            }
-
-            return Column(
-              children: filtered.map((member) => _MemberTile(
-                member: member,
-                isAdmin: widget.isAdmin,
-                onToggleRole: widget.isAdmin && member.isActive
-                    ? () async {
-                        final newRole = member.isClubAdmin ? 'member' : 'admin';
-                        await ref.read(clubRepositoryProvider)
-                            .updateMemberRole(member.id, newRole);
-                        ref.invalidate(clubMembersProvider(widget.clubId));
-                        ref.invalidate(currentClubMemberProvider);
-                      }
-                    : null,
-                onSuspend: widget.isAdmin && member.isActive
-                    ? () => _confirmSuspend(member)
-                    : null,
-                onUnsuspend: widget.isAdmin && !member.isActive
-                    ? () => _confirmUnsuspend(member)
-                    : null,
-                onRemove: widget.isAdmin
-                    ? () async {
-                        final player = ref.read(currentPlayerProvider).valueOrNull;
-                        if (player == null) return;
-                        try {
-                          await ref.read(clubRepositoryProvider)
-                              .removeMember(member.id, player.authId);
-                          ref.invalidate(clubMembersProvider(widget.clubId));
-                          ref.invalidate(rankingListProvider);
-                          if (mounted) {
-                            SnackbarUtils.showSuccess(context, 'Membro removido');
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            SnackbarUtils.showError(context, 'Erro: $e');
-                          }
-                        }
-                      }
-                    : null,
-              )).toList(),
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Text('Erro: $e'),
-        ),
+        if (_error != null && _members.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: Text('Erro: $_error')),
+          )
+        else if (!_initialLoaded)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_members.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: Text(
+                _searchQuery.isNotEmpty ? 'Nenhum membro encontrado' : 'Nenhum membro',
+                style: const TextStyle(color: AppColors.onBackgroundLight),
+              ),
+            ),
+          )
+        else ...[
+          ..._members.map((member) => _MemberTile(
+            member: member,
+            clubId: widget.clubId,
+            isAdmin: widget.isAdmin,
+            onRefresh: _refresh,
+          )),
+          if (_hasMore)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Center(
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : TextButton.icon(
+                        onPressed: () => _loadMembers(),
+                        icon: const Icon(Icons.expand_more, size: 20),
+                        label: const Text('Carregar mais'),
+                      ),
+              ),
+            ),
+        ],
       ],
     );
   }
-
-  void _confirmSuspend(ClubMemberModel member) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Suspender membro?'),
-        content: Text(
-          '${member.playerName} será suspenso e não poderá participar de desafios ou reservas.\n\n'
-          'Você poderá reativá-lo depois.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.warning),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Suspender'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        await ref.read(clubRepositoryProvider).suspendMember(member.id);
-        ref.invalidate(clubMembersProvider(widget.clubId));
-        if (mounted) {
-          SnackbarUtils.showSuccess(context, '${member.playerName} foi suspenso');
-        }
-      } catch (e) {
-        if (mounted) {
-          SnackbarUtils.showError(context, 'Erro ao suspender: $e');
-        }
-      }
-    }
-  }
-
-  void _confirmUnsuspend(ClubMemberModel member) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Reativar membro?'),
-        content: Text(
-          '${member.playerName} será reativado e poderá voltar a participar normalmente.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Reativar'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        await ref.read(clubRepositoryProvider).unsuspendMember(member.id);
-        ref.invalidate(clubMembersProvider(widget.clubId));
-        if (mounted) {
-          SnackbarUtils.showSuccess(context, '${member.playerName} foi reativado');
-        }
-      } catch (e) {
-        if (mounted) {
-          SnackbarUtils.showError(context, 'Erro ao reativar: $e');
-        }
-      }
-    }
-  }
 }
 
-class _MemberTile extends StatelessWidget {
+class _MemberTile extends ConsumerWidget {
   final ClubMemberModel member;
+  final String clubId;
   final bool isAdmin;
-  final VoidCallback? onToggleRole;
-  final VoidCallback? onRemove;
-  final VoidCallback? onSuspend;
-  final VoidCallback? onUnsuspend;
+  final VoidCallback onRefresh;
 
   const _MemberTile({
     required this.member,
+    required this.clubId,
     required this.isAdmin,
-    this.onToggleRole,
-    this.onRemove,
-    this.onSuspend,
-    this.onUnsuspend,
+    required this.onRefresh,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isSuspended = !member.isActive;
 
     return Card(
@@ -727,6 +691,24 @@ class _MemberTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              if (!member.isInRanking && member.isActive) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: AppColors.onBackgroundLight.withAlpha(20),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'Fora do ranking',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.onBackgroundLight,
+                    ),
+                  ),
+                ),
+              ],
               if (isSuspended) ...[
                 const SizedBox(width: 8),
                 Container(
@@ -757,38 +739,482 @@ class _MemberTile extends StatelessWidget {
           ),
           trailing: isAdmin
               ? PopupMenuButton<String>(
-                  onSelected: (action) {
-                    if (action == 'toggle_role') onToggleRole?.call();
-                    if (action == 'remove') onRemove?.call();
-                    if (action == 'suspend') onSuspend?.call();
-                    if (action == 'unsuspend') onUnsuspend?.call();
-                  },
+                  onSelected: (action) => _handleAction(context, ref, action),
                   itemBuilder: (_) => [
                     if (!isSuspended)
                       PopupMenuItem(
                         value: 'toggle_role',
-                        child: Text(member.isClubAdmin ? 'Tornar membro' : 'Tornar admin'),
+                        child: Row(
+                          children: [
+                            Icon(
+                              member.isClubAdmin ? Icons.person_outline : Icons.admin_panel_settings_outlined,
+                              size: 18,
+                              color: AppColors.onBackgroundMedium,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(member.isClubAdmin ? 'Tornar membro' : 'Tornar admin'),
+                          ],
+                        ),
                       ),
+                    if (!isSuspended)
+                      PopupMenuItem(
+                        value: member.isInRanking ? 'ranking_off' : 'ranking_on',
+                        child: Row(
+                          children: [
+                            Icon(
+                              member.isInRanking ? Icons.leaderboard_outlined : Icons.leaderboard,
+                              size: 18,
+                              color: member.isInRanking ? AppColors.warning : AppColors.success,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              member.isInRanking ? 'Desativar ranking' : 'Ativar ranking',
+                              style: TextStyle(
+                                color: member.isInRanking ? AppColors.warning : AppColors.success,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (!isSuspended)
+                      const PopupMenuItem(
+                        value: 'reservations',
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_month_outlined, size: 18, color: AppColors.onBackgroundMedium),
+                            SizedBox(width: 8),
+                            Text('Ver reservas'),
+                          ],
+                        ),
+                      ),
+                    const PopupMenuDivider(),
                     if (isSuspended)
                       const PopupMenuItem(
                         value: 'unsuspend',
-                        child: Text('Reativar', style: TextStyle(color: AppColors.success)),
+                        child: Row(
+                          children: [
+                            Icon(Icons.check_circle_outline, size: 18, color: AppColors.success),
+                            SizedBox(width: 8),
+                            Text('Reativar', style: TextStyle(color: AppColors.success)),
+                          ],
+                        ),
                       )
                     else
                       const PopupMenuItem(
                         value: 'suspend',
-                        child: Text('Suspender', style: TextStyle(color: AppColors.warning)),
+                        child: Row(
+                          children: [
+                            Icon(Icons.pause_circle_outline, size: 18, color: AppColors.warning),
+                            SizedBox(width: 8),
+                            Text('Suspender', style: TextStyle(color: AppColors.warning)),
+                          ],
+                        ),
                       ),
                     if (!isSuspended)
                       const PopupMenuItem(
                         value: 'remove',
-                        child: Text('Remover', style: TextStyle(color: AppColors.error)),
+                        child: Row(
+                          children: [
+                            Icon(Icons.person_remove_outlined, size: 18, color: AppColors.error),
+                            SizedBox(width: 8),
+                            Text('Remover', style: TextStyle(color: AppColors.error)),
+                          ],
+                        ),
                       ),
                   ],
                 )
               : null,
         ),
       ),
+    );
+  }
+
+  void _handleAction(BuildContext context, WidgetRef ref, String action) {
+    switch (action) {
+      case 'toggle_role':
+        _toggleRole(context, ref);
+      case 'ranking_off':
+        _confirmToggleRanking(context, ref, optIn: false);
+      case 'ranking_on':
+        _confirmToggleRanking(context, ref, optIn: true);
+      case 'reservations':
+        _showReservationsSheet(context, ref);
+      case 'suspend':
+        _confirmSuspend(context, ref);
+      case 'unsuspend':
+        _confirmUnsuspend(context, ref);
+      case 'remove':
+        _confirmRemove(context, ref);
+    }
+  }
+
+  Future<void> _toggleRole(BuildContext context, WidgetRef ref) async {
+    final newRole = member.isClubAdmin ? 'member' : 'admin';
+    try {
+      await ref.read(clubRepositoryProvider).updateMemberRole(member.id, newRole);
+      ref.invalidate(currentClubMemberProvider);
+      onRefresh();
+    } catch (e) {
+      if (context.mounted) {
+        SnackbarUtils.showError(context, 'Erro: $e');
+      }
+    }
+  }
+
+  Future<void> _confirmToggleRanking(BuildContext context, WidgetRef ref, {required bool optIn}) async {
+    final title = optIn ? 'Ativar ranking?' : 'Desativar ranking?';
+    final body = optIn
+        ? '${member.playerName} entrará no ranking na última posição.'
+        : '${member.playerName} será removido do ranking. Desafios ativos serão cancelados automaticamente.';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: optIn
+                ? null
+                : FilledButton.styleFrom(backgroundColor: AppColors.warning),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(optIn ? 'Ativar' : 'Desativar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final player = ref.read(currentPlayerProvider).valueOrNull;
+    if (player == null) return;
+
+    try {
+      await ref.read(clubRepositoryProvider).adminToggleRanking(
+        memberId: member.id,
+        adminAuthId: player.authId,
+        optIn: optIn,
+      );
+      ref.invalidate(rankingListProvider);
+      onRefresh();
+      if (context.mounted) {
+        SnackbarUtils.showSuccess(
+          context,
+          optIn
+              ? '${member.playerName} entrou no ranking'
+              : '${member.playerName} saiu do ranking',
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        SnackbarUtils.showError(context, 'Erro: $e');
+      }
+    }
+  }
+
+  void _showReservationsSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.85,
+        expand: false,
+        builder: (ctx, scrollController) => _MemberReservationsSheet(
+          member: member,
+          clubId: clubId,
+          scrollController: scrollController,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmSuspend(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Suspender membro?'),
+        content: Text(
+          '${member.playerName} será suspenso e não poderá participar de desafios ou reservas.\n\n'
+          'Você poderá reativá-lo depois.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.warning),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Suspender'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await ref.read(clubRepositoryProvider).suspendMember(member.id);
+      onRefresh();
+      if (context.mounted) {
+        SnackbarUtils.showSuccess(context, '${member.playerName} foi suspenso');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        SnackbarUtils.showError(context, 'Erro ao suspender: $e');
+      }
+    }
+  }
+
+  Future<void> _confirmUnsuspend(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reativar membro?'),
+        content: Text(
+          '${member.playerName} será reativado e poderá voltar a participar normalmente.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Reativar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await ref.read(clubRepositoryProvider).unsuspendMember(member.id);
+      onRefresh();
+      if (context.mounted) {
+        SnackbarUtils.showSuccess(context, '${member.playerName} foi reativado');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        SnackbarUtils.showError(context, 'Erro ao reativar: $e');
+      }
+    }
+  }
+
+  Future<void> _confirmRemove(BuildContext context, WidgetRef ref) async {
+    final player = ref.read(currentPlayerProvider).valueOrNull;
+    if (player == null) return;
+
+    try {
+      await ref.read(clubRepositoryProvider).removeMember(member.id, player.authId);
+      ref.invalidate(rankingListProvider);
+      onRefresh();
+      if (context.mounted) {
+        SnackbarUtils.showSuccess(context, 'Membro removido');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        SnackbarUtils.showError(context, 'Erro: $e');
+      }
+    }
+  }
+}
+
+// ─── Member Reservations Bottom Sheet ───
+
+class _MemberReservationsSheet extends ConsumerStatefulWidget {
+  final ClubMemberModel member;
+  final String clubId;
+  final ScrollController scrollController;
+
+  const _MemberReservationsSheet({
+    required this.member,
+    required this.clubId,
+    required this.scrollController,
+  });
+
+  @override
+  ConsumerState<_MemberReservationsSheet> createState() => _MemberReservationsSheetState();
+}
+
+class _MemberReservationsSheetState extends ConsumerState<_MemberReservationsSheet> {
+  List<ReservationModel>? _reservations;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReservations();
+  }
+
+  Future<void> _loadReservations() async {
+    try {
+      final repo = ref.read(courtRepositoryProvider);
+      final reservations = await repo.getPlayerClubReservations(
+        widget.member.playerId,
+        clubId: widget.clubId,
+      );
+      if (mounted) {
+        setState(() {
+          _reservations = reservations;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = '$e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _cancelReservation(ReservationModel reservation) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancelar reserva?'),
+        content: Text(
+          'Cancelar reserva de ${reservation.courtName ?? 'quadra'} '
+          'dia ${reservation.formattedDate} (${reservation.timeRange})?\n\n'
+          '${reservation.isChallenge ? 'O desafio vinculado também será cancelado.' : ''}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Voltar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Cancelar reserva'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final player = ref.read(currentPlayerProvider).valueOrNull;
+    if (player == null) return;
+
+    try {
+      await ref.read(courtRepositoryProvider).adminCancelReservation(
+        reservationId: reservation.id,
+        adminAuthId: player.authId,
+      );
+      if (mounted) {
+        SnackbarUtils.showSuccess(context, 'Reserva cancelada');
+      }
+      _loadReservations();
+    } catch (e) {
+      if (mounted) {
+        SnackbarUtils.showError(context, 'Erro: $e');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Handle bar
+        Padding(
+          padding: const EdgeInsets.only(top: 12, bottom: 8),
+          child: Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.divider,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+        // Title
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: Text(
+            'Reservas de ${widget.member.playerName}',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const Divider(height: 1),
+        // Content
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+                  ? Center(child: Text('Erro: $_error'))
+                  : _reservations == null || _reservations!.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(32),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.calendar_today_outlined, size: 48, color: AppColors.onBackgroundLight),
+                                SizedBox(height: 12),
+                                Text(
+                                  'Nenhuma reserva futura',
+                                  style: TextStyle(color: AppColors.onBackgroundLight),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: widget.scrollController,
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _reservations!.length,
+                          itemBuilder: (context, index) {
+                            final res = _reservations![index];
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: res.isChallenge
+                                      ? AppColors.primary.withAlpha(25)
+                                      : AppColors.secondary.withAlpha(25),
+                                  child: Icon(
+                                    res.isChallenge ? Icons.sports : Icons.calendar_month,
+                                    size: 20,
+                                    color: res.isChallenge ? AppColors.primary : AppColors.secondary,
+                                  ),
+                                ),
+                                title: Text(
+                                  res.courtName ?? 'Quadra',
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                                subtitle: Text(
+                                  '${res.formattedDate} · ${res.timeRange}'
+                                  '${res.isChallenge ? ' · Desafio' : ' · Amistoso'}',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.cancel_outlined, color: AppColors.error),
+                                  tooltip: 'Cancelar reserva',
+                                  onPressed: () => _cancelReservation(res),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+        ),
+      ],
     );
   }
 }

@@ -19,7 +19,8 @@ enum PlayerStatus {
 
 enum PlayerRole {
   player,
-  admin;
+  admin,
+  superadmin;
 
   static PlayerRole fromString(String value) =>
       PlayerRole.values.firstWhere((e) => e.name == value);

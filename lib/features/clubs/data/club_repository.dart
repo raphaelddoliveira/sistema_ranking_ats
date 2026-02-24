@@ -103,6 +103,51 @@ class ClubRepository {
     }
   }
 
+  /// Get members paginated (for infinite scroll)
+  Future<List<ClubMemberModel>> getMembersPaginated(
+    String clubId, {
+    required int offset,
+    required int limit,
+    String? search,
+  }) async {
+    try {
+      var query = _client
+          .from('club_members')
+          .select('*, player:players!inner(full_name, nickname, avatar_url, email, phone)')
+          .eq('club_id', clubId)
+          .inFilter('status', ['active', 'inactive']);
+
+      if (search != null && search.isNotEmpty) {
+        query = query.or('full_name.ilike.%$search%,nickname.ilike.%$search%', referencedTable: 'players');
+      }
+
+      final data = await query
+          .order('status', ascending: true)
+          .order('ranking_position', ascending: true)
+          .range(offset, offset + limit - 1);
+      return data.map((e) => ClubMemberModel.fromJson(e)).toList();
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Admin toggle ranking participation for a member
+  Future<void> adminToggleRanking({
+    required String memberId,
+    required String adminAuthId,
+    required bool optIn,
+  }) async {
+    try {
+      await _client.rpc('admin_toggle_ranking_participation', params: {
+        'p_admin_auth_id': adminAuthId,
+        'p_member_id': memberId,
+        'p_opt_in': optIn,
+      });
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
   /// Get the current player's membership for a specific club + sport
   Future<ClubMemberModel?> getMyMembership(String clubId, String playerId, {String? sportId}) async {
     try {

@@ -6,7 +6,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../shared/models/notification_model.dart';
 import '../../../shared/providers/current_player_provider.dart';
 import '../../../services/supabase_service.dart';
+import '../../challenges/viewmodel/challenge_list_viewmodel.dart';
 import '../../clubs/viewmodel/club_providers.dart';
+import '../../courts/viewmodel/reservation_viewmodel.dart';
+import '../../ranking/viewmodel/ranking_list_viewmodel.dart';
 import '../data/notification_repository.dart';
 
 /// Provider for all notifications (filtered by club if selected)
@@ -24,14 +27,16 @@ final unreadCountProvider = FutureProvider<int>((ref) async {
   return repository.getUnreadCount(clubId: clubId);
 });
 
-/// Realtime listener that auto-refreshes notifications when new ones arrive
+/// Realtime listener that auto-refreshes data when notifications arrive
+/// or when challenges change status
 final notificationRealtimeProvider = Provider<void>((ref) {
   final player = ref.watch(currentPlayerProvider).valueOrNull;
   if (player == null) return;
 
   final client = ref.watch(supabaseClientProvider);
-  final channel = client.channel('notifications_${player.id}');
+  final channel = client.channel('realtime_${player.id}');
 
+  // Listen for new notifications → refresh notifications + related data
   channel.onPostgresChanges(
     event: PostgresChangeEvent.insert,
     schema: 'public',
@@ -44,8 +49,64 @@ final notificationRealtimeProvider = Provider<void>((ref) {
     callback: (payload) {
       ref.invalidate(notificationsProvider);
       ref.invalidate(unreadCountProvider);
+      // Also refresh data that might have changed alongside the notification
+      ref.invalidate(activeChallengesProvider);
+      ref.invalidate(challengeHistoryProvider);
+      ref.invalidate(rankingListProvider);
+      ref.invalidate(currentClubMemberProvider);
+      ref.invalidate(myReservationsProvider);
     },
-  ).subscribe();
+  );
+
+  // Listen for challenge updates where player is challenger
+  channel.onPostgresChanges(
+    event: PostgresChangeEvent.update,
+    schema: 'public',
+    table: 'challenges',
+    filter: PostgresChangeFilter(
+      type: PostgresChangeFilterType.eq,
+      column: 'challenger_id',
+      value: player.id,
+    ),
+    callback: (payload) {
+      ref.invalidate(activeChallengesProvider);
+      ref.invalidate(challengeHistoryProvider);
+    },
+  );
+
+  // Listen for challenge updates where player is challenged
+  channel.onPostgresChanges(
+    event: PostgresChangeEvent.update,
+    schema: 'public',
+    table: 'challenges',
+    filter: PostgresChangeFilter(
+      type: PostgresChangeFilterType.eq,
+      column: 'challenged_id',
+      value: player.id,
+    ),
+    callback: (payload) {
+      ref.invalidate(activeChallengesProvider);
+      ref.invalidate(challengeHistoryProvider);
+    },
+  );
+
+  // Listen for ranking changes (club_members updates for this player)
+  channel.onPostgresChanges(
+    event: PostgresChangeEvent.update,
+    schema: 'public',
+    table: 'club_members',
+    filter: PostgresChangeFilter(
+      type: PostgresChangeFilterType.eq,
+      column: 'player_id',
+      value: player.id,
+    ),
+    callback: (payload) {
+      ref.invalidate(rankingListProvider);
+      ref.invalidate(currentClubMemberProvider);
+    },
+  );
+
+  channel.subscribe();
 
   ref.onDispose(() {
     client.removeChannel(channel);

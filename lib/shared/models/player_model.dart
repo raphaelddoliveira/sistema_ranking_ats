@@ -45,7 +45,8 @@ class PlayerModel {
     required this.updatedAt,
   });
 
-  bool get isAdmin => role == PlayerRole.admin;
+  bool get isAdmin => role == PlayerRole.admin || role == PlayerRole.superadmin;
+  bool get isSuperAdmin => role == PlayerRole.superadmin;
   bool get isActive => status == PlayerStatus.active;
   bool get isOnAmbulance => status == PlayerStatus.ambulance;
   bool get hasFeeOverdue => feeStatus == PaymentStatus.overdue;

@@ -206,6 +206,18 @@ class CourtRepository {
       final dateStr =
           '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
+      // For friendly reservations, validate opponent doesn't already have one
+      if (opponentId != null && challengeId == null && opponentType == OpponentType.member) {
+        final opponentHasReservation =
+            await playerHasActiveFriendlyReservation(opponentId);
+        if (opponentHasReservation) {
+          throw const ValidationException(
+            'Este jogador já tem uma reserva amistosa ativa.',
+            code: 'OPPONENT_HAS_RESERVATION',
+          );
+        }
+      }
+
       await _client.from(SupabaseConstants.courtReservationsTable).insert({
         'court_id': courtId,
         'reserved_by': playerId,
@@ -373,6 +385,17 @@ class CourtRepository {
   Future<void> applyToReservation(String reservationId) async {
     try {
       final playerId = await _getCurrentPlayerId();
+
+      // Check if the applying player already has an active friendly reservation
+      final hasReservation =
+          await playerHasActiveFriendlyReservation(playerId);
+      if (hasReservation) {
+        throw const ValidationException(
+          'Você já tem uma reserva amistosa ativa. Cancele ou conclua antes de se candidatar.',
+          code: 'PLAYER_HAS_RESERVATION',
+        );
+      }
+
       await _client
           .from(SupabaseConstants.courtReservationsTable)
           .update({
@@ -484,6 +507,54 @@ class CourtRepository {
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', reservationId);
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Get upcoming reservations for a specific player in a club (admin use)
+  Future<List<ReservationModel>> getPlayerClubReservations(
+    String playerId, {
+    required String clubId,
+  }) async {
+    try {
+      final today = DateTime.now();
+      final dateStr =
+          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+      // Get courts for this club
+      final courts = await _client
+          .from(SupabaseConstants.courtsTable)
+          .select('id')
+          .eq('club_id', clubId);
+      final courtIds = courts.map((c) => c['id'] as String).toList();
+      if (courtIds.isEmpty) return [];
+
+      final data = await _client
+          .from(SupabaseConstants.courtReservationsTable)
+          .select(_reservationSelect)
+          .inFilter('court_id', courtIds)
+          .or('reserved_by.eq.$playerId,opponent_id.eq.$playerId')
+          .eq('status', 'confirmed')
+          .gte('reservation_date', dateStr)
+          .order('reservation_date')
+          .order('start_time');
+      return data.map((e) => ReservationModel.fromJson(e)).toList();
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Admin cancel a reservation (via RPC with permission check)
+  Future<void> adminCancelReservation({
+    required String reservationId,
+    required String adminAuthId,
+  }) async {
+    try {
+      await _client.rpc('admin_cancel_reservation', params: {
+        'p_admin_auth_id': adminAuthId,
+        'p_reservation_id': reservationId,
+      });
     } catch (e) {
       throw ErrorHandler.handle(e);
     }
