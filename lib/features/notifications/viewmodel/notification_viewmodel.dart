@@ -36,6 +36,16 @@ final notificationRealtimeProvider = Provider<void>((ref) {
   final client = ref.watch(supabaseClientProvider);
   final channel = client.channel('realtime_${player.id}');
 
+  void refreshAll() {
+    ref.invalidate(notificationsProvider);
+    ref.invalidate(unreadCountProvider);
+    ref.invalidate(activeChallengesProvider);
+    ref.invalidate(challengeHistoryProvider);
+    ref.invalidate(rankingListProvider);
+    ref.invalidate(currentClubMemberProvider);
+    ref.invalidate(myReservationsProvider);
+  }
+
   // Listen for new notifications → refresh notifications + related data
   channel.onPostgresChanges(
     event: PostgresChangeEvent.insert,
@@ -46,16 +56,7 @@ final notificationRealtimeProvider = Provider<void>((ref) {
       column: 'player_id',
       value: player.id,
     ),
-    callback: (payload) {
-      ref.invalidate(notificationsProvider);
-      ref.invalidate(unreadCountProvider);
-      // Also refresh data that might have changed alongside the notification
-      ref.invalidate(activeChallengesProvider);
-      ref.invalidate(challengeHistoryProvider);
-      ref.invalidate(rankingListProvider);
-      ref.invalidate(currentClubMemberProvider);
-      ref.invalidate(myReservationsProvider);
-    },
+    callback: (payload) => refreshAll(),
   );
 
   // Listen for challenge updates where player is challenger
@@ -108,7 +109,14 @@ final notificationRealtimeProvider = Provider<void>((ref) {
 
   channel.subscribe();
 
+  // Periodic auto-refresh every 30s for changes made by other users
+  // (e.g. admin reorders ranking, someone books a court, etc.)
+  final timer = Timer.periodic(const Duration(seconds: 30), (_) {
+    refreshAll();
+  });
+
   ref.onDispose(() {
+    timer.cancel();
     client.removeChannel(channel);
   });
 });
