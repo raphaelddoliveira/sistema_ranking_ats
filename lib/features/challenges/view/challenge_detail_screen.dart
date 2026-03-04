@@ -664,7 +664,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
       case ChallengeStatus.completed:
       case ChallengeStatus.woChallenger:
       case ChallengeStatus.woChallenged:
-        final isAdmin = ref.watch(isClubAdminProvider);
+        final isAdmin = ref.watch(isClubAdminProvider).valueOrNull ?? false;
         if (isAdmin) {
           actions.add(
             OutlinedButton.icon(

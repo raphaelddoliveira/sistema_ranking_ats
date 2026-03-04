@@ -34,7 +34,7 @@ class ClubManagementScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final clubAsync = ref.watch(currentClubProvider);
     final requestsAsync = ref.watch(clubJoinRequestsProvider(clubId));
-    final isAdmin = ref.watch(isClubAdminProvider);
+    final isAdmin = ref.watch(isClubAdminProvider).valueOrNull ?? false;
 
     return Scaffold(
       appBar: AppBar(

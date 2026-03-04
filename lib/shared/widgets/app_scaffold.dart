@@ -38,7 +38,7 @@ class AppScaffold extends ConsumerWidget {
     ref.watch(notificationRealtimeProvider);
     // Activate web push notifications
     ref.watch(pushNotificationProvider);
-    final isAdmin = ref.watch(isClubAdminProvider);
+    final isAdmin = ref.watch(isClubAdminProvider).valueOrNull ?? false;
     final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
 
     // Auto-select first club if none selected
