@@ -381,25 +381,38 @@ class CourtRepository {
     }
   }
 
-  /// Apply to play in an open reservation (set candidate_id)
+  /// Join an open reservation directly as opponent
   Future<void> applyToReservation(String reservationId) async {
     try {
       final playerId = await _getCurrentPlayerId();
 
-      // Check if the applying player already has an active friendly reservation
+      // Check if the player already has an active friendly reservation
       final hasReservation =
           await playerHasActiveFriendlyReservation(playerId);
       if (hasReservation) {
         throw const ValidationException(
-          'Você já tem uma reserva amistosa ativa. Cancele ou conclua antes de se candidatar.',
+          'Você já tem uma reserva amistosa ativa. Cancele ou conclua antes de entrar.',
           code: 'PLAYER_HAS_RESERVATION',
         );
       }
 
+      // Get player name
+      final playerData = await _client
+          .from(SupabaseConstants.playersTable)
+          .select('full_name')
+          .eq('id', playerId)
+          .single();
+
+      final playerName = playerData['full_name'] as String? ?? 'Jogador';
+
+      // Directly set as opponent (skip approval flow)
       await _client
           .from(SupabaseConstants.courtReservationsTable)
           .update({
-            'candidate_id': playerId,
+            'opponent_id': playerId,
+            'opponent_type': 'member',
+            'opponent_name': playerName,
+            'candidate_id': null,
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', reservationId);
@@ -411,20 +424,13 @@ class CourtRepository {
           .eq('id', reservationId)
           .single();
 
-      final playerData = await _client
-          .from(SupabaseConstants.playersTable)
-          .select('full_name')
-          .eq('id', playerId)
-          .single();
-
       final courtName = (res['court'] as Map<String, dynamic>?)?['name'] ?? 'Quadra';
-      final candidateName = playerData['full_name'] as String? ?? 'Jogador';
 
       await _client.from(SupabaseConstants.notificationsTable).insert({
         'player_id': res['reserved_by'],
         'type': 'general',
-        'title': 'Alguém quer jogar com você!',
-        'body': '$candidateName se candidatou para jogar na reserva de $courtName dia ${res['reservation_date']}',
+        'title': 'Vaga preenchida!',
+        'body': '$playerName entrou na sua reserva de $courtName dia ${res['reservation_date']}',
         'data': {'reservation_id': reservationId},
         if (res['club_id'] != null) 'club_id': res['club_id'],
       });

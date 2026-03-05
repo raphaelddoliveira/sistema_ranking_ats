@@ -464,9 +464,9 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Candidatar-se'),
+        title: const Text('Entrar na reserva'),
         content: Text(
-          'Deseja se candidatar para jogar com $ownerName das ${reservation.timeRange}?',
+          'Deseja entrar na reserva de $ownerName das ${reservation.timeRange}?',
         ),
         actions: [
           TextButton(
@@ -481,12 +481,16 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                   .applyToReservation(reservation.id);
               if (mounted) {
                 if (success) {
-                  SnackbarUtils.showSuccess(context, 'Candidatura enviada!');
+                  SnackbarUtils.showSuccess(context, 'Você entrou na reserva!');
                   ref.invalidate(courtReservationsProvider(
                     (courtId: widget.courtId, date: _selectedDate),
                   ));
+                  ref.invalidate(myReservationsProvider);
+                  ref.invalidate(hasActiveFriendlyReservationProvider);
                 } else {
-                  SnackbarUtils.showError(context, 'Erro ao se candidatar');
+                  final errorState = ref.read(reservationActionProvider);
+                  final msg = errorState.error?.toString() ?? 'Erro ao entrar na reserva';
+                  SnackbarUtils.showError(context, msg);
                 }
               }
             },
