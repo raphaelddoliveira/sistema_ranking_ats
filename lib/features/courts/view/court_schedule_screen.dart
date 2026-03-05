@@ -572,7 +572,9 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
               ref.invalidate(myReservationsProvider);
               ref.invalidate(hasActiveFriendlyReservationProvider);
             } else {
-              SnackbarUtils.showError(context, 'Erro ao reservar');
+              final errorState = ref.read(reservationActionProvider);
+              final msg = errorState.error?.toString() ?? 'Erro desconhecido';
+              SnackbarUtils.showError(context, msg);
             }
           }
         },
