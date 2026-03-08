@@ -11,6 +11,7 @@ import '../../../shared/providers/current_player_provider.dart';
 import '../../clubs/view/club_selector_widget.dart';
 import '../../clubs/view/no_club_screen.dart';
 import '../../clubs/viewmodel/club_providers.dart';
+import '../../challenges/viewmodel/challenge_list_viewmodel.dart';
 import '../viewmodel/ranking_list_viewmodel.dart';
 import 'widgets/ranking_list_tile.dart';
 
@@ -98,6 +99,7 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
     final rankingAsync = ref.watch(rankingListProvider);
     final currentMember = ref.watch(currentClubMemberProvider).valueOrNull;
     final isOptedOut = currentMember != null && !currentMember.isInRanking;
+    final activePlayers = ref.watch(playersWithActiveChallengeProvider).valueOrNull ?? {};
 
     return Scaffold(
       appBar: AppBar(
@@ -329,6 +331,7 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
                                 final member = filteredMembers[index];
                                 return RankingListTile(
                                   member: member,
+                                  hasActiveChallenge: activePlayers.contains(member.playerId),
                                   onTap: () {
                                     context.push(
                                       '/players/${member.playerId}',

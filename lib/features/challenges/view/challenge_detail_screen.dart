@@ -450,6 +450,21 @@ class _ChallengeDetailBody extends ConsumerWidget {
             ),
           );
         }
+        // Admin: cancel challenge
+        if (!isChallenger) {
+          final isAdmin = ref.watch(isClubAdminProvider).valueOrNull ?? false;
+          if (isAdmin) {
+            actions.add(const SizedBox(height: 8));
+            actions.add(
+              OutlinedButton.icon(
+                onPressed: () => _confirmAnnul(context, ref),
+                icon: const Icon(Icons.gavel, color: AppColors.error),
+                label: const Text('Cancelar Desafio (Admin)',
+                    style: TextStyle(color: AppColors.error)),
+              ),
+            );
+          }
+        }
         break;
 
       case ChallengeStatus.datesProposed:
@@ -507,15 +522,30 @@ class _ChallengeDetailBody extends ConsumerWidget {
             ),
           );
         }
-        actions.add(const SizedBox(height: 8));
-        actions.add(
-          OutlinedButton.icon(
-            onPressed: () => _confirmCancel(context, ref),
-            icon: const Icon(Icons.close, color: AppColors.error),
-            label: const Text('Cancelar Desafio',
-                style: TextStyle(color: AppColors.error)),
-          ),
-        );
+        if (isChallenger || isChallenged) {
+          actions.add(const SizedBox(height: 8));
+          actions.add(
+            OutlinedButton.icon(
+              onPressed: () => _confirmCancel(context, ref),
+              icon: const Icon(Icons.close, color: AppColors.error),
+              label: const Text('Cancelar Desafio',
+                  style: TextStyle(color: AppColors.error)),
+            ),
+          );
+        } else {
+          final isAdmin = ref.watch(isClubAdminProvider).valueOrNull ?? false;
+          if (isAdmin) {
+            actions.add(const SizedBox(height: 8));
+            actions.add(
+              OutlinedButton.icon(
+                onPressed: () => _confirmAnnul(context, ref),
+                icon: const Icon(Icons.gavel, color: AppColors.error),
+                label: const Text('Cancelar Desafio (Admin)',
+                    style: TextStyle(color: AppColors.error)),
+              ),
+            );
+          }
+        }
         break;
 
       case ChallengeStatus.scheduled:
@@ -565,6 +595,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
                     'challengedId': challenge.challengedId,
                     'challengerName': challenge.challengerName ?? 'Desafiante',
                     'challengedName': challenge.challengedName ?? 'Desafiado',
+                    'challengeStatus': challenge.status.name,
                   },
                 );
               },
@@ -593,6 +624,33 @@ class _ChallengeDetailBody extends ConsumerWidget {
                 style: TextStyle(color: AppColors.error)),
           ),
         );
+        // Admin: submit result bypassing delay rule
+        {
+          final isAdmin = ref.watch(isClubAdminProvider).valueOrNull ?? false;
+          if (isAdmin && delayBlocked) {
+            actions.add(const SizedBox(height: 8));
+            actions.add(
+              OutlinedButton.icon(
+                onPressed: () {
+                  context.push(
+                    '/challenges/$challengeId/record-result',
+                    extra: {
+                      'challengerId': challenge.challengerId,
+                      'challengedId': challenge.challengedId,
+                      'challengerName': challenge.challengerName ?? 'Desafiante',
+                      'challengedName': challenge.challengedName ?? 'Desafiado',
+                      'isAdminEdit': true,
+                      'challengeStatus': challenge.status.name,
+                    },
+                  );
+                },
+                icon: Icon(Icons.scoreboard, color: AppColors.warning),
+                label: Text('Registrar Resultado (Admin)',
+                    style: TextStyle(color: AppColors.warning)),
+              ),
+            );
+          }
+        }
         break;
 
       case ChallengeStatus.pendingResult:
@@ -659,6 +717,33 @@ class _ChallengeDetailBody extends ConsumerWidget {
                 style: TextStyle(color: AppColors.error)),
           ),
         );
+        // Admin: submit result directly + cancel
+        {
+          final isAdmin = ref.watch(isClubAdminProvider).valueOrNull ?? false;
+          if (isAdmin) {
+            actions.add(const SizedBox(height: 8));
+            actions.add(
+              OutlinedButton.icon(
+                onPressed: () {
+                  context.push(
+                    '/challenges/$challengeId/record-result',
+                    extra: {
+                      'challengerId': challenge.challengerId,
+                      'challengedId': challenge.challengedId,
+                      'challengerName': challenge.challengerName ?? 'Desafiante',
+                      'challengedName': challenge.challengedName ?? 'Desafiado',
+                      'isAdminEdit': true,
+                      'challengeStatus': challenge.status.name,
+                    },
+                  );
+                },
+                icon: Icon(Icons.scoreboard, color: AppColors.warning),
+                label: Text('Registrar Resultado (Admin)',
+                    style: TextStyle(color: AppColors.warning)),
+              ),
+            );
+          }
+        }
         break;
 
       case ChallengeStatus.completed:
@@ -687,6 +772,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
                       'challengerName': challenge.challengerName ?? 'Desafiante',
                       'challengedName': challenge.challengedName ?? 'Desafiado',
                       'isAdminEdit': true,
+                      'challengeStatus': challenge.status.name,
                     },
                   );
                 },

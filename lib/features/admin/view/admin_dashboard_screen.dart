@@ -47,6 +47,12 @@ class AdminDashboardScreen extends StatelessWidget {
             onTap: () {},
           ),
           _AdminCard(
+            icon: Icons.event_available,
+            title: 'Reservas',
+            subtitle: 'Criar e gerenciar reservas',
+            onTap: () => context.push('/admin/reservations'),
+          ),
+          _AdminCard(
             icon: Icons.sports,
             title: 'Esportes',
             subtitle: 'Habilitar/desabilitar esportes',

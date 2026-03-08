@@ -35,6 +35,7 @@ class ChallengeModel {
   final String? challengerAvatarUrl;
   final String? challengedAvatarUrl;
   final String? courtName;
+  final String? scoreDisplay;
 
   const ChallengeModel({
     required this.id,
@@ -69,6 +70,7 @@ class ChallengeModel {
     this.challengerAvatarUrl,
     this.challengedAvatarUrl,
     this.courtName,
+    this.scoreDisplay,
   });
 
   bool get isActive => status.isActive;
@@ -129,6 +131,24 @@ class ChallengeModel {
     final challenged = json['challenged'] as Map<String, dynamic>?;
     final court = json['court'] as Map<String, dynamic>?;
 
+    // Parse match score (matches is a 1:many relation, take first)
+    String? scoreDisplay;
+    final matchData = json['match'];
+    if (matchData is List && matchData.isNotEmpty) {
+      final m = matchData.first as Map<String, dynamic>;
+      final sets = m['sets'] as List<dynamic>? ?? [];
+      if (sets.isNotEmpty) {
+        scoreDisplay = sets.map((s) {
+          final sm = s as Map<String, dynamic>;
+          final w = sm['winner_games'] as int;
+          final l = sm['loser_games'] as int;
+          final tw = sm['tiebreak_winner'] as int?;
+          final tl = sm['tiebreak_loser'] as int?;
+          return tw != null ? '$w-$l($tw-$tl)' : '$w-$l';
+        }).join(' ');
+      }
+    }
+
     return ChallengeModel(
       id: json['id'] as String,
       sportId: json['sport_id'] as String?,
@@ -182,6 +202,7 @@ class ChallengeModel {
       challengerAvatarUrl: challenger?['avatar_url'] as String?,
       challengedAvatarUrl: challenged?['avatar_url'] as String?,
       courtName: court?['name'] as String?,
+      scoreDisplay: scoreDisplay,
     );
   }
 

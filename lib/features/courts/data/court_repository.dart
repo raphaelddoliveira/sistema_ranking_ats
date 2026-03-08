@@ -311,17 +311,27 @@ class CourtRepository {
   Future<int> getActiveFriendlyReservationCount() async {
     try {
       final playerId = await _getCurrentPlayerId();
-      final today = DateTime.now();
+      final now = DateTime.now();
       final dateStr =
-          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final timeStr =
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
       final data = await _client
           .from(SupabaseConstants.courtReservationsTable)
-          .select('id')
+          .select('id, reservation_date, end_time')
           .or('reserved_by.eq.$playerId,opponent_id.eq.$playerId')
           .eq('status', 'confirmed')
           .isFilter('challenge_id', null)
           .gte('reservation_date', dateStr);
-      return data.length;
+      // Filter out today's reservations that already ended
+      final active = data.where((r) {
+        final date = r['reservation_date'] as String;
+        if (date == dateStr) {
+          return (r['end_time'] as String).compareTo(timeStr) > 0;
+        }
+        return true;
+      }).toList();
+      return active.length;
     } catch (e) {
       throw ErrorHandler.handle(e);
     }
@@ -330,18 +340,26 @@ class CourtRepository {
   /// Check if a specific player has an active friendly reservation
   Future<bool> playerHasActiveFriendlyReservation(String playerId) async {
     try {
-      final today = DateTime.now();
+      final now = DateTime.now();
       final dateStr =
-          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final timeStr =
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
       final data = await _client
           .from(SupabaseConstants.courtReservationsTable)
-          .select('id')
+          .select('id, reservation_date, end_time')
           .or('reserved_by.eq.$playerId,opponent_id.eq.$playerId')
           .eq('status', 'confirmed')
           .isFilter('challenge_id', null)
-          .gte('reservation_date', dateStr)
-          .limit(1);
-      return data.isNotEmpty;
+          .gte('reservation_date', dateStr);
+      // Only count reservations that haven't ended yet
+      return data.any((r) {
+        final date = r['reservation_date'] as String;
+        if (date == dateStr) {
+          return (r['end_time'] as String).compareTo(timeStr) > 0;
+        }
+        return true;
+      });
     } catch (e) {
       throw ErrorHandler.handle(e);
     }
@@ -561,6 +579,65 @@ class CourtRepository {
         'p_admin_auth_id': adminAuthId,
         'p_reservation_id': reservationId,
       });
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Admin: create reservation for two club members
+  Future<String> adminCreateReservation({
+    required String player1Id,
+    required String player2Id,
+    required String courtId,
+    required DateTime date,
+    required String startTime,
+    required String endTime,
+    required String clubId,
+  }) async {
+    try {
+      final authId = _client.auth.currentUser!.id;
+      final result = await _client.rpc(
+        SupabaseConstants.rpcAdminCreateReservation,
+        params: {
+          'p_admin_auth_id': authId,
+          'p_player1_id': player1Id,
+          'p_player2_id': player2Id,
+          'p_court_id': courtId,
+          'p_reservation_date': '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+          'p_start_time': startTime,
+          'p_end_time': endTime,
+          'p_club_id': clubId,
+        },
+      );
+      return result as String;
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Admin: get all club reservations (confirmed, today+)
+  Future<List<ReservationModel>> getClubReservations({required String clubId}) async {
+    try {
+      final now = DateTime.now();
+      final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+      // Get all courts for this club
+      final courts = await _client
+          .from(SupabaseConstants.courtsTable)
+          .select('id')
+          .eq('club_id', clubId);
+      final courtIds = courts.map((c) => c['id'] as String).toList();
+      if (courtIds.isEmpty) return [];
+
+      final data = await _client
+          .from(SupabaseConstants.courtReservationsTable)
+          .select(_reservationSelect)
+          .inFilter('court_id', courtIds)
+          .eq('status', 'confirmed')
+          .gte('reservation_date', dateStr)
+          .order('reservation_date')
+          .order('start_time');
+      return data.map((e) => ReservationModel.fromJson(e)).toList();
     } catch (e) {
       throw ErrorHandler.handle(e);
     }

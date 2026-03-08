@@ -33,6 +33,8 @@ abstract final class SupabaseConstants {
   static const String rpcEnrollMemberInSport = 'enroll_member_in_sport';
   static const String rpcRemoveClubMember = 'remove_club_member';
   static const String rpcAdminReorderRanking = 'admin_reorder_ranking';
+  static const String rpcAdminCreateReservation = 'admin_create_reservation';
+  static const String rpcAdminSubmitChallengeResult = 'admin_submit_challenge_result';
 
   // Storage buckets
   static const String avatarsBucket = 'avatars';

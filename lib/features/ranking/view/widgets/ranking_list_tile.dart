@@ -8,11 +8,13 @@ import '../../../../shared/models/club_member_model.dart';
 class RankingListTile extends StatelessWidget {
   final ClubMemberModel member;
   final VoidCallback? onTap;
+  final bool hasActiveChallenge;
 
   const RankingListTile({
     super.key,
     required this.member,
     this.onTap,
+    this.hasActiveChallenge = false,
   });
 
   @override
@@ -62,7 +64,7 @@ class RankingListTile extends StatelessWidget {
               ),
 
               // Status indicators
-              _StatusIndicators(member: member),
+              _StatusIndicators(member: member, hasActiveChallenge: hasActiveChallenge),
 
               const SizedBox(width: 4),
               Icon(Icons.arrow_forward_ios, color: AppColors.onBackgroundLight, size: 14),
@@ -176,14 +178,23 @@ class _PlayerAvatar extends StatelessWidget {
 
 class _StatusIndicators extends StatelessWidget {
   final ClubMemberModel member;
+  final bool hasActiveChallenge;
 
-  const _StatusIndicators({required this.member});
+  const _StatusIndicators({required this.member, this.hasActiveChallenge = false});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (hasActiveChallenge)
+          const Padding(
+            padding: EdgeInsets.only(left: 4),
+            child: Tooltip(
+              message: 'Desafio ativo',
+              child: Text('⚔️', style: TextStyle(fontSize: 16)),
+            ),
+          ),
         if (member.isOnAmbulance)
           const Tooltip(
             message: 'Ambulância ativa',

@@ -22,7 +22,8 @@ class ChallengeRepository {
     *,
     challenger:players!challenger_id(full_name, avatar_url),
     challenged:players!challenged_id(full_name, avatar_url),
-    court:courts!court_id(name)
+    court:courts!court_id(name),
+    match:matches!challenge_id(winner_id, loser_id, winner_sets, loser_sets, sets)
   ''';
 
   /// Create a challenge via RPC
@@ -76,6 +77,29 @@ class ChallengeRepository {
     }
   }
 
+  /// Get player IDs with active challenges in the club (for ranking badges)
+  Future<Set<String>> getPlayersWithActiveChallenges({required String clubId, String? sportId}) async {
+    try {
+      var query = _client
+          .from(SupabaseConstants.challengesTable)
+          .select('challenger_id, challenged_id')
+          .eq('club_id', clubId)
+          .inFilter('status', ['scheduled', 'pending_result']);
+      if (sportId != null) {
+        query = query.eq('sport_id', sportId);
+      }
+      final data = await query;
+      final playerIds = <String>{};
+      for (final row in data) {
+        playerIds.add(row['challenger_id'] as String);
+        playerIds.add(row['challenged_id'] as String);
+      }
+      return playerIds;
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
   /// Expire a challenge where all proposed dates have passed (no ranking change)
   Future<void> _expireDatesProposedChallenge(
     String challengeId,
@@ -116,6 +140,28 @@ class ChallengeRepository {
     }
   }
 
+  /// Get upcoming scheduled challenges for all players in a club
+  Future<List<ChallengeModel>> getUpcomingChallenges({required String clubId, String? sportId}) async {
+    try {
+      var query = _client
+          .from(SupabaseConstants.challengesTable)
+          .select(_selectWithJoins)
+          .eq('club_id', clubId)
+          .inFilter('status', ['scheduled', 'dates_proposed'])
+          .not('chosen_date', 'is', null);
+      if (sportId != null) {
+        query = query.eq('sport_id', sportId);
+      }
+      final data = await query.order('chosen_date', ascending: true).limit(20);
+      return data
+          .map((e) => ChallengeModel.fromJson(e))
+          .where((c) => c.chosenDate != null && c.chosenDate!.isAfter(DateTime.now().subtract(const Duration(hours: 2))))
+          .toList();
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
   /// Get challenge history for current player in a club + sport
   Future<List<ChallengeModel>> getChallengeHistory({required String clubId, String? sportId}) async {
     try {
@@ -132,6 +178,26 @@ class ChallengeRepository {
         query = query.eq('sport_id', sportId);
       }
       final data = await query.order('completed_at', ascending: false).limit(50);
+      return data.map((e) => ChallengeModel.fromJson(e)).toList();
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Get challenge history for ALL players in the club (timeline)
+  Future<List<ChallengeModel>> getAllChallengeHistory({required String clubId, String? sportId}) async {
+    try {
+      var query = _client
+          .from(SupabaseConstants.challengesTable)
+          .select(_selectWithJoins)
+          .eq('club_id', clubId)
+          .inFilter('status', [
+            'completed', 'wo_challenger', 'wo_challenged', 'expired', 'cancelled'
+          ]);
+      if (sportId != null) {
+        query = query.eq('sport_id', sportId);
+      }
+      final data = await query.order('completed_at', ascending: false).limit(100);
       return data.map((e) => ChallengeModel.fromJson(e)).toList();
     } catch (e) {
       throw ErrorHandler.handle(e);
@@ -501,6 +567,36 @@ class ChallengeRepository {
           'p_admin_id': playerId,
           'p_new_winner_id': winnerId,
           'p_new_loser_id': loserId,
+          'p_sets': sets.map((s) => s.toJson()).toList(),
+          'p_winner_sets': winnerSets,
+          'p_loser_sets': loserSets,
+          'p_super_tiebreak': superTiebreak,
+        },
+      );
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Admin: submit result directly (no confirmation needed)
+  Future<void> adminSubmitResult({
+    required String challengeId,
+    required String winnerId,
+    required String loserId,
+    required List<SetScore> sets,
+    required int winnerSets,
+    required int loserSets,
+    bool superTiebreak = false,
+  }) async {
+    try {
+      final authId = _client.auth.currentUser!.id;
+      await _client.rpc(
+        SupabaseConstants.rpcAdminSubmitChallengeResult,
+        params: {
+          'p_admin_auth_id': authId,
+          'p_challenge_id': challengeId,
+          'p_winner_id': winnerId,
+          'p_loser_id': loserId,
           'p_sets': sets.map((s) => s.toJson()).toList(),
           'p_winner_sets': winnerSets,
           'p_loser_sets': loserSets,

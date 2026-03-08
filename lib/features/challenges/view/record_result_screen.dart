@@ -17,6 +17,7 @@ class RecordResultScreen extends ConsumerStatefulWidget {
   final String challengerName;
   final String challengedName;
   final bool isAdminEdit;
+  final String? challengeStatus;
 
   const RecordResultScreen({
     super.key,
@@ -26,6 +27,7 @@ class RecordResultScreen extends ConsumerStatefulWidget {
     required this.challengerName,
     required this.challengedName,
     this.isAdminEdit = false,
+    this.challengeStatus,
   });
 
   @override
@@ -1030,16 +1032,31 @@ class _RecordResultScreenState extends ConsumerState<RecordResultScreen> {
 
     final bool success;
     if (widget.isAdminEdit) {
-      success =
-          await ref.read(challengeActionProvider.notifier).adminEditResult(
-                challengeId: widget.challengeId,
-                winnerId: winnerId,
-                loserId: loserId,
-                sets: validSets,
-                winnerSets: winnerSets,
-                loserSets: loserSets,
-                superTiebreak: isSuperTb,
-              );
+      final status = widget.challengeStatus;
+      final isAdminSubmit = status == 'scheduled' || status == 'pending_result';
+      if (isAdminSubmit) {
+        success =
+            await ref.read(challengeActionProvider.notifier).adminSubmitResult(
+                  challengeId: widget.challengeId,
+                  winnerId: winnerId,
+                  loserId: loserId,
+                  sets: validSets,
+                  winnerSets: winnerSets,
+                  loserSets: loserSets,
+                  superTiebreak: isSuperTb,
+                );
+      } else {
+        success =
+            await ref.read(challengeActionProvider.notifier).adminEditResult(
+                  challengeId: widget.challengeId,
+                  winnerId: winnerId,
+                  loserId: loserId,
+                  sets: validSets,
+                  winnerSets: winnerSets,
+                  loserSets: loserSets,
+                  superTiebreak: isSuperTb,
+                );
+      }
     } else {
       success =
           await ref.read(challengeActionProvider.notifier).recordResult(

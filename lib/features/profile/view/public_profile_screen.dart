@@ -12,6 +12,7 @@ import '../../../shared/widgets/gradient_button.dart';
 import '../../clubs/viewmodel/club_providers.dart';
 import '../../ranking/viewmodel/ranking_history_viewmodel.dart';
 import '../../ranking/view/widgets/ranking_chart.dart';
+import '../viewmodel/follow_viewmodel.dart';
 import '../viewmodel/public_profile_viewmodel.dart';
 import 'widgets/stats_card.dart';
 
@@ -29,6 +30,8 @@ class PublicProfileScreen extends ConsumerWidget {
     final currentPlayer = ref.watch(currentPlayerProvider).valueOrNull;
     final currentMember = ref.watch(currentClubMemberProvider).valueOrNull;
     final isOwnProfile = currentPlayer?.id == playerId;
+    final followCounts = ref.watch(followCountsProvider(playerId));
+    final isFollowing = isOwnProfile ? null : ref.watch(isFollowingProvider(playerId));
 
     return Scaffold(
       appBar: AppBar(
@@ -137,6 +140,60 @@ class PublicProfileScreen extends ConsumerWidget {
                                       color: AppColors.onBackgroundMedium),
                             ),
                           ],
+                          // Follow button
+                          if (!isOwnProfile) ...[
+                            const SizedBox(height: 14),
+                            SizedBox(
+                              width: 160,
+                              height: 36,
+                              child: isFollowing?.when(
+                                    data: (following) => OutlinedButton.icon(
+                                      onPressed: () => ref
+                                          .read(followActionProvider.notifier)
+                                          .toggleFollow(playerId),
+                                      icon: Icon(
+                                        following
+                                            ? Icons.person_remove
+                                            : Icons.person_add,
+                                        size: 18,
+                                      ),
+                                      label: Text(
+                                        following ? 'Seguindo' : 'Seguir',
+                                        style: const TextStyle(fontSize: 13),
+                                      ),
+                                      style: OutlinedButton.styleFrom(
+                                        backgroundColor: following
+                                            ? AppColors.primary.withAlpha(20)
+                                            : null,
+                                        side: BorderSide(
+                                          color: following
+                                              ? AppColors.primary
+                                              : AppColors.onBackgroundLight,
+                                        ),
+                                        foregroundColor: following
+                                            ? AppColors.primary
+                                            : AppColors.onBackgroundMedium,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                        ),
+                                      ),
+                                    ),
+                                    loading: () =>
+                                        const Center(
+                                          child: SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child:
+                                                CircularProgressIndicator(
+                                                    strokeWidth: 2),
+                                          ),
+                                        ),
+                                    error: (_, _) => const SizedBox.shrink(),
+                                  ) ??
+                                  const SizedBox.shrink(),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -146,34 +203,60 @@ class PublicProfileScreen extends ConsumerWidget {
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-                      child: Row(
+                      child: Column(
                         children: [
-                          Expanded(
-                            child: StatsCard(
-                              label: 'Posicao',
-                              value:
-                                  '#${member?.rankingPosition ?? '-'}',
-                              icon: Icons.emoji_events,
-                              color: AppColors.gold,
-                            ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: StatsCard(
+                                  label: 'Posicao',
+                                  value:
+                                      '#${member?.rankingPosition ?? '-'}',
+                                  icon: Icons.emoji_events,
+                                  color: AppColors.gold,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: StatsCard(
+                                  label: 'Vitorias',
+                                  value: '$wins',
+                                  icon: Icons.check_circle,
+                                  color: AppColors.success,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: StatsCard(
+                                  label: 'Derrotas',
+                                  value: '$losses',
+                                  icon: Icons.cancel,
+                                  color: AppColors.error,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: StatsCard(
-                              label: 'Vitorias',
-                              value: '$wins',
-                              icon: Icons.check_circle,
-                              color: AppColors.success,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: StatsCard(
-                              label: 'Derrotas',
-                              value: '$losses',
-                              icon: Icons.cancel,
-                              color: AppColors.error,
-                            ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: StatsCard(
+                                  label: 'Seguidores',
+                                  value: '${followCounts.valueOrNull?.followers ?? 0}',
+                                  icon: Icons.people,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: StatsCard(
+                                  label: 'Seguindo',
+                                  value: '${followCounts.valueOrNull?.following ?? 0}',
+                                  icon: Icons.person_add,
+                                  color: AppColors.secondary,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),

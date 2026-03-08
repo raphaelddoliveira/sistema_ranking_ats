@@ -213,4 +213,32 @@ class ChallengeActionNotifier extends StateNotifier<AsyncValue<void>> {
       return false;
     }
   }
+
+  Future<bool> adminSubmitResult({
+    required String challengeId,
+    required String winnerId,
+    required String loserId,
+    required List<SetScore> sets,
+    required int winnerSets,
+    required int loserSets,
+    bool superTiebreak = false,
+  }) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.adminSubmitResult(
+        challengeId: challengeId,
+        winnerId: winnerId,
+        loserId: loserId,
+        sets: sets,
+        winnerSets: winnerSets,
+        loserSets: loserSets,
+        superTiebreak: superTiebreak,
+      );
+      state = const AsyncData(null);
+      return true;
+    } on AppException catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
 }

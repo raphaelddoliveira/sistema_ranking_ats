@@ -41,6 +41,8 @@ final notificationRealtimeProvider = Provider<void>((ref) {
     ref.invalidate(unreadCountProvider);
     ref.invalidate(activeChallengesProvider);
     ref.invalidate(challengeHistoryProvider);
+    ref.invalidate(allChallengeHistoryProvider);
+    ref.invalidate(upcomingChallengesProvider);
     ref.invalidate(rankingListProvider);
     ref.invalidate(currentClubMemberProvider);
     ref.invalidate(myReservationsProvider);
