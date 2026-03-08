@@ -144,65 +144,68 @@ class PublicProfileScreen extends ConsumerWidget {
                           // Follow button
                           if (!isOwnProfile) ...[
                             const SizedBox(height: 14),
-                            SizedBox(
-                              width: 160,
-                              height: 36,
-                              child: isFollowing?.when(
-                                    data: (following) => OutlinedButton.icon(
-                                      onPressed: followAction.isLoading
-                                          ? null
-                                          : () => ref
-                                              .read(followActionProvider.notifier)
-                                              .toggleFollow(playerId),
-                                      icon: followAction.isLoading
-                                          ? const SizedBox(
-                                              width: 16,
-                                              height: 16,
-                                              child: CircularProgressIndicator(
-                                                  strokeWidth: 2),
-                                            )
-                                          : Icon(
-                                              following
-                                                  ? Icons.person_remove
-                                                  : Icons.person_add,
-                                              size: 18,
-                                            ),
-                                      label: Text(
-                                        following ? 'Seguindo' : 'Seguir',
-                                        style: const TextStyle(fontSize: 13),
-                                      ),
-                                      style: OutlinedButton.styleFrom(
-                                        backgroundColor: following
-                                            ? AppColors.primary.withAlpha(20)
-                                            : null,
-                                        side: BorderSide(
-                                          color: following
-                                              ? AppColors.primary
-                                              : AppColors.onBackgroundLight,
-                                        ),
-                                        foregroundColor: following
+                            isFollowing?.when(
+                                  data: (following) => OutlinedButton(
+                                    onPressed: followAction.isLoading
+                                        ? null
+                                        : () => ref
+                                            .read(followActionProvider.notifier)
+                                            .toggleFollow(playerId),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 24, vertical: 10),
+                                      backgroundColor: following
+                                          ? AppColors.primary.withAlpha(20)
+                                          : null,
+                                      side: BorderSide(
+                                        color: following
                                             ? AppColors.primary
-                                            : AppColors.onBackgroundMedium,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                        ),
+                                            : AppColors.onBackgroundLight,
+                                      ),
+                                      foregroundColor: following
+                                          ? AppColors.primary
+                                          : AppColors.onBackgroundMedium,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(20),
                                       ),
                                     ),
-                                    loading: () =>
-                                        const Center(
-                                          child: SizedBox(
-                                            width: 20,
-                                            height: 20,
-                                            child:
-                                                CircularProgressIndicator(
-                                                    strokeWidth: 2),
+                                    child: followAction.isLoading
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                                strokeWidth: 2),
+                                          )
+                                        : Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                following
+                                                    ? Icons.person_remove
+                                                    : Icons.person_add,
+                                                size: 18,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                following
+                                                    ? 'Seguindo'
+                                                    : 'Seguir',
+                                                style: const TextStyle(
+                                                    fontSize: 13),
+                                              ),
+                                            ],
                                           ),
-                                        ),
-                                    error: (_, _) => const SizedBox.shrink(),
-                                  ) ??
-                                  const SizedBox.shrink(),
-                            ),
+                                  ),
+                                  loading: () => const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  ),
+                                  error: (_, _) => const SizedBox.shrink(),
+                                ) ??
+                                const SizedBox.shrink(),
                           ],
                         ],
                       ),
