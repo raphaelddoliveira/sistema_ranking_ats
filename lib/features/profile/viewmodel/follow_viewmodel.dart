@@ -29,16 +29,31 @@ final followActionProvider =
 
 class FollowActionNotifier extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
+  bool _busy = false;
 
   FollowActionNotifier(this._ref) : super(const AsyncData(null));
 
   Future<void> toggleFollow(String targetPlayerId) async {
-    final currentPlayer = _ref.read(currentPlayerProvider).valueOrNull;
-    if (currentPlayer == null) return;
-    final repo = _ref.read(followRepositoryProvider);
-    await repo.toggleFollow(currentPlayer.id, targetPlayerId);
-    _ref.invalidate(isFollowingProvider(targetPlayerId));
-    _ref.invalidate(followCountsProvider(targetPlayerId));
-    _ref.invalidate(followCountsProvider(currentPlayer.id));
+    if (_busy) return;
+    _busy = true;
+    state = const AsyncLoading();
+    try {
+      final currentPlayer = _ref.read(currentPlayerProvider).valueOrNull;
+      if (currentPlayer == null) {
+        state = const AsyncData(null);
+        _busy = false;
+        return;
+      }
+      final repo = _ref.read(followRepositoryProvider);
+      await repo.toggleFollow(currentPlayer.id, targetPlayerId);
+      _ref.invalidate(isFollowingProvider(targetPlayerId));
+      _ref.invalidate(followCountsProvider(targetPlayerId));
+      _ref.invalidate(followCountsProvider(currentPlayer.id));
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    } finally {
+      _busy = false;
+    }
   }
 }

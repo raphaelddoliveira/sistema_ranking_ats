@@ -32,6 +32,7 @@ class PublicProfileScreen extends ConsumerWidget {
     final isOwnProfile = currentPlayer?.id == playerId;
     final followCounts = ref.watch(followCountsProvider(playerId));
     final isFollowing = isOwnProfile ? null : ref.watch(isFollowingProvider(playerId));
+    final followAction = ref.watch(followActionProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -148,15 +149,24 @@ class PublicProfileScreen extends ConsumerWidget {
                               height: 36,
                               child: isFollowing?.when(
                                     data: (following) => OutlinedButton.icon(
-                                      onPressed: () => ref
-                                          .read(followActionProvider.notifier)
-                                          .toggleFollow(playerId),
-                                      icon: Icon(
-                                        following
-                                            ? Icons.person_remove
-                                            : Icons.person_add,
-                                        size: 18,
-                                      ),
+                                      onPressed: followAction.isLoading
+                                          ? null
+                                          : () => ref
+                                              .read(followActionProvider.notifier)
+                                              .toggleFollow(playerId),
+                                      icon: followAction.isLoading
+                                          ? const SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                  strokeWidth: 2),
+                                            )
+                                          : Icon(
+                                              following
+                                                  ? Icons.person_remove
+                                                  : Icons.person_add,
+                                              size: 18,
+                                            ),
                                       label: Text(
                                         following ? 'Seguindo' : 'Seguir',
                                         style: const TextStyle(fontSize: 13),
