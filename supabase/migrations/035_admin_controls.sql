@@ -51,6 +51,21 @@ BEGIN
     RAISE EXCEPTION 'Os dois jogadores devem ser diferentes';
   END IF;
 
+  -- Validate both players are active members of the club
+  IF NOT EXISTS (
+    SELECT 1 FROM club_members
+    WHERE club_id = p_club_id AND player_id = p_player1_id AND status = 'active'
+  ) THEN
+    RAISE EXCEPTION 'Jogador 1 nao e um membro ativo do clube';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM club_members
+    WHERE club_id = p_club_id AND player_id = p_player2_id AND status = 'active'
+  ) THEN
+    RAISE EXCEPTION 'Jogador 2 nao e um membro ativo do clube';
+  END IF;
+
   -- Get player names
   SELECT full_name INTO v_player1_name FROM players WHERE id = p_player1_id;
   SELECT full_name INTO v_player2_name FROM players WHERE id = p_player2_id;
