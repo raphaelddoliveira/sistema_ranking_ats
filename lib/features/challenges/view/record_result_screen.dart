@@ -1104,8 +1104,9 @@ class _SetScoreInput {
   bool isTiebreak(bool singleSet) {
     if (challengerGames == null || challengedGames == null) return false;
     if (singleSet) {
-      // Single set of 8 games: tiebreak at 7-7
-      return challengerGames == 7 && challengedGames == 7;
+      // Single set of 8 games: tiebreak at 7-7 or 8-8
+      return (challengerGames == 7 && challengedGames == 7) ||
+          (challengerGames == 8 && challengedGames == 8);
     }
     return (challengerGames == 7 && challengedGames == 6) ||
         (challengerGames == 6 && challengedGames == 7);

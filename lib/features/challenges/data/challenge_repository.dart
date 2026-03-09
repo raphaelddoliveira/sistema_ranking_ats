@@ -85,7 +85,7 @@ class ChallengeRepository {
           .from(SupabaseConstants.challengesTable)
           .select('challenger_id, challenged_id')
           .eq('club_id', clubId)
-          .inFilter('status', ['scheduled', 'pending_result']);
+          .inFilter('status', ['pending', 'dates_proposed', 'scheduled', 'pending_result']);
       if (sportId != null) {
         query = query.eq('sport_id', sportId);
       }
