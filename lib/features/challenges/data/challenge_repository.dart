@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -66,7 +67,7 @@ class ChallengeRepository {
       final active = <ChallengeModel>[];
       for (final c in challenges) {
         if (c.isCourtDateExpired || c.allProposedDatesExpired) {
-          _expireDatesProposedChallenge(c.id, c.challengerId, c.challengedId, clubId);
+          await _expireDatesProposedChallenge(c.id, c.challengerId, c.challengedId, clubId);
         } else {
           active.add(c);
         }
@@ -108,35 +109,41 @@ class ChallengeRepository {
     String clubId,
   ) async {
     try {
+      // Update status first — only notify if this succeeds
       await _client
           .from(SupabaseConstants.challengesTable)
           .update({
             'status': 'expired',
-            'completed_at': DateTime.now().toIso8601String(),
+            'completed_at': DateTime.now().toUtc().toIso8601String(),
           })
           .eq('id', challengeId);
 
-      // Notify both players
-      await _client.from(SupabaseConstants.notificationsTable).insert([
-        {
-          'player_id': challengerId,
-          'type': 'general',
-          'title': 'Desafio Expirado',
-          'body': 'Todas as datas propostas já passaram. O desafio foi encerrado sem alteração no ranking.',
-          'data': {'challenge_id': challengeId},
-          'club_id': clubId,
-        },
-        {
-          'player_id': challengedId,
-          'type': 'general',
-          'title': 'Desafio Expirado',
-          'body': 'Todas as datas propostas já passaram. O desafio foi encerrado sem alteração no ranking.',
-          'data': {'challenge_id': challengeId},
-          'club_id': clubId,
-        },
-      ]);
-    } catch (_) {
-      // Silent fail for background expiration
+      // Notify both players (best-effort after confirmed update)
+      try {
+        await _client.from(SupabaseConstants.notificationsTable).insert([
+          {
+            'player_id': challengerId,
+            'type': 'general',
+            'title': 'Desafio Expirado',
+            'body': 'Todas as datas propostas já passaram. O desafio foi encerrado sem alteração no ranking.',
+            'data': {'challenge_id': challengeId},
+            'club_id': clubId,
+          },
+          {
+            'player_id': challengedId,
+            'type': 'general',
+            'title': 'Desafio Expirado',
+            'body': 'Todas as datas propostas já passaram. O desafio foi encerrado sem alteração no ranking.',
+            'data': {'challenge_id': challengeId},
+            'club_id': clubId,
+          },
+        ]);
+      } catch (_) {
+        // Notification failure is non-critical
+      }
+    } catch (e) {
+      // Log expiration failure so it can be retried
+      debugPrint('Failed to expire challenge $challengeId: $e');
     }
   }
 
@@ -155,7 +162,7 @@ class ChallengeRepository {
       final data = await query.order('chosen_date', ascending: true).limit(20);
       return data
           .map((e) => ChallengeModel.fromJson(e))
-          .where((c) => c.chosenDate != null && c.chosenDate!.isAfter(DateTime.now().subtract(const Duration(hours: 2))))
+          .where((c) => c.chosenDate != null && c.chosenDate!.isAfter(DateTime.now().toUtc().subtract(const Duration(hours: 2))))
           .toList();
     } catch (e) {
       throw ErrorHandler.handle(e);
@@ -254,8 +261,8 @@ class ChallengeRepository {
         'opponent_type': 'member',
       });
 
-      // 3. Build chosen_date with time info
-      final chosenDateTime = DateTime(
+      // 3. Build chosen_date with time info (local time, then convert to UTC for storage)
+      final chosenDateTimeLocal = DateTime(
         date.year,
         date.month,
         date.day,
@@ -269,8 +276,8 @@ class ChallengeRepository {
           .update({
             'status': 'dates_proposed',
             'court_id': courtId,
-            'chosen_date': chosenDateTime.toIso8601String(),
-            'dates_proposed_at': DateTime.now().toIso8601String(),
+            'chosen_date': chosenDateTimeLocal.toUtc().toIso8601String(),
+            'dates_proposed_at': DateTime.now().toUtc().toIso8601String(),
           })
           .eq('id', challengeId);
 
@@ -298,14 +305,17 @@ class ChallengeRepository {
           .eq('id', challengeId)
           .single();
 
-      final chosenDate =
-          DateTime.parse(challenge['chosen_date'] as String);
+      final chosenDateStr = challenge['chosen_date'] as String?;
+      if (chosenDateStr == null) {
+        throw Exception('Desafio não possui data escolhida.');
+      }
+      final chosenDate = DateTime.parse(chosenDateStr);
 
       await _client
           .from(SupabaseConstants.challengesTable)
           .update({
             'status': 'scheduled',
-            'date_chosen_at': DateTime.now().toIso8601String(),
+            'date_chosen_at': DateTime.now().toUtc().toIso8601String(),
             'play_deadline': chosenDate
                 .add(const Duration(days: 7))
                 .toIso8601String(),
@@ -347,7 +357,7 @@ class ChallengeRepository {
             .from(SupabaseConstants.courtReservationsTable)
             .update({
               'status': 'cancelled',
-              'updated_at': DateTime.now().toIso8601String(),
+              'updated_at': DateTime.now().toUtc().toIso8601String(),
             })
             .eq('id', r['id']);
       }
@@ -471,7 +481,7 @@ class ChallengeRepository {
           .from(SupabaseConstants.courtReservationsTable)
           .update({
             'status': 'completed',
-            'updated_at': DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
           })
           .eq('challenge_id', challengeId);
     } catch (_) {
@@ -502,7 +512,7 @@ class ChallengeRepository {
             .from(SupabaseConstants.courtReservationsTable)
             .update({
               'status': 'cancelled',
-              'updated_at': DateTime.now().toIso8601String(),
+              'updated_at': DateTime.now().toUtc().toIso8601String(),
             })
             .eq('id', r['id']);
       }
@@ -511,7 +521,7 @@ class ChallengeRepository {
           .from(SupabaseConstants.challengesTable)
           .update({
             'status': 'cancelled',
-            'cancelled_at': DateTime.now().toIso8601String(),
+            'cancelled_at': DateTime.now().toUtc().toIso8601String(),
           })
           .eq('id', challengeId);
 

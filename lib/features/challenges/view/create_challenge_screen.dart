@@ -228,6 +228,8 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
               if (challengeId != null && mounted) {
                 SnackbarUtils.showSuccess(context, 'Desafio criado!');
                 ref.invalidate(activeChallengesProvider);
+                ref.invalidate(upcomingChallengesProvider);
+                ref.invalidate(eligibleOpponentsProvider);
                 context.pushReplacement('/challenges/$challengeId');
               }
             },

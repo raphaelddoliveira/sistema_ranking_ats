@@ -595,7 +595,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
                     'challengedId': challenge.challengedId,
                     'challengerName': challenge.challengerName ?? 'Desafiante',
                     'challengedName': challenge.challengedName ?? 'Desafiado',
-                    'challengeStatus': challenge.status.name,
+                    'challengeStatus': challenge.status.dbValue,
                   },
                 );
               },
@@ -642,7 +642,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
                         'challengerName': challenge.challengerName ?? 'Desafiante',
                         'challengedName': challenge.challengedName ?? 'Desafiado',
                         'isAdminEdit': true,
-                        'challengeStatus': challenge.status.name,
+                        'challengeStatus': challenge.status.dbValue,
                       },
                     );
                   },
@@ -749,7 +749,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
                       'challengerName': challenge.challengerName ?? 'Desafiante',
                       'challengedName': challenge.challengedName ?? 'Desafiado',
                       'isAdminEdit': true,
-                      'challengeStatus': challenge.status.name,
+                      'challengeStatus': challenge.status.dbValue,
                     },
                   );
                 },
@@ -800,7 +800,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
                       'challengerName': challenge.challengerName ?? 'Desafiante',
                       'challengedName': challenge.challengedName ?? 'Desafiado',
                       'isAdminEdit': true,
-                      'challengeStatus': challenge.status.name,
+                      'challengeStatus': challenge.status.dbValue,
                     },
                   );
                 },
@@ -882,6 +882,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
                 ref.invalidate(
                     challengeDetailProvider(challengeId));
                 ref.invalidate(activeChallengesProvider);
+                ref.invalidate(upcomingChallengesProvider);
               }
             },
             child: const Text('Aceitar'),
@@ -918,6 +919,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
                 ref.invalidate(
                     challengeDetailProvider(challengeId));
                 ref.invalidate(activeChallengesProvider);
+                ref.invalidate(upcomingChallengesProvider);
               }
             },
             child: const Text('Recusar'),

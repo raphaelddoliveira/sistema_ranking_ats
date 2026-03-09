@@ -206,6 +206,22 @@ class CourtRepository {
       final dateStr =
           '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
+      // Check if the slot is already taken (prevent double-booking)
+      final existing = await _client
+          .from(SupabaseConstants.courtReservationsTable)
+          .select('id')
+          .eq('court_id', courtId)
+          .eq('reservation_date', dateStr)
+          .eq('start_time', startTime)
+          .eq('status', 'confirmed')
+          .maybeSingle();
+      if (existing != null) {
+        throw const ValidationException(
+          'Este horário já está reservado.',
+          code: 'SLOT_ALREADY_BOOKED',
+        );
+      }
+
       // For friendly reservations, validate opponent doesn't already have one
       if (opponentId != null && challengeId == null && opponentType == OpponentType.member) {
         final opponentHasReservation =
@@ -414,6 +430,27 @@ class CourtRepository {
         );
       }
 
+      // Verify the reservation is still open (no opponent yet) to prevent race conditions
+      final current = await _client
+          .from(SupabaseConstants.courtReservationsTable)
+          .select('opponent_id, reserved_by')
+          .eq('id', reservationId)
+          .single();
+
+      if (current['opponent_id'] != null) {
+        throw const ValidationException(
+          'Esta reserva já tem um oponente.',
+          code: 'RESERVATION_FULL',
+        );
+      }
+
+      if (current['reserved_by'] == playerId) {
+        throw const ValidationException(
+          'Você não pode entrar na sua própria reserva.',
+          code: 'SELF_JOIN',
+        );
+      }
+
       // Get player name
       final playerData = await _client
           .from(SupabaseConstants.playersTable)
@@ -423,7 +460,7 @@ class CourtRepository {
 
       final playerName = playerData['full_name'] as String? ?? 'Jogador';
 
-      // Directly set as opponent (skip approval flow)
+      // Set as opponent — filter by opponent_id IS NULL to prevent race condition
       await _client
           .from(SupabaseConstants.courtReservationsTable)
           .update({
@@ -433,7 +470,8 @@ class CourtRepository {
             'candidate_id': null,
             'updated_at': DateTime.now().toIso8601String(),
           })
-          .eq('id', reservationId);
+          .eq('id', reservationId)
+          .isFilter('opponent_id', null);
 
       // Get reservation details for notification
       final res = await _client

@@ -234,8 +234,10 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
         final reservation = _findReservation(slot, reservations);
         final isReserved = reservation != null;
 
-        final slotHour = int.tryParse(slot.startTime.split(':')[0]) ?? 0;
-        final isSlotPast = isPast || (isToday && slotHour <= now.hour);
+        final slotParts = slot.startTime.split(':');
+        final slotHour = int.tryParse(slotParts[0]) ?? 0;
+        final slotMinute = slotParts.length > 1 ? (int.tryParse(slotParts[1]) ?? 0) : 0;
+        final isSlotPast = isPast || (isToday && (slotHour < now.hour || (slotHour == now.hour && slotMinute <= now.minute)));
 
         final isChallenge = reservation?.isChallenge ?? false;
         final isMine = reservation != null && reservation.reservedBy == currentPlayerId;
@@ -590,10 +592,20 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
     TimeSlot slot,
     List<ReservationModel> reservations,
   ) {
+    final slotStart = _timeToMinutes(slot.startTime);
+    final slotEnd = _timeToMinutes(slot.endTime);
     for (final r in reservations) {
-      if (_normalizeTime(r.startTime) == slot.startTime) return r;
+      final rStart = _timeToMinutes(_normalizeTime(r.startTime));
+      final rEnd = _timeToMinutes(_normalizeTime(r.endTime));
+      // Check for any overlap between slot and reservation
+      if (slotStart < rEnd && rStart < slotEnd) return r;
     }
     return null;
+  }
+
+  static int _timeToMinutes(String time) {
+    final parts = time.split(':');
+    return (int.tryParse(parts[0]) ?? 0) * 60 + (parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0);
   }
 
   static String _normalizeTime(String time) {

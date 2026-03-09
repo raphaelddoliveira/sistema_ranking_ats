@@ -113,7 +113,7 @@ class ChallengeModel {
   bool get isCourtDateExpired {
     if (status != ChallengeStatus.datesProposed) return false;
     if (chosenDate == null) return false;
-    return chosenDate!.isBefore(DateTime.now());
+    return chosenDate!.isBefore(DateTime.now().toUtc());
   }
 
   /// Legacy: True when all proposed dates are in the past (old flow)
@@ -121,7 +121,7 @@ class ChallengeModel {
     if (status != ChallengeStatus.datesProposed) return false;
     final dates = proposedDates;
     if (dates.isEmpty) return false;
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     return dates.every((d) => d.isBefore(now));
   }
 

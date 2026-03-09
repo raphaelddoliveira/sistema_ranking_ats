@@ -41,5 +41,6 @@ class ChallengeLikeActionNotifier extends StateNotifier<AsyncValue<void>> {
     final repo = _ref.read(challengeLikeRepositoryProvider);
     await repo.toggleLike(challengeId, player.id);
     _ref.invalidate(challengeLikeProvider(challengeId));
+    _ref.invalidate(bulkChallengeLikesProvider);
   }
 }

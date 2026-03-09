@@ -1033,7 +1033,7 @@ class _RecordResultScreenState extends ConsumerState<RecordResultScreen> {
     final bool success;
     if (widget.isAdminEdit) {
       final status = widget.challengeStatus;
-      final isAdminSubmit = status == 'scheduled' || status == 'pendingResult';
+      final isAdminSubmit = status == 'scheduled' || status == 'pending_result';
       if (isAdminSubmit) {
         success =
             await ref.read(challengeActionProvider.notifier).adminSubmitResult(
