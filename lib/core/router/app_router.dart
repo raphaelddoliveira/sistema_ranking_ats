@@ -168,8 +168,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: ':courtId/schedule',
                 builder: (context, state) {
+                  final extra = state.extra as Map<String, dynamic>?;
+                  final isAdmin = extra?['isAdminMode'] == true;
                   return CourtScheduleScreen(
                     courtId: state.pathParameters['courtId']!,
+                    isAdminMode: isAdmin,
                   );
                 },
               ),
@@ -233,6 +236,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           courtId: state.pathParameters['courtId']!,
           courtName: state.uri.queryParameters['name'] ?? 'Quadra',
         ),
+      ),
+
+      // Admin court schedule (no bottom nav, no shell)
+      GoRoute(
+        path: '/admin/court-schedule/:courtId',
+        builder: (context, state) {
+          return CourtScheduleScreen(
+            courtId: state.pathParameters['courtId']!,
+            isAdminMode: true,
+          );
+        },
       ),
 
       // Admin routes (no bottom nav)

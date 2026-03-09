@@ -24,7 +24,6 @@ DECLARE
   v_player2_name TEXT;
   v_player1_name TEXT;
   v_reservation_id UUID;
-  v_slot_id UUID;
 BEGIN
   -- Get admin player_id
   SELECT id INTO v_admin_id FROM players WHERE auth_id = p_admin_auth_id;
@@ -70,20 +69,6 @@ BEGIN
   SELECT full_name INTO v_player1_name FROM players WHERE id = p_player1_id;
   SELECT full_name INTO v_player2_name FROM players WHERE id = p_player2_id;
 
-  -- Get a slot_id for this court (just pick first active one)
-  SELECT id INTO v_slot_id FROM court_slots
-  WHERE court_id = p_court_id AND is_active = true
-  LIMIT 1;
-
-  IF v_slot_id IS NULL THEN
-    -- If no active slot, pick any slot
-    SELECT id INTO v_slot_id FROM court_slots WHERE court_id = p_court_id LIMIT 1;
-  END IF;
-
-  IF v_slot_id IS NULL THEN
-    RAISE EXCEPTION 'Nenhum horario disponivel para esta quadra';
-  END IF;
-
   -- Check for conflicting reservation on same court/date/time
   IF EXISTS (
     SELECT 1 FROM court_reservations
@@ -97,10 +82,10 @@ BEGIN
 
   -- Create reservation
   INSERT INTO court_reservations (
-    court_slot_id, court_id, reserved_by, reservation_date,
+    court_id, reserved_by, reservation_date,
     start_time, end_time, status, opponent_id, opponent_type, opponent_name, club_id
   ) VALUES (
-    v_slot_id, p_court_id, p_player1_id, p_reservation_date,
+    p_court_id, p_player1_id, p_reservation_date,
     p_start_time, p_end_time, 'confirmed', p_player2_id, 'member', v_player2_name, p_club_id
   )
   RETURNING id INTO v_reservation_id;

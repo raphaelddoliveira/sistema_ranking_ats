@@ -25,8 +25,9 @@ final _courtProvider =
 
 class CourtScheduleScreen extends ConsumerStatefulWidget {
   final String courtId;
+  final bool isAdminMode;
 
-  const CourtScheduleScreen({super.key, required this.courtId});
+  const CourtScheduleScreen({super.key, required this.courtId, this.isAdminMode = false});
 
   @override
   ConsumerState<CourtScheduleScreen> createState() =>
@@ -528,6 +529,11 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
   }
 
   void _confirmReservation(TimeSlot slot) async {
+    if (widget.isAdminMode) {
+      _confirmAdminReservation(slot);
+      return;
+    }
+
     // Check friendly reservation limit
     final hasFriendly =
         await ref.read(hasActiveFriendlyReservationProvider.future);
@@ -581,6 +587,50 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
               final errorState = ref.read(reservationActionProvider);
               final msg = errorState.error?.toString() ?? 'Erro desconhecido';
               SnackbarUtils.showError(context, msg);
+            }
+          }
+        },
+      ),
+    );
+  }
+
+  void _confirmAdminReservation(TimeSlot slot) {
+    final courtName =
+        ref.read(_courtProvider(widget.courtId)).valueOrNull?.name ?? 'Quadra';
+    final clubId = ref.read(currentClubIdProvider);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _AdminReservationBottomSheet(
+        courtName: courtName,
+        date: _selectedDate,
+        slot: slot,
+        clubId: clubId,
+        onConfirm: (player1Id, player2Id) async {
+          Navigator.of(ctx).pop();
+          try {
+            await ref.read(courtRepositoryProvider).adminCreateReservation(
+              player1Id: player1Id,
+              player2Id: player2Id,
+              courtId: widget.courtId,
+              date: _selectedDate,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              clubId: clubId!,
+            );
+            if (mounted) {
+              SnackbarUtils.showSuccess(context, 'Reserva criada!');
+              ref.invalidate(courtReservationsProvider(
+                (courtId: widget.courtId, date: _selectedDate),
+              ));
+            }
+          } catch (e) {
+            if (mounted) {
+              SnackbarUtils.showError(context, 'Erro: $e');
             }
           }
         },
@@ -949,6 +999,286 @@ class _ReservationBottomSheetState
                         : null,
                     onTap: () =>
                         setState(() => _selectedMember = member),
+                  );
+                },
+              ),
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (e, _) => Text('Erro: $e'),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Admin Reservation Bottom Sheet with Two Player Pickers ───
+
+class _AdminReservationBottomSheet extends ConsumerStatefulWidget {
+  final String courtName;
+  final DateTime date;
+  final TimeSlot slot;
+  final String? clubId;
+  final void Function(String player1Id, String player2Id) onConfirm;
+
+  const _AdminReservationBottomSheet({
+    required this.courtName,
+    required this.date,
+    required this.slot,
+    required this.clubId,
+    required this.onConfirm,
+  });
+
+  @override
+  ConsumerState<_AdminReservationBottomSheet> createState() =>
+      _AdminReservationBottomSheetState();
+}
+
+class _AdminReservationBottomSheetState
+    extends ConsumerState<_AdminReservationBottomSheet> {
+  ClubMemberModel? _player1;
+  ClubMemberModel? _player2;
+  String _searchQuery1 = '';
+  String _searchQuery2 = '';
+  final _searchController1 = TextEditingController();
+  final _searchController2 = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController1.dispose();
+    _searchController2.dispose();
+    super.dispose();
+  }
+
+  bool get _canConfirm =>
+      _player1 != null &&
+      _player2 != null &&
+      _player1!.playerId != _player2!.playerId;
+
+  @override
+  Widget build(BuildContext context) {
+    final dateStr =
+        '${widget.date.day.toString().padLeft(2, '0')}/${widget.date.month.toString().padLeft(2, '0')}';
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Reserva Admin',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withAlpha(15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.event, color: AppColors.primary, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '${widget.courtName} · $dateStr · ${widget.slot.timeRange}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Jogador 1',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              _buildPlayerPicker(
+                controller: _searchController1,
+                query: _searchQuery1,
+                selected: _player1,
+                onQueryChanged: (v) => setState(() => _searchQuery1 = v),
+                onSelected: (m) => setState(() => _player1 = m),
+                excludePlayerId: _player2?.playerId,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Jogador 2',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              _buildPlayerPicker(
+                controller: _searchController2,
+                query: _searchQuery2,
+                selected: _player2,
+                onQueryChanged: (v) => setState(() => _searchQuery2 = v),
+                onSelected: (m) => setState(() => _player2 = m),
+                excludePlayerId: _player1?.playerId,
+              ),
+              if (_player1 != null && _player2 != null && _player1!.playerId == _player2!.playerId)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text('Selecione jogadores diferentes',
+                      style: TextStyle(color: AppColors.error, fontSize: 12)),
+                ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: FilledButton.icon(
+                  onPressed: _canConfirm
+                      ? () => widget.onConfirm(
+                            _player1!.playerId,
+                            _player2!.playerId,
+                          )
+                      : null,
+                  icon: const Icon(Icons.check),
+                  label: const Text('Criar Reserva'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlayerPicker({
+    required TextEditingController controller,
+    required String query,
+    required ClubMemberModel? selected,
+    required ValueChanged<String> onQueryChanged,
+    required ValueChanged<ClubMemberModel> onSelected,
+    String? excludePlayerId,
+  }) {
+    if (widget.clubId == null) {
+      return const Text('Clube não selecionado',
+          style: TextStyle(color: AppColors.onBackgroundLight));
+    }
+
+    // Show selected chip if a player is picked
+    if (selected != null) {
+      return InputChip(
+        label: Text(selected.displayName),
+        avatar: CircleAvatar(
+          radius: 14,
+          backgroundColor: AppColors.primary,
+          child: Text(
+            selected.playerName[0].toUpperCase(),
+            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+          ),
+        ),
+        deleteIcon: const Icon(Icons.close, size: 16),
+        onDeleted: () {
+          if (selected == _player1) {
+            setState(() { _player1 = null; _searchQuery1 = ''; });
+          } else {
+            setState(() { _player2 = null; _searchQuery2 = ''; });
+          }
+        },
+      );
+    }
+
+    final membersAsync = ref.watch(clubMembersProvider(widget.clubId!));
+
+    return Column(
+      children: [
+        TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: 'Buscar jogador...',
+            prefixIcon: const Icon(Icons.search, size: 20),
+            isDense: true,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          onChanged: onQueryChanged,
+        ),
+        const SizedBox(height: 8),
+        membersAsync.when(
+          data: (members) {
+            final q = query.toLowerCase().trim();
+            final filtered = members.where((m) {
+              if (!m.isActive) return false;
+              if (excludePlayerId != null && m.playerId == excludePlayerId) return false;
+              if (q.isEmpty) return true;
+              return m.playerName.toLowerCase().contains(q) ||
+                  (m.playerNickname?.toLowerCase().contains(q) ?? false);
+            }).toList();
+
+            if (filtered.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text('Nenhum membro encontrado',
+                    style: TextStyle(color: AppColors.onBackgroundLight)),
+              );
+            }
+
+            return ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 160),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: filtered.length,
+                itemBuilder: (context, index) {
+                  final member = filtered[index];
+                  return ListTile(
+                    dense: true,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    leading: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: AppColors.primaryLight,
+                      child: Text(
+                        member.playerName[0].toUpperCase(),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    title: Text(
+                      member.displayName,
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: member.rankingPosition != null
+                        ? Text('#${member.rankingPosition}',
+                            style: const TextStyle(fontSize: 12))
+                        : null,
+                    onTap: () => onSelected(member),
                   );
                 },
               ),

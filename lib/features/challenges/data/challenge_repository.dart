@@ -691,7 +691,8 @@ class ChallengeRepository {
           .eq('status', 'active')
           .single();
 
-      final myPosition = myMember['ranking_position'] as int;
+      final myPosition = myMember['ranking_position'] as int?;
+      if (myPosition == null) return []; // Player has no ranking position
 
       var query = _client
           .from('club_members')

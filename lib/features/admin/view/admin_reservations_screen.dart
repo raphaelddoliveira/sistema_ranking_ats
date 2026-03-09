@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../shared/models/club_member_model.dart';
-import '../../../shared/models/court_model.dart';
-import '../../../shared/models/enums.dart';
 import '../../../shared/models/reservation_model.dart';
-import '../../clubs/data/club_repository.dart';
 import '../../clubs/viewmodel/club_providers.dart';
 import '../../courts/data/court_repository.dart';
 import '../../courts/viewmodel/courts_viewmodel.dart';
@@ -22,13 +19,6 @@ final _clubReservationsProvider = FutureProvider<List<ReservationModel>>((ref) a
   return repo.getClubReservations(clubId: clubId);
 });
 
-/// Provider for club members (for player pickers)
-final _adminMembersProvider = FutureProvider<List<ClubMemberModel>>((ref) async {
-  final clubId = ref.watch(currentClubIdProvider);
-  if (clubId == null) return [];
-  final repo = ref.watch(clubRepositoryProvider);
-  return repo.getMembers(clubId);
-});
 
 class AdminReservationsScreen extends ConsumerWidget {
   const AdminReservationsScreen({super.key});
@@ -36,7 +26,6 @@ class AdminReservationsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final reservationsAsync = ref.watch(_clubReservationsProvider);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Reservas'),
@@ -48,7 +37,7 @@ class AdminReservationsScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateReservationSheet(context, ref),
+        onPressed: () => _showCourtPicker(context, ref),
         icon: const Icon(Icons.add),
         label: const Text('Nova Reserva'),
       ),
@@ -88,16 +77,79 @@ class AdminReservationsScreen extends ConsumerWidget {
     );
   }
 
-  void _showCreateReservationSheet(BuildContext context, WidgetRef ref) {
+  void _showCourtPicker(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: const _CreateReservationSheet(),
+      builder: (ctx) => Consumer(
+        builder: (ctx, innerRef, _) {
+          final courtsAsync = innerRef.watch(courtsListProvider);
+
+          return courtsAsync.when(
+            loading: () => const SafeArea(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ),
+            error: (e, _) => SafeArea(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: Center(child: Text('Erro: $e')),
+              ),
+            ),
+            data: (courts) {
+              if (courts.isEmpty) {
+                return const SafeArea(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: Text('Nenhuma quadra disponível')),
+                  ),
+                );
+              }
+
+              return SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 12),
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.divider,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Selecione a Quadra',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...courts.map((court) => ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: AppColors.primary.withAlpha(25),
+                            child: const Icon(Icons.sports_tennis, color: AppColors.primary, size: 20),
+                          ),
+                          title: Text(court.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            context.push('/admin/court-schedule/${court.id}');
+                          },
+                        )),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -220,218 +272,3 @@ class _ReservationCard extends ConsumerWidget {
   }
 }
 
-class _CreateReservationSheet extends ConsumerStatefulWidget {
-  const _CreateReservationSheet();
-
-  @override
-  ConsumerState<_CreateReservationSheet> createState() => _CreateReservationSheetState();
-}
-
-class _CreateReservationSheetState extends ConsumerState<_CreateReservationSheet> {
-  ClubMemberModel? _player1;
-  ClubMemberModel? _player2;
-  CourtModel? _court;
-  DateTime? _date;
-  TimeOfDay _startTime = const TimeOfDay(hour: 8, minute: 0);
-  TimeOfDay _endTime = const TimeOfDay(hour: 9, minute: 0);
-  bool _loading = false;
-
-  String _formatTime(TimeOfDay t) =>
-      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
-
-  bool get _isValid =>
-      _player1 != null &&
-      _player2 != null &&
-      _court != null &&
-      _date != null &&
-      _player1!.playerId != _player2!.playerId;
-
-  @override
-  Widget build(BuildContext context) {
-    final membersAsync = ref.watch(_adminMembersProvider);
-    final courtsAsync = ref.watch(courtsListProvider);
-
-    final members = membersAsync.valueOrNull
-            ?.where((m) => m.status == ClubMemberStatus.active)
-            .toList() ??
-        [];
-    final courts = courtsAsync.valueOrNull ?? [];
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Nova Reserva',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 20),
-
-          // Player 1
-          _buildDropdown<ClubMemberModel>(
-            label: 'Jogador 1',
-            value: _player1,
-            items: members,
-            displayFn: (m) => m.playerName,
-            onChanged: (m) => setState(() => _player1 = m),
-          ),
-          const SizedBox(height: 12),
-
-          // Player 2
-          _buildDropdown<ClubMemberModel>(
-            label: 'Jogador 2',
-            value: _player2,
-            items: members,
-            displayFn: (m) => m.playerName,
-            onChanged: (m) => setState(() => _player2 = m),
-          ),
-          if (_player1 != null && _player2 != null && _player1!.playerId == _player2!.playerId)
-            const Padding(
-              padding: EdgeInsets.only(top: 4),
-              child: Text('Selecione jogadores diferentes', style: TextStyle(color: AppColors.error, fontSize: 12)),
-            ),
-          const SizedBox(height: 12),
-
-          // Court
-          _buildDropdown<CourtModel>(
-            label: 'Quadra',
-            value: _court,
-            items: courts,
-            displayFn: (c) => c.name,
-            onChanged: (c) => setState(() => _court = c),
-          ),
-          const SizedBox(height: 12),
-
-          // Date picker
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.calendar_today),
-            title: Text(_date != null
-                ? DateFormat('dd/MM/yyyy').format(_date!)
-                : 'Selecionar data'),
-            onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: DateTime.now(),
-                firstDate: DateTime.now(),
-                lastDate: DateTime.now().add(const Duration(days: 90)),
-              );
-              if (picked != null) setState(() => _date = picked);
-            },
-          ),
-
-          // Time pickers
-          Row(
-            children: [
-              Expanded(
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.access_time, size: 20),
-                  title: Text('Inicio: ${_formatTime(_startTime)}', style: const TextStyle(fontSize: 14)),
-                  onTap: () async {
-                    final picked = await showTimePicker(context: context, initialTime: _startTime);
-                    if (picked != null) setState(() => _startTime = picked);
-                  },
-                ),
-              ),
-              Expanded(
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.access_time, size: 20),
-                  title: Text('Fim: ${_formatTime(_endTime)}', style: const TextStyle(fontSize: 14)),
-                  onTap: () async {
-                    final picked = await showTimePicker(context: context, initialTime: _endTime);
-                    if (picked != null) setState(() => _endTime = picked);
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-
-          // Create button
-          FilledButton(
-            onPressed: _isValid && !_loading ? _create : null,
-            child: _loading
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('Criar Reserva'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDropdown<T>({
-    required String label,
-    required T? value,
-    required List<T> items,
-    required String Function(T) displayFn,
-    required ValueChanged<T?> onChanged,
-  }) {
-    return DropdownButtonFormField<T>(
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-        isDense: true,
-      ),
-      initialValue: value,
-      items: items
-          .map((item) => DropdownMenuItem<T>(
-                value: item,
-                child: Text(displayFn(item), overflow: TextOverflow.ellipsis),
-              ))
-          .toList(),
-      onChanged: onChanged,
-    );
-  }
-
-  Future<void> _create() async {
-    if (!_isValid) return;
-    setState(() => _loading = true);
-
-    try {
-      final clubId = ref.read(currentClubIdProvider);
-      if (clubId == null) throw Exception('Clube nao selecionado');
-
-      await ref.read(courtRepositoryProvider).adminCreateReservation(
-        player1Id: _player1!.playerId,
-        player2Id: _player2!.playerId,
-        courtId: _court!.id,
-        date: _date!,
-        startTime: _formatTime(_startTime),
-        endTime: _formatTime(_endTime),
-        clubId: clubId,
-      );
-
-      ref.invalidate(_clubReservationsProvider);
-
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Reserva criada!')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-}
