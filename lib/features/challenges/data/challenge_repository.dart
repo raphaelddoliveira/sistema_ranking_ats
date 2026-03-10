@@ -246,7 +246,29 @@ class ChallengeRepository {
           .single();
       final challengedId = challenge['challenged_id'] as String;
 
-      // 2. Create the court reservation linked to this challenge
+      // 2. Build chosen_date with time info (local time, then convert to UTC for storage)
+      final chosenDateTimeLocal = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        int.parse(startTime.split(':')[0]),
+        int.parse(startTime.split(':')[1]),
+      );
+
+      // 3. Update challenge status FIRST (safer: if reservation fails, challenge
+      //    stays in dates_proposed without a reservation — easier to fix than
+      //    a reservation existing without the challenge being updated)
+      await _client
+          .from(SupabaseConstants.challengesTable)
+          .update({
+            'status': 'dates_proposed',
+            'court_id': courtId,
+            'chosen_date': chosenDateTimeLocal.toUtc().toIso8601String(),
+            'dates_proposed_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('id', challengeId);
+
+      // 4. Create the court reservation linked to this challenge
       final dateStr =
           '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
       await _client.from(SupabaseConstants.courtReservationsTable).insert({
@@ -260,26 +282,6 @@ class ChallengeRepository {
         'opponent_id': challengedId,
         'opponent_type': 'member',
       });
-
-      // 3. Build chosen_date with time info (local time, then convert to UTC for storage)
-      final chosenDateTimeLocal = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        int.parse(startTime.split(':')[0]),
-        int.parse(startTime.split(':')[1]),
-      );
-
-      // 4. Update challenge status
-      await _client
-          .from(SupabaseConstants.challengesTable)
-          .update({
-            'status': 'dates_proposed',
-            'court_id': courtId,
-            'chosen_date': chosenDateTimeLocal.toUtc().toIso8601String(),
-            'dates_proposed_at': DateTime.now().toUtc().toIso8601String(),
-          })
-          .eq('id', challengeId);
 
       // 5. Notify challenged player
       await _client.from(SupabaseConstants.notificationsTable).insert({

@@ -1,17 +1,20 @@
 import 'package:intl/intl.dart';
 
 extension DateTimeExtensions on DateTime {
-  String get formattedDate => DateFormat('dd/MM/yyyy').format(this);
+  /// Ensure we always display dates in local timezone
+  DateTime get _local => isUtc ? toLocal() : this;
 
-  String get formattedTime => DateFormat('HH:mm').format(this);
+  String get formattedDate => DateFormat('dd/MM/yyyy').format(_local);
 
-  String get formattedDateTime => DateFormat('dd/MM/yyyy HH:mm').format(this);
+  String get formattedTime => DateFormat('HH:mm').format(_local);
 
-  String get formattedShort => DateFormat('dd/MM').format(this);
+  String get formattedDateTime => DateFormat('dd/MM/yyyy HH:mm').format(_local);
 
-  String get dayOfWeekName => DateFormat('EEEE', 'pt_BR').format(this);
+  String get formattedShort => DateFormat('dd/MM').format(_local);
 
-  String get monthName => DateFormat('MMMM', 'pt_BR').format(this);
+  String get dayOfWeekName => DateFormat('EEEE', 'pt_BR').format(_local);
+
+  String get monthName => DateFormat('MMMM', 'pt_BR').format(_local);
 
   String timeAgo() {
     final now = DateTime.now();

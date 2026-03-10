@@ -208,7 +208,10 @@ class _UpcomingGamesCardState extends State<_UpcomingGamesCard> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   subtitle: Text(
-                    c.chosenDate != null ? dateFormat.format(c.chosenDate!) : 'Data pendente',
+                    [
+                      c.chosenDate != null ? dateFormat.format(c.chosenDate!.toLocal()) : 'Data pendente',
+                      if (c.courtName != null) c.courtName!,
+                    ].join(' • '),
                     style: const TextStyle(fontSize: 11),
                   ),
                   trailing: Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.onBackgroundLight),

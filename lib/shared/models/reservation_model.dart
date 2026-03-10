@@ -89,6 +89,15 @@ class ReservationModel {
     return time;
   }
 
+  /// Parse a date string (YYYY-MM-DD) as local DateTime instead of UTC.
+  /// Supabase returns DATE columns as plain strings without timezone info,
+  /// but DateTime.parse treats them as UTC, causing off-by-one day issues
+  /// when compared with DateTime.now() (which is local).
+  static DateTime _parseLocalDate(String dateStr) {
+    final parts = dateStr.split('-');
+    return DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+  }
+
   factory ReservationModel.fromJson(Map<String, dynamic> json) {
     final court = json['court'] as Map<String, dynamic>?;
     final player = json['player'] as Map<String, dynamic>?;
@@ -100,7 +109,7 @@ class ReservationModel {
       courtSlotId: json['court_slot_id'] as String?,
       courtId: json['court_id'] as String,
       reservedBy: json['reserved_by'] as String,
-      reservationDate: DateTime.parse(json['reservation_date'] as String),
+      reservationDate: _parseLocalDate(json['reservation_date'] as String),
       startTime: json['start_time'] as String,
       endTime: json['end_time'] as String,
       status: ReservationStatus.fromString(json['status'] as String),
