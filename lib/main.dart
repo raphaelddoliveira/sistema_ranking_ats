@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
@@ -33,6 +34,19 @@ Future<void> main() async {
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
+
+  final sentryDsn = dotenv.env['SENTRY_DSN'] ?? '';
+
+  if (sentryDsn.isNotEmpty) {
+    await SentryFlutter.init(
+      (options) {
+        options.dsn = sentryDsn;
+        options.environment = kReleaseMode ? 'production' : 'development';
+        options.tracesSampleRate = kReleaseMode ? 0.2 : 1.0;
+        options.sendDefaultPii = false;
+      },
+    );
+  }
 
   runApp(
     const ProviderScope(
