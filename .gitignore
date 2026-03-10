@@ -59,3 +59,7 @@ nul
 
 # Firebase service account key
 *firebase-adminsdk*
+
+# Database dumps
+*.backup
+supabase/dump_*

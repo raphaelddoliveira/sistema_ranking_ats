@@ -242,7 +242,6 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
 
         final isChallenge = reservation?.isChallenge ?? false;
         final isMine = reservation != null && reservation.reservedBy == currentPlayerId;
-        final isMyCandidate = reservation != null && reservation.candidateId == currentPlayerId;
         final hasOpenSlot = reservation != null &&
             reservation.isFriendly &&
             !reservation.hasOpponentDeclared &&
@@ -290,18 +289,6 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
             onPressed: () => _confirmCancelFromSchedule(reservation),
             icon: const Icon(Icons.close, color: AppColors.error, size: 20),
             tooltip: 'Cancelar reserva',
-          );
-        } else if (isMyCandidate) {
-          trailing = Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.warning.withAlpha(25),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text(
-              'Aguardando',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.warning),
-            ),
           );
         } else if (hasOpenSlot && !isSlotPast) {
           trailing = TextButton.icon(

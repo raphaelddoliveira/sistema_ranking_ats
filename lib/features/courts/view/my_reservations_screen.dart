@@ -265,10 +265,28 @@ class _ReservationCard extends ConsumerWidget {
                   ),
               ],
             ),
-            // Candidate approval section
-            if (isMine && reservation.hasCandidate) ...[
+            // Opponent joined notification
+            if (isMine && reservation.hasOpponentDeclared && reservation.isFriendly) ...[
               const Divider(height: 20),
-              _CandidateApprovalRow(reservation: reservation),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withAlpha(15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle, size: 18, color: AppColors.success),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${reservation.opponentDisplayName} confirmado',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ],
         ),
@@ -357,84 +375,6 @@ class _ReservationCard extends ConsumerWidget {
         ],
       ),
     );
-  }
-}
-
-// ─── Candidate Approval Row ───
-
-class _CandidateApprovalRow extends ConsumerWidget {
-  final ReservationModel reservation;
-
-  const _CandidateApprovalRow({required this.reservation});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final candidateName = reservation.candidatePlayerName ?? 'Jogador';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.info.withAlpha(15),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.person_add, size: 18, color: AppColors.info),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '$candidateName quer jogar com você',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-            ),
-          ),
-          IconButton(
-            onPressed: () => _reject(context, ref),
-            icon: const Icon(Icons.close, size: 20),
-            color: AppColors.error,
-            tooltip: 'Recusar',
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-            padding: EdgeInsets.zero,
-          ),
-          const SizedBox(width: 4),
-          IconButton(
-            onPressed: () => _accept(context, ref),
-            icon: const Icon(Icons.check, size: 20),
-            color: AppColors.success,
-            tooltip: 'Aceitar',
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-            padding: EdgeInsets.zero,
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _accept(BuildContext context, WidgetRef ref) async {
-    final success = await ref
-        .read(reservationActionProvider.notifier)
-        .acceptCandidate(reservation.id);
-    if (context.mounted) {
-      if (success) {
-        SnackbarUtils.showSuccess(context, 'Candidatura aceita!');
-        ref.invalidate(myReservationsProvider);
-      } else {
-        SnackbarUtils.showError(context, 'Erro ao aceitar candidatura');
-      }
-    }
-  }
-
-  void _reject(BuildContext context, WidgetRef ref) async {
-    final success = await ref
-        .read(reservationActionProvider.notifier)
-        .rejectCandidate(reservation.id);
-    if (context.mounted) {
-      if (success) {
-        SnackbarUtils.showSuccess(context, 'Candidatura recusada');
-        ref.invalidate(myReservationsProvider);
-      } else {
-        SnackbarUtils.showError(context, 'Erro ao recusar candidatura');
-      }
-    }
   }
 }
 
