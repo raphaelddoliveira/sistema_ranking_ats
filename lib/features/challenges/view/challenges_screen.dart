@@ -9,8 +9,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/challenge_model.dart';
 import '../../../shared/models/enums.dart';
 import '../../../shared/providers/current_player_provider.dart';
+import '../../../shared/widgets/like_button.dart';
 import '../../clubs/view/club_selector_widget.dart';
-import '../viewmodel/challenge_like_viewmodel.dart';
 import '../viewmodel/challenge_list_viewmodel.dart';
 
 class ChallengesScreen extends ConsumerWidget {
@@ -417,7 +417,7 @@ class _AllChallengeListTile extends ConsumerWidget {
                 ),
               ),
               if (challenge.isFinished)
-                _LikeButton(challengeId: challenge.id, ref: ref),
+                LikeButton(challengeId: challenge.id, ref: ref),
               const SizedBox(width: 4),
               Icon(Icons.arrow_forward_ios, color: AppColors.onBackgroundLight, size: 14),
             ],
@@ -541,7 +541,7 @@ class _ChallengeListTile extends ConsumerWidget {
                 ),
 
               if (challenge.isFinished)
-                _LikeButton(challengeId: challenge.id, ref: ref),
+                LikeButton(challengeId: challenge.id, ref: ref),
               const SizedBox(width: 4),
               Icon(Icons.arrow_forward_ios, color: AppColors.onBackgroundLight, size: 14),
             ],
@@ -552,46 +552,3 @@ class _ChallengeListTile extends ConsumerWidget {
   }
 }
 
-class _LikeButton extends StatelessWidget {
-  final String challengeId;
-  final WidgetRef ref;
-
-  const _LikeButton({required this.challengeId, required this.ref});
-
-  @override
-  Widget build(BuildContext context) {
-    final likeAsync = ref.watch(challengeLikeProvider(challengeId));
-    final count = likeAsync.valueOrNull?.count ?? 0;
-    final liked = likeAsync.valueOrNull?.liked ?? false;
-
-    return GestureDetector(
-      onTap: () {
-        ref.read(challengeLikeActionProvider.notifier).toggleLike(challengeId);
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              liked ? Icons.favorite : Icons.favorite_border,
-              size: 18,
-              color: liked ? AppColors.error : AppColors.onBackgroundLight,
-            ),
-            if (count > 0) ...[
-              const SizedBox(width: 2),
-              Text(
-                '$count',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: liked ? AppColors.error : AppColors.onBackgroundLight,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}

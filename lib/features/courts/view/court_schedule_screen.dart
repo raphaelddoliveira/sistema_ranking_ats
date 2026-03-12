@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -146,7 +147,11 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
   Widget _buildDateSelector() {
     return SizedBox(
       height: 80,
-      child: ListView.builder(
+      child: ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(
+          dragDevices: {PointerDeviceKind.touch, PointerDeviceKind.mouse},
+        ),
+        child: ListView.builder(
         controller: _dateScrollController,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -213,6 +218,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
           );
         },
       ),
+      ),
     );
   }
 
@@ -247,10 +253,13 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
             !reservation.hasOpponentDeclared &&
             !isMine;
 
+        final isAdminReservation = reservation?.isAdministrative ?? false;
         final statusColor = isReserved
-            ? isChallenge
-                ? AppColors.secondary
-                : AppColors.error
+            ? isAdminReservation
+                ? AppColors.warning
+                : isChallenge
+                    ? AppColors.secondary
+                    : AppColors.error
             : isSlotPast
                 ? AppColors.onBackgroundLight
                 : AppColors.success;
@@ -258,16 +267,20 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
         // Build subtitle for reserved slots
         String subtitle;
         if (isReserved) {
-          final name = reservation.playerName ?? 'Jogador';
-          if (isChallenge) {
-            final opponent = reservation.opponentPlayerName;
-            subtitle = opponent != null
-                ? 'Desafio: $name vs $opponent'
-                : 'Desafio - $name';
-          } else if (reservation.hasOpponentDeclared) {
-            subtitle = '$name vs ${reservation.opponentDisplayName}';
+          if (reservation.isAdministrative) {
+            subtitle = reservation.administrativeTitle;
           } else {
-            subtitle = '$name · Vaga aberta';
+            final name = reservation.playerName ?? 'Jogador';
+            if (isChallenge) {
+              final opponent = reservation.opponentPlayerName;
+              subtitle = opponent != null
+                  ? 'Desafio: $name vs $opponent'
+                  : 'Desafio - $name';
+            } else if (reservation.hasOpponentDeclared) {
+              subtitle = '$name vs ${reservation.opponentDisplayName}';
+            } else {
+              subtitle = '$name · Vaga aberta';
+            }
           }
         } else {
           subtitle = isSlotPast ? 'Horário passado' : 'Disponível';
@@ -597,7 +610,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
         date: _selectedDate,
         slot: slot,
         clubId: clubId,
-        onConfirm: (player1Id, player2Id) async {
+        onConfirmPlayers: (player1Id, player2Id) async {
           Navigator.of(ctx).pop();
           try {
             await ref.read(courtRepositoryProvider).adminCreateReservation(
@@ -611,6 +624,29 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
             );
             if (mounted) {
               SnackbarUtils.showSuccess(context, 'Reserva criada!');
+              ref.invalidate(courtReservationsProvider(
+                (courtId: widget.courtId, date: _selectedDate),
+              ));
+            }
+          } catch (e) {
+            if (mounted) {
+              SnackbarUtils.showError(context, 'Erro: $e');
+            }
+          }
+        },
+        onConfirmAdministrative: (title) async {
+          Navigator.of(ctx).pop();
+          try {
+            await ref.read(courtRepositoryProvider).adminCreateAdministrativeReservation(
+              courtId: widget.courtId,
+              date: _selectedDate,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              title: title,
+              clubId: clubId!,
+            );
+            if (mounted) {
+              SnackbarUtils.showSuccess(context, 'Reserva administrativa criada!');
               ref.invalidate(courtReservationsProvider(
                 (courtId: widget.courtId, date: _selectedDate),
               ));
@@ -1009,14 +1045,16 @@ class _AdminReservationBottomSheet extends ConsumerStatefulWidget {
   final DateTime date;
   final TimeSlot slot;
   final String? clubId;
-  final void Function(String player1Id, String player2Id) onConfirm;
+  final void Function(String player1Id, String player2Id) onConfirmPlayers;
+  final void Function(String title) onConfirmAdministrative;
 
   const _AdminReservationBottomSheet({
     required this.courtName,
     required this.date,
     required this.slot,
     required this.clubId,
-    required this.onConfirm,
+    required this.onConfirmPlayers,
+    required this.onConfirmAdministrative,
   });
 
   @override
@@ -1026,24 +1064,28 @@ class _AdminReservationBottomSheet extends ConsumerStatefulWidget {
 
 class _AdminReservationBottomSheetState
     extends ConsumerState<_AdminReservationBottomSheet> {
+  bool _isAdministrative = false;
   ClubMemberModel? _player1;
   ClubMemberModel? _player2;
   String _searchQuery1 = '';
   String _searchQuery2 = '';
   final _searchController1 = TextEditingController();
   final _searchController2 = TextEditingController();
+  final _titleController = TextEditingController();
 
   @override
   void dispose() {
     _searchController1.dispose();
     _searchController2.dispose();
+    _titleController.dispose();
     super.dispose();
   }
 
-  bool get _canConfirm =>
-      _player1 != null &&
-      _player2 != null &&
-      _player1!.playerId != _player2!.playerId;
+  bool get _canConfirm => _isAdministrative
+      ? _titleController.text.trim().isNotEmpty
+      : _player1 != null &&
+        _player2 != null &&
+        _player1!.playerId != _player2!.playerId;
 
   @override
   Widget build(BuildContext context) {
@@ -1102,57 +1144,96 @@ class _AdminReservationBottomSheetState
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-              Text(
-                'Jogador 1',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              _buildPlayerPicker(
-                controller: _searchController1,
-                query: _searchQuery1,
-                selected: _player1,
-                onQueryChanged: (v) => setState(() => _searchQuery1 = v),
-                onSelected: (m) => setState(() => _player1 = m),
-                excludePlayerId: _player2?.playerId,
+              const SizedBox(height: 16),
+
+              // Toggle: reserva para jogadores ou administrativa
+              SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(value: false, label: Text('Jogadores'), icon: Icon(Icons.people, size: 18)),
+                  ButtonSegment(value: true, label: Text('Administrativa'), icon: Icon(Icons.block, size: 18)),
+                ],
+                selected: {_isAdministrative},
+                onSelectionChanged: (v) => setState(() => _isAdministrative = v.first),
               ),
               const SizedBox(height: 16),
-              Text(
-                'Jogador 2',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              _buildPlayerPicker(
-                controller: _searchController2,
-                query: _searchQuery2,
-                selected: _player2,
-                onQueryChanged: (v) => setState(() => _searchQuery2 = v),
-                onSelected: (m) => setState(() => _player2 = m),
-                excludePlayerId: _player1?.playerId,
-              ),
-              if (_player1 != null && _player2 != null && _player1!.playerId == _player2!.playerId)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Text('Selecione jogadores diferentes',
-                      style: TextStyle(color: AppColors.error, fontSize: 12)),
+
+              if (_isAdministrative) ...[
+                Text(
+                  'Motivo / Título',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _titleController,
+                  decoration: InputDecoration(
+                    hintText: 'Ex: Manutenção, Torneio, Aula...',
+                    prefixIcon: const Icon(Icons.edit, size: 20),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ] else ...[
+                Text(
+                  'Jogador 1',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                _buildPlayerPicker(
+                  controller: _searchController1,
+                  query: _searchQuery1,
+                  selected: _player1,
+                  onQueryChanged: (v) => setState(() => _searchQuery1 = v),
+                  onSelected: (m) => setState(() => _player1 = m),
+                  excludePlayerId: _player2?.playerId,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Jogador 2',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                _buildPlayerPicker(
+                  controller: _searchController2,
+                  query: _searchQuery2,
+                  selected: _player2,
+                  onQueryChanged: (v) => setState(() => _searchQuery2 = v),
+                  onSelected: (m) => setState(() => _player2 = m),
+                  excludePlayerId: _player1?.playerId,
+                ),
+                if (_player1 != null && _player2 != null && _player1!.playerId == _player2!.playerId)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: Text('Selecione jogadores diferentes',
+                        style: TextStyle(color: AppColors.error, fontSize: 12)),
+                  ),
+              ],
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 height: 48,
                 child: FilledButton.icon(
                   onPressed: _canConfirm
-                      ? () => widget.onConfirm(
-                            _player1!.playerId,
-                            _player2!.playerId,
-                          )
+                      ? () {
+                          if (_isAdministrative) {
+                            widget.onConfirmAdministrative(_titleController.text.trim());
+                          } else {
+                            widget.onConfirmPlayers(
+                              _player1!.playerId,
+                              _player2!.playerId,
+                            );
+                          }
+                        }
                       : null,
-                  icon: const Icon(Icons.check),
-                  label: const Text('Criar Reserva'),
+                  icon: Icon(_isAdministrative ? Icons.block : Icons.check),
+                  label: Text(_isAdministrative ? 'Bloquear Horário' : 'Criar Reserva'),
                 ),
               ),
             ],

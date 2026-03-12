@@ -184,7 +184,7 @@ class ChallengeRepository {
       if (sportId != null) {
         query = query.eq('sport_id', sportId);
       }
-      final data = await query.order('completed_at', ascending: false).limit(50);
+      final data = await query.order('created_at', ascending: false).limit(50);
       return data.map((e) => ChallengeModel.fromJson(e)).toList();
     } catch (e) {
       throw ErrorHandler.handle(e);
@@ -204,7 +204,7 @@ class ChallengeRepository {
       if (sportId != null) {
         query = query.eq('sport_id', sportId);
       }
-      final data = await query.order('completed_at', ascending: false).limit(100);
+      final data = await query.order('created_at', ascending: false).limit(100);
       return data.map((e) => ChallengeModel.fromJson(e)).toList();
     } catch (e) {
       throw ErrorHandler.handle(e);

@@ -160,6 +160,15 @@ enum NotificationType {
       );
 }
 
+enum ReservationType {
+  regular,
+  administrative;
+
+  static ReservationType fromString(String value) =>
+      ReservationType.values.firstWhere((e) => e.name == value,
+          orElse: () => ReservationType.regular);
+}
+
 enum OpponentType {
   member,
   guest;

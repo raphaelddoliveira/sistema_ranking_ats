@@ -602,6 +602,35 @@ class CourtRepository {
     }
   }
 
+  /// Admin: create administrative reservation (blocks court with title/reason)
+  Future<String> adminCreateAdministrativeReservation({
+    required String courtId,
+    required DateTime date,
+    required String startTime,
+    required String endTime,
+    required String title,
+    required String clubId,
+  }) async {
+    try {
+      final authId = _client.auth.currentUser!.id;
+      final result = await _client.rpc(
+        SupabaseConstants.rpcAdminCreateAdministrativeReservation,
+        params: {
+          'p_admin_auth_id': authId,
+          'p_court_id': courtId,
+          'p_reservation_date': '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+          'p_start_time': startTime,
+          'p_end_time': endTime,
+          'p_title': title,
+          'p_club_id': clubId,
+        },
+      );
+      return result as String;
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
   Future<String> _getCurrentPlayerId() async {
     final authId = _client.auth.currentUser!.id;
     final data = await _client

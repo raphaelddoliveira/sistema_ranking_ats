@@ -20,6 +20,9 @@ class ReservationModel {
   final String? opponentName;
 
   // Candidate field
+  // Reservation type
+  final ReservationType reservationType;
+
   final String? candidateId;
 
   // Joined fields
@@ -44,6 +47,7 @@ class ReservationModel {
     this.opponentId,
     this.opponentType,
     this.opponentName,
+    this.reservationType = ReservationType.regular,
     this.candidateId,
     this.courtName,
     this.playerName,
@@ -60,9 +64,13 @@ class ReservationModel {
     return reservationDate.isBefore(today);
   }
   bool get isChallenge => challengeId != null;
-  bool get isFriendly => challengeId == null;
+  bool get isFriendly => challengeId == null && !isAdministrative;
+  bool get isAdministrative => reservationType == ReservationType.administrative;
   bool get hasOpponentDeclared => opponentType != null;
   bool get hasCandidate => candidateId != null;
+
+  /// For administrative reservations, notes is the title/reason
+  String get administrativeTitle => notes ?? 'Reserva administrativa';
 
   String get opponentDisplayName {
     if (opponentType == null) return 'Não declarado';
@@ -122,6 +130,9 @@ class ReservationModel {
           ? OpponentType.fromString(json['opponent_type'] as String)
           : null,
       opponentName: json['opponent_name'] as String?,
+      reservationType: json['reservation_type'] != null
+          ? ReservationType.fromString(json['reservation_type'] as String)
+          : ReservationType.regular,
       candidateId: json['candidate_id'] as String?,
       courtName: court?['name'] as String?,
       playerName: player?['full_name'] as String?,

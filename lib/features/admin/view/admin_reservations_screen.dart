@@ -164,6 +164,18 @@ class _ReservationCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dateFormat = DateFormat('dd/MM/yyyy');
     final isChallenge = reservation.challengeId != null;
+    final isAdmin = reservation.isAdministrative;
+
+    final iconColor = isAdmin
+        ? AppColors.warning
+        : isChallenge
+            ? AppColors.challengeScheduled
+            : AppColors.primary;
+    final icon = isAdmin
+        ? Icons.block
+        : isChallenge
+            ? Icons.sports_tennis
+            : Icons.event;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -175,16 +187,10 @@ class _ReservationCard extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isChallenge
-                    ? AppColors.challengeScheduled.withAlpha(25)
-                    : AppColors.primary.withAlpha(25),
+                color: iconColor.withAlpha(25),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
-                isChallenge ? Icons.sports_tennis : Icons.event,
-                color: isChallenge ? AppColors.challengeScheduled : AppColors.primary,
-                size: 20,
-              ),
+              child: Icon(icon, color: iconColor, size: 20),
             ),
             const SizedBox(width: 12),
             // Info
@@ -202,15 +208,22 @@ class _ReservationCard extends ConsumerWidget {
                     style: const TextStyle(fontSize: 12, color: AppColors.onBackgroundMedium),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    '${reservation.playerName ?? '?'} vs ${reservation.opponentPlayerName ?? reservation.opponentName ?? 'Aberta'}',
-                    style: const TextStyle(fontSize: 12, color: AppColors.onBackgroundLight),
-                  ),
-                  if (isChallenge)
-                    const Text(
-                      'Desafio de ranking',
-                      style: TextStyle(fontSize: 10, color: AppColors.challengeScheduled, fontWeight: FontWeight.w600),
+                  if (reservation.isAdministrative)
+                    Text(
+                      reservation.administrativeTitle,
+                      style: const TextStyle(fontSize: 12, color: AppColors.warning, fontWeight: FontWeight.w600),
+                    )
+                  else ...[
+                    Text(
+                      '${reservation.playerName ?? '?'} vs ${reservation.opponentPlayerName ?? reservation.opponentName ?? 'Aberta'}',
+                      style: const TextStyle(fontSize: 12, color: AppColors.onBackgroundLight),
                     ),
+                    if (isChallenge)
+                      const Text(
+                        'Desafio de ranking',
+                        style: TextStyle(fontSize: 10, color: AppColors.challengeScheduled, fontWeight: FontWeight.w600),
+                      ),
+                  ],
                 ],
               ),
             ),

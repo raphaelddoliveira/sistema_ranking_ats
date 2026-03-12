@@ -12,6 +12,8 @@ import '../../clubs/view/club_selector_widget.dart';
 import '../../clubs/view/no_club_screen.dart';
 import '../../clubs/viewmodel/club_providers.dart';
 import '../../challenges/viewmodel/challenge_list_viewmodel.dart';
+import '../../feed/view/feed_tab.dart';
+import '../../feed/viewmodel/feed_viewmodel.dart';
 import '../viewmodel/ranking_list_viewmodel.dart';
 import 'widgets/ranking_list_tile.dart';
 
@@ -22,12 +24,24 @@ class RankingScreen extends ConsumerStatefulWidget {
   ConsumerState<RankingScreen> createState() => _RankingScreenState();
 }
 
-class _RankingScreenState extends ConsumerState<RankingScreen> {
+class _RankingScreenState extends ConsumerState<RankingScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
   final _searchController = TextEditingController();
   String _searchQuery = '';
 
   @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) setState(() {});
+    });
+  }
+
+  @override
   void dispose() {
+    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -96,17 +110,15 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
   @override
   Widget build(BuildContext context) {
     final clubId = ref.watch(currentClubIdProvider);
-    final rankingAsync = ref.watch(rankingListProvider);
     final currentMember = ref.watch(currentClubMemberProvider).valueOrNull;
-    final isOptedOut = currentMember != null && !currentMember.isInRanking;
-    final activePlayers = ref.watch(playersWithActiveChallengeProvider).valueOrNull ?? {};
+    final isRankingTab = _tabController.index == 1;
 
     return Scaffold(
       appBar: AppBar(
         title: clubAppBarTitle('SmashRank', context, ref),
         centerTitle: true,
         actions: [
-          if (currentMember != null && currentMember.isInRanking)
+          if (isRankingTab && currentMember != null && currentMember.isInRanking)
             IconButton(
               icon: const Icon(Icons.person_remove_outlined, size: 22),
               onPressed: () => _confirmOptOut(context, ref),
@@ -114,269 +126,318 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
             ),
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => ref.invalidate(rankingListProvider),
+            onPressed: () {
+              if (isRankingTab) {
+                ref.invalidate(rankingListProvider);
+              } else {
+                ref.invalidate(feedProvider);
+              }
+            },
             tooltip: 'Atualizar',
           ),
         ],
+        bottom: clubId != null
+            ? TabBar(
+                controller: _tabController,
+                tabs: const [
+                  Tab(text: 'Feed'),
+                  Tab(text: 'Ranking'),
+                ],
+              )
+            : null,
       ),
       body: clubId == null
-          ? () {
-              final player = ref.watch(currentPlayerProvider);
-              final myClubs = ref.watch(myClubsProvider);
-              // Show loading while player or clubs are still loading
-              if (player.isLoading || myClubs.isLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              // Player loaded but clubs not yet fetched, or clubs exist but auto-select pending
-              final clubs = myClubs.valueOrNull ?? [];
-              if (player.valueOrNull == null || clubs.isNotEmpty) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              // Player loaded, clubs loaded, truly empty
-              return const NoClubScreen();
-            }()
-          : rankingAsync.when(
-              data: (members) {
-                if (members.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+          ? _buildNoClubBody()
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                const FeedTab(),
+                _RankingTab(
+                  searchController: _searchController,
+                  searchQuery: _searchQuery,
+                  onSearchChanged: (value) => setState(() => _searchQuery = value),
+                  onOptOut: () => _confirmOptOut(context, ref),
+                  onActivateRanking: () => _activateRanking(context, ref),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildNoClubBody() {
+    final player = ref.watch(currentPlayerProvider);
+    final myClubs = ref.watch(myClubsProvider);
+    if (player.isLoading || myClubs.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final clubs = myClubs.valueOrNull ?? [];
+    if (player.valueOrNull == null || clubs.isNotEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return const NoClubScreen();
+  }
+}
+
+// ─── Ranking Tab (extracted from old RankingScreen body) ───
+
+class _RankingTab extends ConsumerWidget {
+  final TextEditingController searchController;
+  final String searchQuery;
+  final ValueChanged<String> onSearchChanged;
+  final VoidCallback onOptOut;
+  final VoidCallback onActivateRanking;
+
+  const _RankingTab({
+    required this.searchController,
+    required this.searchQuery,
+    required this.onSearchChanged,
+    required this.onOptOut,
+    required this.onActivateRanking,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rankingAsync = ref.watch(rankingListProvider);
+    final currentMember = ref.watch(currentClubMemberProvider).valueOrNull;
+    final isOptedOut = currentMember != null && !currentMember.isInRanking;
+    final activePlayers = ref.watch(playersWithActiveChallengeProvider).valueOrNull ?? {};
+
+    return rankingAsync.when(
+      data: (members) {
+        if (members.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.emoji_events_outlined, size: 64, color: AppColors.onBackgroundLight),
+                SizedBox(height: 16),
+                Text(
+                  'Nenhum jogador no ranking',
+                  style: TextStyle(fontSize: 16, color: AppColors.onBackgroundLight),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final topThree = members.length >= 3 ? members.sublist(0, 3) : <ClubMemberModel>[];
+
+        final filteredMembers = searchQuery.isEmpty
+            ? members
+            : members.where((m) {
+                final query = searchQuery.toLowerCase();
+                return m.playerName.toLowerCase().contains(query) ||
+                    (m.playerNickname?.toLowerCase().contains(query) ?? false);
+              }).toList();
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(rankingListProvider);
+          },
+          child: CustomScrollView(
+            slivers: [
+              // Hero header with gradient
+              SliverToBoxAdapter(
+                child: AnimatedSize(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  child: searchQuery.isEmpty
+                      ? Container(
+                          decoration: const BoxDecoration(
+                            gradient: AppColors.heroGradient,
+                          ),
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.emoji_events, color: AppColors.secondary, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${members.length} jogadores ativos',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (topThree.length == 3) ...[
+                                const SizedBox(height: 20),
+                                _TopThreePodium(
+                                  topThree: topThree,
+                                  onTap: (member) {
+                                    context.push('/players/${member.playerId}');
+                                  },
+                                ),
+                              ],
+                            ],
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ),
+
+              // Opt-out banner
+              if (isOptedOut)
+                SliverToBoxAdapter(
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withAlpha(25),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.warning.withAlpha(80)),
+                    ),
+                    child: Row(
                       children: [
-                        Icon(Icons.emoji_events_outlined, size: 64, color: AppColors.onBackgroundLight),
-                        SizedBox(height: 16),
-                        Text(
-                          'Nenhum jogador no ranking',
-                          style: TextStyle(fontSize: 16, color: AppColors.onBackgroundLight),
+                        const Icon(Icons.info_outline, color: AppColors.warning),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Você não está no ranking',
+                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Ative sua participação para desafiar outros jogadores.',
+                                style: TextStyle(fontSize: 12, color: AppColors.onBackgroundMedium),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton(
+                          onPressed: onActivateRanking,
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          ),
+                          child: const Text('Ativar'),
                         ),
                       ],
                     ),
-                  );
-                }
-
-                final topThree = members.length >= 3 ? members.sublist(0, 3) : <ClubMemberModel>[];
-
-                // Filtrar lista pela busca
-                final filteredMembers = _searchQuery.isEmpty
-                    ? members
-                    : members.where((m) {
-                        final query = _searchQuery.toLowerCase();
-                        return m.playerName.toLowerCase().contains(query) ||
-                            (m.playerNickname?.toLowerCase().contains(query) ?? false);
-                      }).toList();
-
-                return RefreshIndicator(
-                  onRefresh: () async {
-                    ref.invalidate(rankingListProvider);
-                  },
-                  child: CustomScrollView(
-                    slivers: [
-                      // Hero header with gradient (always in tree to preserve TextField focus)
-                      SliverToBoxAdapter(
-                        child: AnimatedSize(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeInOut,
-                          child: _searchQuery.isEmpty
-                              ? Container(
-                                  decoration: const BoxDecoration(
-                                    gradient: AppColors.heroGradient,
-                                  ),
-                                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                                  child: Column(
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          const Icon(Icons.emoji_events, color: AppColors.secondary, size: 20),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            '${members.length} jogadores ativos',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      if (topThree.length == 3) ...[
-                                        const SizedBox(height: 20),
-                                        _TopThreePodium(
-                                          topThree: topThree,
-                                          onTap: (member) {
-                                            context.push(
-                                              '/players/${member.playerId}',
-                                            );
-                                          },
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-                      ),
-
-                      // Opt-out banner
-                      if (isOptedOut)
-                        SliverToBoxAdapter(
-                          child: Container(
-                            margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppColors.warning.withAlpha(25),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.warning.withAlpha(80)),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.info_outline, color: AppColors.warning),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Você não está no ranking',
-                                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      const Text(
-                                        'Ative sua participação para desafiar outros jogadores.',
-                                        style: TextStyle(fontSize: 12, color: AppColors.onBackgroundMedium),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                FilledButton(
-                                  onPressed: () => _activateRanking(context, ref),
-                                  style: FilledButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  ),
-                                  child: const Text('Ativar'),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                      // Search bar
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-                          child: TextField(
-                            controller: _searchController,
-                            onChanged: (value) => setState(() => _searchQuery = value),
-                            decoration: InputDecoration(
-                              hintText: 'Buscar jogador...',
-                              prefixIcon: const Icon(Icons.search, size: 20),
-                              suffixIcon: _searchQuery.isNotEmpty
-                                  ? IconButton(
-                                      icon: const Icon(Icons.close, size: 18),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        setState(() => _searchQuery = '');
-                                      },
-                                    )
-                                  : null,
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // Section title
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                          child: Text(
-                            _searchQuery.isNotEmpty
-                                ? '${filteredMembers.length} resultado${filteredMembers.length != 1 ? 's' : ''}'
-                                : 'Ranking completo',
-                            style: GoogleFonts.spaceGrotesk(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.2,
-                              color: AppColors.onBackgroundMedium,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // Player list
-                      if (filteredMembers.isEmpty)
-                        const SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.search_off, size: 48, color: AppColors.onBackgroundLight),
-                                SizedBox(height: 12),
-                                Text(
-                                  'Nenhum jogador encontrado',
-                                  style: TextStyle(color: AppColors.onBackgroundLight),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                      else
-                        SliverPadding(
-                          padding: const EdgeInsets.only(top: 4, bottom: 8),
-                          sliver: SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) {
-                                final member = filteredMembers[index];
-                                return RankingListTile(
-                                  member: member,
-                                  hasActiveChallenge: activePlayers.contains(member.playerId),
-                                  onTap: () {
-                                    context.push(
-                                      '/players/${member.playerId}',
-                                    );
-                                  },
-                                );
-                              },
-                              childCount: filteredMembers.length,
-                            ),
-                          ),
-                        ),
-                    ],
                   ),
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Center(
+                ),
+
+              // Search bar
+              SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Erro ao carregar ranking',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        error.toString(),
-                        style: const TextStyle(color: AppColors.onBackgroundLight, fontSize: 13),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: () => ref.invalidate(rankingListProvider),
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Tentar novamente'),
-                      ),
-                    ],
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                  child: TextField(
+                    controller: searchController,
+                    onChanged: onSearchChanged,
+                    decoration: InputDecoration(
+                      hintText: 'Buscar jogador...',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      suffixIcon: searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.close, size: 18),
+                              onPressed: () {
+                                searchController.clear();
+                                onSearchChanged('');
+                              },
+                            )
+                          : null,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
                   ),
                 ),
               ),
-            ),
+
+              // Section title
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: Text(
+                    searchQuery.isNotEmpty
+                        ? '${filteredMembers.length} resultado${filteredMembers.length != 1 ? 's' : ''}'
+                        : 'Ranking completo',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                      color: AppColors.onBackgroundMedium,
+                    ),
+                  ),
+                ),
+              ),
+
+              // Player list
+              if (filteredMembers.isEmpty)
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.search_off, size: 48, color: AppColors.onBackgroundLight),
+                        SizedBox(height: 12),
+                        Text(
+                          'Nenhum jogador encontrado',
+                          style: TextStyle(color: AppColors.onBackgroundLight),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 8),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final member = filteredMembers[index];
+                        return RankingListTile(
+                          member: member,
+                          hasActiveChallenge: activePlayers.contains(member.playerId),
+                          onTap: () {
+                            context.push('/players/${member.playerId}');
+                          },
+                        );
+                      },
+                      childCount: filteredMembers.length,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+              const SizedBox(height: 16),
+              Text(
+                'Erro ao carregar ranking',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                error.toString(),
+                style: const TextStyle(color: AppColors.onBackgroundLight, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => ref.invalidate(rankingListProvider),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
