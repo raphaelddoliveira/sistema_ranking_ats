@@ -604,17 +604,26 @@ class _ChallengeDetailBody extends ConsumerWidget {
             ),
           );
         }
-        actions.add(const SizedBox(height: 8));
-        actions.add(
-          OutlinedButton.icon(
-            onPressed: () => _confirmWeatherExtension(context, ref),
-            icon: const Icon(Icons.water_drop, color: AppColors.info),
-            label: Text(
-              'Adiamento por Chuva (+2 dias)',
-              style: TextStyle(color: AppColors.info),
+        // Show rain postponement only on the last day of the deadline
+        final deadline = challenge.playDeadline?.toLocal();
+        final today = DateTime.now().toLocal();
+        final isLastDay = deadline != null &&
+            today.year == deadline.year &&
+            today.month == deadline.month &&
+            today.day == deadline.day;
+        if (isLastDay) {
+          actions.add(const SizedBox(height: 8));
+          actions.add(
+            OutlinedButton.icon(
+              onPressed: () => _confirmWeatherExtension(context, ref),
+              icon: const Icon(Icons.water_drop, color: AppColors.info),
+              label: Text(
+                'Adiamento por Chuva (+2 dias)',
+                style: TextStyle(color: AppColors.info),
+              ),
             ),
-          ),
-        );
+          );
+        }
         actions.add(const SizedBox(height: 8));
         actions.add(
           OutlinedButton.icon(
@@ -950,10 +959,20 @@ class _ChallengeDetailBody extends ConsumerWidget {
                   .read(challengeActionProvider.notifier)
                   .requestWeatherExtension(challengeId);
               if (success && context.mounted) {
-                SnackbarUtils.showSuccess(
-                    context, 'Prazo estendido em +2 dias por chuva');
                 ref.invalidate(challengeDetailProvider(challengeId));
                 ref.invalidate(activeChallengesProvider);
+                final courtId = challenge.courtId;
+                if (courtId != null) {
+                  final newDeadline = (challenge.playDeadline ?? DateTime.now())
+                      .add(const Duration(days: 2));
+                  context.push(
+                    '/courts/$courtId/schedule',
+                    extra: {'maxDate': newDeadline},
+                  );
+                } else {
+                  SnackbarUtils.showSuccess(
+                      context, 'Prazo estendido em +2 dias por chuva');
+                }
               }
             },
             icon: const Icon(Icons.water_drop),

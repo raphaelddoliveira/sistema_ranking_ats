@@ -155,7 +155,7 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
                                     fontStyle: FontStyle.italic),
                               ),
                             ],
-                            if (hasCooldownRule && opponent.isProtected) ...[
+                            if (hasCooldownRule && opponent.isProtected && opponent.rankingPosition != 1) ...[
                               const SizedBox(width: 8),
                               const Icon(Icons.shield,
                                   size: 14, color: AppColors.info),
@@ -175,8 +175,8 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
                                     strokeWidth: 2),
                               )
                             : const Icon(Icons.flash_on),
-                        enabled: !(hasCooldownRule && opponent.isProtected) && !createState.isLoading,
-                        onTap: (hasCooldownRule && opponent.isProtected) || createState.isLoading
+                        enabled: !(hasCooldownRule && opponent.isProtected && opponent.rankingPosition != 1) && !createState.isLoading,
+                        onTap: (hasCooldownRule && opponent.isProtected && opponent.rankingPosition != 1) || createState.isLoading
                             ? null
                             : () => _confirmChallenge(opponent),
                       ),

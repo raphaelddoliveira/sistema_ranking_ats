@@ -208,7 +208,7 @@ class _StatusIndicators extends StatelessWidget {
               child: Icon(Icons.timer, color: AppColors.warning, size: 18),
             ),
           ),
-        if (member.isProtected)
+        if (member.isProtected && member.rankingPosition != 1)
           const Padding(
             padding: EdgeInsets.only(left: 4),
             child: Tooltip(

@@ -303,7 +303,7 @@ class ChallengeRepository {
     try {
       final challenge = await _client
           .from(SupabaseConstants.challengesTable)
-          .select('challenger_id, chosen_date, club_id')
+          .select('challenger_id, chosen_date, club_id, created_at')
           .eq('id', challengeId)
           .single();
 
@@ -311,16 +311,18 @@ class ChallengeRepository {
       if (chosenDateStr == null) {
         throw Exception('Desafio não possui data escolhida.');
       }
-      final chosenDate = DateTime.parse(chosenDateStr);
+
+      // Deadline = 7 days from challenge creation, counting from the day after
+      // creation. e.g. created 13/03 → first day = 14/03 → last day = 20/03
+      final createdAt = DateTime.parse(challenge['created_at'] as String).toLocal();
+      final deadlineDate = DateTime(createdAt.year, createdAt.month, createdAt.day + 7, 23, 59, 59);
 
       await _client
           .from(SupabaseConstants.challengesTable)
           .update({
             'status': 'scheduled',
             'date_chosen_at': DateTime.now().toUtc().toIso8601String(),
-            'play_deadline': chosenDate
-                .add(const Duration(days: 7))
-                .toIso8601String(),
+            'play_deadline': deadlineDate.toUtc().toIso8601String(),
           })
           .eq('id', challengeId);
 

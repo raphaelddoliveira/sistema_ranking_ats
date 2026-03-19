@@ -170,9 +170,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) {
                   final extra = state.extra as Map<String, dynamic>?;
                   final isAdmin = extra?['isAdminMode'] == true;
+                  final maxDate = extra?['maxDate'] as DateTime?;
                   return CourtScheduleScreen(
                     courtId: state.pathParameters['courtId']!,
                     isAdminMode: isAdmin,
+                    maxDate: maxDate,
                   );
                 },
               ),

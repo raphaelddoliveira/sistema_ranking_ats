@@ -27,8 +27,9 @@ final _courtProvider =
 class CourtScheduleScreen extends ConsumerStatefulWidget {
   final String courtId;
   final bool isAdminMode;
+  final DateTime? maxDate;
 
-  const CourtScheduleScreen({super.key, required this.courtId, this.isAdminMode = false});
+  const CourtScheduleScreen({super.key, required this.courtId, this.isAdminMode = false, this.maxDate});
 
   @override
   ConsumerState<CourtScheduleScreen> createState() =>
@@ -47,10 +48,12 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
     super.initState();
     final today = DateTime.now();
     _selectedDate = DateTime(today.year, today.month, today.day);
-    _dates = List.generate(
-      60,
-      (i) => DateTime(today.year, today.month, today.day + i),
-    );
+    final maxDate = widget.maxDate != null
+        ? DateTime(widget.maxDate!.year, widget.maxDate!.month, widget.maxDate!.day)
+        : null;
+    _dates = List.generate(60, (i) => DateTime(today.year, today.month, today.day + i))
+        .where((d) => maxDate == null || !d.isAfter(maxDate))
+        .toList();
     _dateScrollController = ScrollController();
   }
 
