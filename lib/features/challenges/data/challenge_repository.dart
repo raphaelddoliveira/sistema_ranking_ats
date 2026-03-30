@@ -396,7 +396,7 @@ class ChallengeRepository {
     }
   }
 
-  /// Submit match result (pending opponent confirmation)
+  /// Submit match result (auto-completes: ranking swap + cooldowns applied immediately)
   Future<void> recordResult({
     required String challengeId,
     required String winnerId,
@@ -421,6 +421,8 @@ class ChallengeRepository {
           'p_super_tiebreak': superTiebreak,
         },
       );
+      // Mark the linked court reservation as completed
+      await _completeReservationForChallenge(challengeId);
     } catch (e) {
       throw ErrorHandler.handle(e);
     }

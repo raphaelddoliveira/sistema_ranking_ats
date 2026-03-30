@@ -602,60 +602,26 @@ class _ChallengeDetailBody extends ConsumerWidget {
         break;
 
       case ChallengeStatus.pendingResult:
-        final currentPlayerId = ref.watch(currentPlayerProvider).valueOrNull?.id;
-        final isSubmitter = currentPlayerId != null && challenge.isResultSubmitter(currentPlayerId);
-
-        if (isSubmitter) {
-          // Who submitted: waiting for opponent confirmation
-          actions.add(
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Icon(Icons.hourglass_top, color: AppColors.warning),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Aguardando seu oponente confirmar o resultado.',
-                        style: TextStyle(fontSize: 13),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        } else {
-          // Opponent: can confirm or dispute
-          actions.add(
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _confirmResultAction(context, ref),
-                icon: const Icon(Icons.check),
-                label: const Text('Confirmar Resultado'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.success,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-            ),
-          );
-          actions.add(const SizedBox(height: 8));
-          actions.add(
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () => _disputeResultAction(context, ref),
-                icon: const Icon(Icons.close, color: AppColors.error),
-                label: const Text('Contestar Resultado',
-                    style: TextStyle(color: AppColors.error)),
-              ),
-            ),
-          );
-        }
+        // Legacy: results now auto-complete. For any old challenges still
+        // in pending_result, show option to re-submit result.
+        actions.add(
+          ElevatedButton.icon(
+            onPressed: () {
+              context.push(
+                '/challenges/$challengeId/record-result',
+                extra: {
+                  'challengerId': challenge.challengerId,
+                  'challengedId': challenge.challengedId,
+                  'challengerName': challenge.challengerName ?? 'Desafiante',
+                  'challengedName': challenge.challengedName ?? 'Desafiado',
+                  'challengeStatus': challenge.status.dbValue,
+                },
+              );
+            },
+            icon: const Icon(Icons.scoreboard),
+            label: const Text('Registrar Resultado'),
+          ),
+        );
         actions.add(const SizedBox(height: 8));
         actions.add(
           OutlinedButton.icon(
@@ -665,46 +631,6 @@ class _ChallengeDetailBody extends ConsumerWidget {
                 style: TextStyle(color: AppColors.error)),
           ),
         );
-        // Admin actions
-        {
-          final isAdmin = ref.watch(isClubAdminProvider).valueOrNull ?? false;
-          if (isAdmin) {
-            // Admin: submit result directly
-            actions.add(const SizedBox(height: 8));
-            actions.add(
-              OutlinedButton.icon(
-                onPressed: () {
-                  context.push(
-                    '/challenges/$challengeId/record-result',
-                    extra: {
-                      'challengerId': challenge.challengerId,
-                      'challengedId': challenge.challengedId,
-                      'challengerName': challenge.challengerName ?? 'Desafiante',
-                      'challengedName': challenge.challengedName ?? 'Desafiado',
-                      'isAdminEdit': true,
-                      'challengeStatus': challenge.status.dbValue,
-                    },
-                  );
-                },
-                icon: Icon(Icons.scoreboard, color: AppColors.warning),
-                label: Text('Registrar Resultado (Admin)',
-                    style: TextStyle(color: AppColors.warning)),
-              ),
-            );
-            // Admin: cancel challenge (for non-participants)
-            if (!isChallenger && !isChallenged) {
-              actions.add(const SizedBox(height: 8));
-              actions.add(
-                OutlinedButton.icon(
-                  onPressed: () => _confirmAnnul(context, ref),
-                  icon: const Icon(Icons.gavel, color: AppColors.error),
-                  label: const Text('Cancelar Desafio (Admin)',
-                      style: TextStyle(color: AppColors.error)),
-                ),
-              );
-            }
-          }
-        }
         break;
 
       case ChallengeStatus.completed:
@@ -872,78 +798,6 @@ class _ChallengeDetailBody extends ConsumerWidget {
     );
   }
 
-  void _confirmResultAction(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Confirmar Resultado'),
-        content: const Text('Confirma que o resultado registrado está correto?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              final success = await ref
-                  .read(challengeActionProvider.notifier)
-                  .confirmResult(challengeId);
-              if (success && context.mounted) {
-                SnackbarUtils.showSuccess(context, 'Resultado confirmado!');
-                ref.invalidate(challengeDetailProvider(challengeId));
-                ref.invalidate(challengeMatchProvider(challengeId));
-                ref.invalidate(activeChallengesProvider);
-                ref.invalidate(challengeHistoryProvider);
-              }
-            },
-            child: const Text('Confirmar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _disputeResultAction(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Contestar Resultado'),
-        content: const Text(
-          'O resultado será removido e seu oponente poderá corrigir e registrar novamente.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              final success = await ref
-                  .read(challengeActionProvider.notifier)
-                  .disputeResult(challengeId);
-              if (success && context.mounted) {
-                SnackbarUtils.showSuccess(context, 'Resultado contestado');
-                ref.invalidate(challengeDetailProvider(challengeId));
-                ref.invalidate(challengeMatchProvider(challengeId));
-                ref.invalidate(activeChallengesProvider);
-              }
-            },
-            child: const Text('Contestar'),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _PlayerRow extends StatelessWidget {
