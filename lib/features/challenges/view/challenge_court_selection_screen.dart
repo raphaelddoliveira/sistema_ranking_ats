@@ -41,10 +41,10 @@ class _ChallengeCourtSelectionScreenState
   void initState() {
     super.initState();
     final today = DateTime.now();
-    _selectedDate = DateTime(today.year, today.month, today.day + 1);
+    _selectedDate = DateTime(today.year, today.month, today.day);
     _dates = List.generate(
       60,
-      (i) => DateTime(today.year, today.month, today.day + 1 + i),
+      (i) => DateTime(today.year, today.month, today.day + i),
     );
     _dateScrollController = ScrollController();
   }
@@ -447,7 +447,7 @@ class _ChallengeCourtSelectionScreenState
       if (mounted) {
         if (success) {
           SnackbarUtils.showSuccess(
-              context, 'Quadra reservada! Aguardando confirmação.');
+              context, 'Quadra reservada! Desafio agendado.');
           ref.invalidate(
               challengeDetailProvider(widget.challengeId));
           ref.invalidate(activeChallengesProvider);
