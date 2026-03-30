@@ -151,7 +151,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
                       challenge.status == ChallengeStatus.pending)
                     _InfoRow(
                       icon: Icons.timer,
-                      label: 'Prazo para responder',
+                      label: 'Prazo para agendar',
                       value: challenge.responseDeadline!.countdown(),
                       color: AppColors.warning,
                     ),
@@ -468,84 +468,8 @@ class _ChallengeDetailBody extends ConsumerWidget {
         break;
 
       case ChallengeStatus.datesProposed:
-        if (isChallenged) {
-          actions.add(
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () =>
-                    _confirmAccept(context, ref),
-                icon: const Icon(Icons.check),
-                label: const Text('Aceitar'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.success,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-            ),
-          );
-          actions.add(const SizedBox(height: 8));
-          actions.add(
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () =>
-                    _confirmDecline(context, ref),
-                icon: const Icon(Icons.close,
-                    color: AppColors.error),
-                label: const Text('Recusar Horário',
-                    style: TextStyle(color: AppColors.error)),
-              ),
-            ),
-          );
-        } else if (isChallenger) {
-          actions.add(
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Icon(Icons.hourglass_top,
-                        color: AppColors.warning),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Aguardando seu oponente aceitar ou recusar o horário.',
-                        style: TextStyle(fontSize: 13),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }
-        if (isChallenger || isChallenged) {
-          actions.add(const SizedBox(height: 8));
-          actions.add(
-            OutlinedButton.icon(
-              onPressed: () => _confirmCancel(context, ref),
-              icon: const Icon(Icons.close, color: AppColors.error),
-              label: const Text('Cancelar Desafio',
-                  style: TextStyle(color: AppColors.error)),
-            ),
-          );
-        } else {
-          final isAdmin = ref.watch(isClubAdminProvider).valueOrNull ?? false;
-          if (isAdmin) {
-            actions.add(const SizedBox(height: 8));
-            actions.add(
-              OutlinedButton.icon(
-                onPressed: () => _confirmAnnul(context, ref),
-                icon: const Icon(Icons.gavel, color: AppColors.error),
-                label: const Text('Cancelar Desafio (Admin)',
-                    style: TextStyle(color: AppColors.error)),
-              ),
-            );
-          }
-        }
+        // Legacy: should no longer happen (challenges go straight to scheduled).
+        // Treat like scheduled for any old challenges still in this state.
         break;
 
       case ChallengeStatus.scheduled:
@@ -867,76 +791,6 @@ class _ChallengeDetailBody extends ConsumerWidget {
     );
   }
 
-  void _confirmAccept(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Aceitar Desafio'),
-        content:
-            const Text('Confirma que jogará nesta quadra e horário?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              final success = await ref
-                  .read(challengeActionProvider.notifier)
-                  .acceptChallenge(challengeId);
-              if (success && context.mounted) {
-                SnackbarUtils.showSuccess(
-                    context, 'Desafio aceito! Jogo agendado.');
-                ref.invalidate(
-                    challengeDetailProvider(challengeId));
-                ref.invalidate(activeChallengesProvider);
-                ref.invalidate(upcomingChallengesProvider);
-              }
-            },
-            child: const Text('Aceitar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmDecline(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Recusar Horário'),
-        content: const Text(
-          'A reserva da quadra será cancelada e o desafiante precisará escolher outro horário.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Voltar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error),
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              final success = await ref
-                  .read(challengeActionProvider.notifier)
-                  .declineChallenge(challengeId);
-              if (success && context.mounted) {
-                SnackbarUtils.showSuccess(context,
-                    'Horário recusado. O desafiante escolherá outro.');
-                ref.invalidate(
-                    challengeDetailProvider(challengeId));
-                ref.invalidate(activeChallengesProvider);
-                ref.invalidate(upcomingChallengesProvider);
-              }
-            },
-            child: const Text('Recusar'),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _confirmWeatherExtension(BuildContext context, WidgetRef ref) {
     showDialog(

@@ -226,7 +226,7 @@ class ChallengeRepository {
   }
 
   /// Challenger selects a court + date/time and auto-creates a reservation.
-  /// Status: pending -> dates_proposed (court selected, awaiting acceptance)
+  /// Status: pending -> scheduled (no acceptance needed — challenge is automatic)
   Future<void> selectCourtAndDate(
     String challengeId, {
     required String courtId,
@@ -238,10 +238,10 @@ class ChallengeRepository {
     try {
       final playerId = await _getCurrentPlayerId();
 
-      // 1. Get the challenged player ID for opponent info + notification
+      // 1. Get challenge info for opponent + deadline calculation
       final challenge = await _client
           .from(SupabaseConstants.challengesTable)
-          .select('challenged_id')
+          .select('challenged_id, created_at')
           .eq('id', challengeId)
           .single();
       final challengedId = challenge['challenged_id'] as String;
@@ -255,20 +255,24 @@ class ChallengeRepository {
         int.parse(startTime.split(':')[1]),
       );
 
-      // 3. Update challenge status FIRST (safer: if reservation fails, challenge
-      //    stays in dates_proposed without a reservation — easier to fix than
-      //    a reservation existing without the challenge being updated)
+      // 3. Deadline = 7 days from challenge creation, counting from the day after
+      final createdAt = DateTime.parse(challenge['created_at'] as String).toLocal();
+      final deadlineDate = DateTime(createdAt.year, createdAt.month, createdAt.day + 7, 23, 59, 59);
+
+      // 4. Update challenge directly to scheduled (no acceptance step)
       await _client
           .from(SupabaseConstants.challengesTable)
           .update({
-            'status': 'dates_proposed',
+            'status': 'scheduled',
             'court_id': courtId,
             'chosen_date': chosenDateTimeLocal.toUtc().toIso8601String(),
             'dates_proposed_at': DateTime.now().toUtc().toIso8601String(),
+            'date_chosen_at': DateTime.now().toUtc().toIso8601String(),
+            'play_deadline': deadlineDate.toUtc().toIso8601String(),
           })
           .eq('id', challengeId);
 
-      // 4. Create the court reservation linked to this challenge
+      // 5. Create the court reservation linked to this challenge
       final dateStr =
           '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
       await _client.from(SupabaseConstants.courtReservationsTable).insert({
@@ -283,12 +287,12 @@ class ChallengeRepository {
         'opponent_type': 'member',
       });
 
-      // 5. Notify challenged player
+      // 6. Notify challenged player that the match is scheduled
       await _client.from(SupabaseConstants.notificationsTable).insert({
         'player_id': challengedId,
-        'type': 'court_selected',
-        'title': 'Quadra Reservada para Desafio',
-        'body': 'Seu oponente reservou uma quadra. Aceite ou recuse o horário!',
+        'type': 'challenge_accepted',
+        'title': 'Desafio Agendado!',
+        'body': 'Um desafio foi agendado. Quadra e horário já definidos!',
         'data': {'challenge_id': challengeId},
         'club_id': clubId,
       });
