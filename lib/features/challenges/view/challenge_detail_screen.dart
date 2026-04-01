@@ -548,14 +548,23 @@ class _ChallengeDetailBody extends ConsumerWidget {
             ),
           );
         }
-        actions.add(const SizedBox(height: 8));
-        actions.add(
-          OutlinedButton.icon(
-            onPressed: () => _confirmReschedule(context, ref),
-            icon: const Icon(Icons.edit_calendar),
-            label: const Text('Alterar Quadra/Horário'),
-          ),
-        );
+        {
+          final isAdmin = ref.watch(isClubAdminProvider).valueOrNull ?? false;
+          if (isChallenger || isChallenged || isAdmin) {
+            actions.add(const SizedBox(height: 8));
+            actions.add(
+              OutlinedButton.icon(
+                onPressed: () => _confirmReschedule(context, ref),
+                icon: const Icon(Icons.edit_calendar),
+                label: Text(
+                  isAdmin && !isChallenger && !isChallenged
+                      ? 'Alterar Quadra/Horário (Admin)'
+                      : 'Alterar Quadra/Horário',
+                ),
+              ),
+            );
+          }
+        }
         actions.add(const SizedBox(height: 8));
         actions.add(
           OutlinedButton.icon(
