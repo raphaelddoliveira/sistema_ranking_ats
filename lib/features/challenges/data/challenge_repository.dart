@@ -301,6 +301,65 @@ class ChallengeRepository {
     }
   }
 
+  /// Reschedule a challenge: cancel old reservation, reset to pending so
+  /// the challenger can pick a new court/date.
+  Future<void> rescheduleChallenge(String challengeId) async {
+    try {
+      final challenge = await _client
+          .from(SupabaseConstants.challengesTable)
+          .select('challenger_id, challenged_id, club_id')
+          .eq('id', challengeId)
+          .single();
+
+      // Cancel linked reservation(s)
+      final reservations = await _client
+          .from(SupabaseConstants.courtReservationsTable)
+          .select('id')
+          .eq('challenge_id', challengeId)
+          .eq('status', 'confirmed');
+
+      for (final r in reservations) {
+        await _client
+            .from(SupabaseConstants.courtReservationsTable)
+            .update({
+              'status': 'cancelled',
+              'updated_at': DateTime.now().toUtc().toIso8601String(),
+            })
+            .eq('id', r['id']);
+      }
+
+      // Reset challenge to pending
+      await _client
+          .from(SupabaseConstants.challengesTable)
+          .update({
+            'status': 'pending',
+            'court_id': null,
+            'chosen_date': null,
+            'dates_proposed_at': null,
+            'date_chosen_at': null,
+            'play_deadline': null,
+          })
+          .eq('id', challengeId);
+
+      // Notify both players
+      final playerId = await _getCurrentPlayerId();
+      final opponentId = playerId == challenge['challenger_id']
+          ? challenge['challenged_id']
+          : challenge['challenger_id'];
+
+      await _client.from(SupabaseConstants.notificationsTable).insert({
+        'player_id': opponentId,
+        'type': 'general',
+        'title': 'Desafio Remarcado',
+        'body': 'A data do desafio foi alterada. Aguarde o novo agendamento.',
+        'data': {'challenge_id': challengeId},
+        'club_id': challenge['club_id'],
+      });
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
   /// Challenged player accepts the court/date selection.
   /// Status: dates_proposed -> scheduled
   Future<void> acceptChallenge(String challengeId) async {

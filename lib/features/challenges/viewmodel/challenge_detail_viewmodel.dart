@@ -54,6 +54,18 @@ class ChallengeActionNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  Future<bool> rescheduleChallenge(String challengeId) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.rescheduleChallenge(challengeId);
+      state = const AsyncData(null);
+      return true;
+    } on AppException catch (e, st) {
+      state = AsyncError(e, st);
+      return false;
+    }
+  }
+
   Future<bool> acceptChallenge(String challengeId) async {
     state = const AsyncLoading();
     try {

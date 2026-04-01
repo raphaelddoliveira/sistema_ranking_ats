@@ -551,6 +551,14 @@ class _ChallengeDetailBody extends ConsumerWidget {
         actions.add(const SizedBox(height: 8));
         actions.add(
           OutlinedButton.icon(
+            onPressed: () => _confirmReschedule(context, ref),
+            icon: const Icon(Icons.edit_calendar),
+            label: const Text('Alterar Quadra/Horário'),
+          ),
+        );
+        actions.add(const SizedBox(height: 8));
+        actions.add(
+          OutlinedButton.icon(
             onPressed: () => _confirmCancel(context, ref),
             icon: const Icon(Icons.close, color: AppColors.error),
             label: const Text('Cancelar Desafio',
@@ -717,6 +725,41 @@ class _ChallengeDetailBody extends ConsumerWidget {
     );
   }
 
+
+  void _confirmReschedule(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Alterar Quadra/Horário'),
+        content: const Text(
+          'A reserva atual será cancelada e você poderá escolher uma nova quadra e horário.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Voltar'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              final success = await ref
+                  .read(challengeActionProvider.notifier)
+                  .rescheduleChallenge(challengeId);
+              if (success && context.mounted) {
+                ref.invalidate(challengeDetailProvider(challengeId));
+                ref.invalidate(activeChallengesProvider);
+                ref.invalidate(myReservationsProvider);
+                ref.invalidate(hasActiveFriendlyReservationProvider);
+                context.push('/challenges/$challengeId/select-court');
+              }
+            },
+            icon: const Icon(Icons.edit_calendar),
+            label: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _confirmWeatherExtension(BuildContext context, WidgetRef ref) {
     showDialog(
