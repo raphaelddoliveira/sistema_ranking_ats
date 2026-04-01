@@ -322,7 +322,7 @@ class CourtRepository {
     }
   }
 
-  /// Count active friendly (non-challenge) reservations for current player
+  /// Count active friendly (non-challenge, non-administrative) reservations for current player
   /// Includes reservations where player is owner OR opponent
   Future<int> getActiveFriendlyReservationCount() async {
     try {
@@ -338,6 +338,7 @@ class CourtRepository {
           .or('reserved_by.eq.$playerId,opponent_id.eq.$playerId')
           .eq('status', 'confirmed')
           .isFilter('challenge_id', null)
+          .neq('reservation_type', 'administrative')
           .gte('reservation_date', dateStr);
       // Filter out today's reservations that already ended
       final active = data.where((r) {
@@ -367,6 +368,7 @@ class CourtRepository {
           .or('reserved_by.eq.$playerId,opponent_id.eq.$playerId')
           .eq('status', 'confirmed')
           .isFilter('challenge_id', null)
+          .neq('reservation_type', 'administrative')
           .gte('reservation_date', dateStr);
       // Only count reservations that haven't ended yet
       return data.any((r) {
