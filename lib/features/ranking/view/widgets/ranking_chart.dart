@@ -38,7 +38,8 @@ class RankingChart extends StatelessWidget {
     }
     final spots = <FlSpot>[];
     for (var i = 0; i < reversed.length; i++) {
-      spots.add(FlSpot(i.toDouble(), reversed[i].newPosition!.toDouble()));
+      // Negate Y so that position #1 (best) renders at the top
+      spots.add(FlSpot(i.toDouble(), -reversed[i].newPosition!.toDouble()));
     }
 
     // Calculate bounds
@@ -99,7 +100,7 @@ class RankingChart extends StatelessWidget {
                   reservedSize: 32,
                   getTitlesWidget: (value, meta) {
                     return Text(
-                      '#${value.toInt()}',
+                      '#${(-value).toInt()}',
                       style: const TextStyle(
                         fontSize: 10,
                         color: AppColors.onBackgroundLight,
@@ -110,9 +111,10 @@ class RankingChart extends StatelessWidget {
               ),
             ),
             borderData: FlBorderData(show: false),
-            // Invert Y axis: lower position number = higher on chart
-            minY: (minPos - padding).clamp(1, double.infinity),
-            maxY: maxPos + padding,
+            // Invert Y axis: #1 at top, higher numbers at bottom
+            // Use negative values so lower position numbers render higher
+            minY: -(maxPos + padding),
+            maxY: -((minPos - padding).clamp(1, double.infinity) as double),
             lineBarsData: [
               LineChartBarData(
                 spots: spots,
@@ -133,7 +135,7 @@ class RankingChart extends StatelessWidget {
                     );
                   },
                 ),
-                belowBarData: BarAreaData(
+                aboveBarData: BarAreaData(
                   show: true,
                   color: AppColors.primary.withAlpha(25),
                 ),
