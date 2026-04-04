@@ -302,7 +302,7 @@ class ChallengeRepository {
   }
 
   /// Reschedule a challenge: cancel old reservation, reset to pending so
-  /// the challenger can pick a new court/date.
+  /// anyone can pick a new court/date via the select-court screen.
   Future<void> rescheduleChallenge(String challengeId) async {
     try {
       final challenge = await _client
@@ -328,7 +328,7 @@ class ChallengeRepository {
             .eq('id', r['id']);
       }
 
-      // Reset challenge to pending
+      // Reset court/date fields but keep status as pending
       await _client
           .from(SupabaseConstants.challengesTable)
           .update({
@@ -343,18 +343,22 @@ class ChallengeRepository {
 
       // Notify both players
       final playerId = await _getCurrentPlayerId();
-      final opponentId = playerId == challenge['challenger_id']
-          ? challenge['challenged_id']
-          : challenge['challenger_id'];
+      final challengerId = challenge['challenger_id'] as String;
+      final challengedId = challenge['challenged_id'] as String;
+      final notifyIds = <String>[];
+      if (playerId != challengerId) notifyIds.add(challengerId);
+      if (playerId != challengedId) notifyIds.add(challengedId);
 
-      await _client.from(SupabaseConstants.notificationsTable).insert({
-        'player_id': opponentId,
-        'type': 'general',
-        'title': 'Desafio Remarcado',
-        'body': 'A data do desafio foi alterada. Aguarde o novo agendamento.',
-        'data': {'challenge_id': challengeId},
-        'club_id': challenge['club_id'],
-      });
+      for (final id in notifyIds) {
+        await _client.from(SupabaseConstants.notificationsTable).insert({
+          'player_id': id,
+          'type': 'general',
+          'title': 'Desafio Remarcado',
+          'body': 'A data do desafio foi alterada. Aguarde o novo agendamento.',
+          'data': {'challenge_id': challengeId},
+          'club_id': challenge['club_id'],
+        });
+      }
     } catch (e) {
       throw ErrorHandler.handle(e);
     }

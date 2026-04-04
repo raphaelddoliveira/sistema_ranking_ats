@@ -126,19 +126,21 @@ BEGIN
   FROM club_sports WHERE club_id = v_club_id AND sport_id = v_sport_id AND is_active = true;
   v_rule_cooldown := COALESCE(v_rule_cooldown, true);
 
+  -- Cooldowns count from the match time (chosen_date), not from now()
+  -- e.g. match at 17:15 → 48h cooldown expires at 17:15 two days later
   IF v_rule_cooldown THEN
     UPDATE club_members
-    SET challenger_cooldown_until = now() + INTERVAL '48 hours',
-        last_challenge_date = now(),
+    SET challenger_cooldown_until = COALESCE(v_challenge.chosen_date, now()) + INTERVAL '48 hours',
+        last_challenge_date = COALESCE(v_challenge.chosen_date, now()),
         challenges_this_month = challenges_this_month + 1
     WHERE club_id = v_club_id AND sport_id = v_sport_id AND player_id = v_challenger_id;
 
     UPDATE club_members
-    SET challenged_protection_until = now() + INTERVAL '24 hours'
+    SET challenged_protection_until = COALESCE(v_challenge.chosen_date, now()) + INTERVAL '24 hours'
     WHERE club_id = v_club_id AND sport_id = v_sport_id AND player_id = v_challenged_id;
   ELSE
     UPDATE club_members
-    SET last_challenge_date = now(),
+    SET last_challenge_date = COALESCE(v_challenge.chosen_date, now()),
         challenges_this_month = challenges_this_month + 1
     WHERE club_id = v_club_id AND sport_id = v_sport_id AND player_id = v_challenger_id;
   END IF;

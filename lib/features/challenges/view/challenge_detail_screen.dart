@@ -407,60 +407,33 @@ class _ChallengeDetailBody extends ConsumerWidget {
 
     switch (challenge.status) {
       case ChallengeStatus.pending:
-        if (isChallenger) {
-          actions.add(
-            ElevatedButton.icon(
-              onPressed: () {
-                context.push(
-                    '/challenges/$challengeId/select-court');
-              },
-              icon: const Icon(Icons.event_note),
-              label: const Text('Escolher Quadra e Horário'),
-            ),
-          );
-          actions.add(const SizedBox(height: 8));
-          actions.add(
-            OutlinedButton.icon(
-              onPressed: () => _confirmCancel(context, ref),
-              icon: const Icon(Icons.close, color: AppColors.error),
-              label: const Text('Cancelar Desafio',
-                  style: TextStyle(color: AppColors.error)),
-            ),
-          );
-        }
-        if (isChallenged) {
-          actions.add(
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Icon(Icons.hourglass_top,
-                        color: AppColors.warning),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Aguardando o desafiante escolher quadra e horário.',
-                        style: TextStyle(fontSize: 13),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }
-        // Admin: cancel challenge (only for non-participants)
-        if (!isChallenger && !isChallenged) {
+        {
           final isAdmin = ref.watch(isClubAdminProvider).valueOrNull ?? false;
-          if (isAdmin) {
+          // Any participant or admin can pick court/date
+          if (isChallenger || isChallenged || isAdmin) {
+            actions.add(
+              ElevatedButton.icon(
+                onPressed: () {
+                  context.push(
+                      '/challenges/$challengeId/select-court');
+                },
+                icon: const Icon(Icons.event_note),
+                label: const Text('Escolher Quadra e Horário'),
+              ),
+            );
             actions.add(const SizedBox(height: 8));
             actions.add(
               OutlinedButton.icon(
-                onPressed: () => _confirmAnnul(context, ref),
-                icon: const Icon(Icons.gavel, color: AppColors.error),
-                label: const Text('Cancelar Desafio (Admin)',
-                    style: TextStyle(color: AppColors.error)),
+                onPressed: () => isAdmin && !isChallenger && !isChallenged
+                    ? _confirmAnnul(context, ref)
+                    : _confirmCancel(context, ref),
+                icon: const Icon(Icons.close, color: AppColors.error),
+                label: Text(
+                  isAdmin && !isChallenger && !isChallenged
+                      ? 'Cancelar Desafio (Admin)'
+                      : 'Cancelar Desafio',
+                  style: const TextStyle(color: AppColors.error),
+                ),
               ),
             );
           }
