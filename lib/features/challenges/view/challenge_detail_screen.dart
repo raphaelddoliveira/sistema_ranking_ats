@@ -523,7 +523,13 @@ class _ChallengeDetailBody extends ConsumerWidget {
         }
         {
           final isAdmin = ref.watch(isClubAdminProvider).valueOrNull ?? false;
-          if (isChallenger || isChallenged || isAdmin) {
+          // Only allow rescheduling before the day of the match
+          final matchDate = challenge.chosenDate?.toLocal();
+          final now = DateTime.now().toLocal();
+          final isBeforeMatchDay = matchDate == null ||
+              DateTime(now.year, now.month, now.day)
+                  .isBefore(DateTime(matchDate.year, matchDate.month, matchDate.day));
+          if ((isChallenger || isChallenged || isAdmin) && isBeforeMatchDay) {
             actions.add(const SizedBox(height: 8));
             actions.add(
               OutlinedButton.icon(
