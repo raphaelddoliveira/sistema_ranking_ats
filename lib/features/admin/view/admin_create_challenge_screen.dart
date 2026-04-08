@@ -21,6 +21,8 @@ class _AdminCreateChallengeScreenState
     extends ConsumerState<AdminCreateChallengeScreen> {
   ClubMemberModel? _selectedChallenger;
 
+  int get _step => _selectedChallenger == null ? 1 : 2;
+
   @override
   Widget build(BuildContext context) {
     final membersAsync = ref.watch(allMembersProvider);
@@ -34,17 +36,9 @@ class _AdminCreateChallengeScreenState
       );
     });
 
-    final step = _selectedChallenger == null ? 1 : 2;
-    final title = step == 1
-        ? 'Selecione o Desafiante'
-        : 'Selecione o Desafiado';
-    final subtitle = step == 1
-        ? 'Quem vai desafiar?'
-        : 'Desafiante: ${_selectedChallenger!.playerName} (#${_selectedChallenger!.rankingPosition})';
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Criar Desafio (Admin)'),
+        title: const Text('Criar Desafio'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -58,7 +52,7 @@ class _AdminCreateChallengeScreenState
       ),
       body: membersAsync.when(
         data: (members) {
-          final list = step == 2
+          final list = _step == 2
               ? members
                   .where((m) => m.playerId != _selectedChallenger!.playerId)
                   .toList()
@@ -74,100 +68,48 @@ class _AdminCreateChallengeScreenState
           }
 
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
+              // Step indicator
+              _StepIndicator(step: _step),
+
+              // Selected challenger banner (step 2)
+              if (_step == 2) _ChallengerBanner(
+                challenger: _selectedChallenger!,
+                onClear: () => setState(() => _selectedChallenger = null),
               ),
+
+              // Instruction
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.onBackgroundMedium,
-                      ),
-                ),
-              ),
-              if (step == 2)
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  child: TextButton.icon(
-                    onPressed: () =>
-                        setState(() => _selectedChallenger = null),
-                    icon: const Icon(Icons.arrow_back, size: 16),
-                    label: const Text('Trocar desafiante'),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _step == 1
+                        ? 'Quem vai DESAFIAR?'
+                        : 'Quem será o DESAFIADO?',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                 ),
-              const SizedBox(height: 8),
+              ),
+
+              // Members list
               Expanded(
                 child: ListView.builder(
                   itemCount: list.length,
                   itemBuilder: (context, index) {
                     final member = list[index];
-
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: AppColors.surfaceVariant,
-                          backgroundImage: member.playerAvatarUrl != null
-                              ? CachedNetworkImageProvider(
-                                  member.playerAvatarUrl!)
-                              : null,
-                          child: member.playerAvatarUrl == null
-                              ? Text(
-                                  member.playerName.isNotEmpty
-                                      ? member.playerName[0].toUpperCase()
-                                      : '?',
-                                )
-                              : null,
-                        ),
-                        title: Text(
-                          member.playerName,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Row(
-                          children: [
-                            Text('#${member.rankingPosition}'),
-                            if (member.playerNickname != null) ...[
-                              const Text(' - '),
-                              Text(
-                                '"${member.playerNickname}"',
-                                style: const TextStyle(
-                                    fontStyle: FontStyle.italic),
-                              ),
-                            ],
-                          ],
-                        ),
-                        trailing: createState.isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2),
-                              )
-                            : Icon(
-                                step == 1 ? Icons.person : Icons.flash_on),
-                        enabled: !createState.isLoading,
-                        onTap: createState.isLoading
-                            ? null
-                            : () {
-                                if (step == 1) {
-                                  setState(
-                                      () => _selectedChallenger = member);
-                                } else {
-                                  _confirmAdminChallenge(member);
-                                }
-                              },
-                      ),
+                    return _MemberTile(
+                      member: member,
+                      isLoading: createState.isLoading,
+                      onTap: () {
+                        if (_step == 1) {
+                          setState(() => _selectedChallenger = member);
+                        } else {
+                          _confirmAdminChallenge(member);
+                        }
+                      },
                     );
                   },
                 ),
@@ -199,10 +141,52 @@ class _AdminCreateChallengeScreenState
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirmar Desafio'),
-        content: Text(
-          '${challenger.playerName} (#${challenger.rankingPosition}) '
-          'vai desafiar ${challenged.playerName} (#${challenged.rankingPosition}).\n\n'
-          'Nenhuma regra de cooldown ou posição será aplicada.',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.person, color: AppColors.primary, size: 20),
+                const SizedBox(width: 8),
+                Expanded(child: Text(
+                  '${challenger.playerName} (#${challenger.rankingPosition})',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                )),
+              ],
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Icon(Icons.arrow_downward, color: AppColors.onBackgroundLight),
+            ),
+            Row(
+              children: [
+                const Icon(Icons.person_outline, color: AppColors.secondary, size: 20),
+                const SizedBox(width: 8),
+                Expanded(child: Text(
+                  '${challenged.playerName} (#${challenged.rankingPosition})',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                )),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.info.withAlpha(15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: AppColors.info),
+                  SizedBox(width: 8),
+                  Expanded(child: Text(
+                    'Regras de cooldown e posição não serão aplicadas.',
+                    style: TextStyle(fontSize: 12, color: AppColors.info),
+                  )),
+                ],
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -220,8 +204,7 @@ class _AdminCreateChallengeScreenState
                   );
 
               if (challengeId != null && mounted) {
-                SnackbarUtils.showSuccess(
-                    context, 'Desafio criado pelo admin!');
+                SnackbarUtils.showSuccess(context, 'Desafio criado!');
                 ref.invalidate(activeChallengesProvider);
                 ref.invalidate(upcomingChallengesProvider);
                 ref.invalidate(allMembersProvider);
@@ -232,6 +215,216 @@ class _AdminCreateChallengeScreenState
             child: const Text('Criar Desafio'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _StepIndicator extends StatelessWidget {
+  final int step;
+  const _StepIndicator({required this.step});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border(bottom: BorderSide(color: AppColors.divider)),
+      ),
+      child: Row(
+        children: [
+          _StepCircle(number: 1, label: 'Desafiante', isActive: step == 1, isDone: step > 1),
+          Expanded(
+            child: Container(
+              height: 2,
+              color: step > 1 ? AppColors.primary : AppColors.divider,
+            ),
+          ),
+          _StepCircle(number: 2, label: 'Desafiado', isActive: step == 2, isDone: false),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepCircle extends StatelessWidget {
+  final int number;
+  final String label;
+  final bool isActive;
+  final bool isDone;
+
+  const _StepCircle({
+    required this.number,
+    required this.label,
+    required this.isActive,
+    required this.isDone,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isActive || isDone ? AppColors.primary : AppColors.onBackgroundLight;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isActive || isDone ? AppColors.primary : AppColors.surface,
+            border: Border.all(color: color, width: 2),
+          ),
+          child: Center(
+            child: isDone
+                ? const Icon(Icons.check, size: 18, color: Colors.white)
+                : Text(
+                    '$number',
+                    style: TextStyle(
+                      color: isActive ? Colors.white : color,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: color,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ChallengerBanner extends StatelessWidget {
+  final ClubMemberModel challenger;
+  final VoidCallback onClear;
+
+  const _ChallengerBanner({required this.challenger, required this.onClear});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withAlpha(15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary.withAlpha(50)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: AppColors.primary.withAlpha(30),
+            backgroundImage: challenger.playerAvatarUrl != null
+                ? CachedNetworkImageProvider(challenger.playerAvatarUrl!)
+                : null,
+            child: challenger.playerAvatarUrl == null
+                ? Text(
+                    challenger.playerName.isNotEmpty
+                        ? challenger.playerName[0].toUpperCase()
+                        : '?',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  )
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'DESAFIANTE',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                    letterSpacing: 1,
+                  ),
+                ),
+                Text(
+                  '${challenger.playerName} (#${challenger.rankingPosition})',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: onClear,
+            icon: const Icon(Icons.close, size: 20),
+            tooltip: 'Trocar desafiante',
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.surface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MemberTile extends StatelessWidget {
+  final ClubMemberModel member;
+  final bool isLoading;
+  final VoidCallback onTap;
+
+  const _MemberTile({
+    required this.member,
+    required this.isLoading,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: AppColors.surfaceVariant,
+          backgroundImage: member.playerAvatarUrl != null
+              ? CachedNetworkImageProvider(member.playerAvatarUrl!)
+              : null,
+          child: member.playerAvatarUrl == null
+              ? Text(
+                  member.playerName.isNotEmpty
+                      ? member.playerName[0].toUpperCase()
+                      : '?',
+                )
+              : null,
+        ),
+        title: Text(
+          member.playerName,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Row(
+          children: [
+            Text('#${member.rankingPosition}'),
+            if (member.playerNickname != null) ...[
+              const Text(' - '),
+              Text(
+                '"${member.playerNickname}"',
+                style: const TextStyle(fontStyle: FontStyle.italic),
+              ),
+            ],
+          ],
+        ),
+        trailing: isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.arrow_forward_ios, size: 14),
+        enabled: !isLoading,
+        onTap: isLoading ? null : onTap,
       ),
     );
   }
