@@ -621,7 +621,7 @@ class _MatchTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final date = match.playedAt;
+    final date = match.playedAt.isUtc ? match.playedAt.toLocal() : match.playedAt;
     final dateStr =
         '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
 

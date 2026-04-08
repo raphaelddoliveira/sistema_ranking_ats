@@ -39,14 +39,16 @@ extension DateTimeExtensions on DateTime {
   }
 
   bool get isToday {
+    final local = _local;
     final now = DateTime.now();
-    return year == now.year && month == now.month && day == now.day;
+    return local.year == now.year && local.month == now.month && local.day == now.day;
   }
 
   bool get isTomorrow {
+    final local = _local;
     final tomorrow = DateTime.now().add(const Duration(days: 1));
-    return year == tomorrow.year &&
-        month == tomorrow.month &&
-        day == tomorrow.day;
+    return local.year == tomorrow.year &&
+        local.month == tomorrow.month &&
+        local.day == tomorrow.day;
   }
 }

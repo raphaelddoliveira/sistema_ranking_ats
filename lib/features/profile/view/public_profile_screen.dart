@@ -320,7 +320,7 @@ class PublicProfileScreen extends ConsumerWidget {
                                   icon: Icons.calendar_today,
                                   label: 'Membro desde',
                                   value:
-                                      '${player.createdAt.day.toString().padLeft(2, '0')}/${player.createdAt.month.toString().padLeft(2, '0')}/${player.createdAt.year}',
+                                      player.createdAt.formattedDate,
                                 ),
                               ],
                             ),

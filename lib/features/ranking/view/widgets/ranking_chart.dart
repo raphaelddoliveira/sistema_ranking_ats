@@ -81,10 +81,11 @@ class RankingChart extends StatelessWidget {
                       return const SizedBox.shrink();
                     }
                     final date = reversed[index].createdAt;
+                    final local = date.isUtc ? date.toLocal() : date;
                     return Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
-                        '${date.day}/${date.month}',
+                        '${local.day}/${local.month}',
                         style: const TextStyle(
                           fontSize: 10,
                           color: AppColors.onBackgroundLight,

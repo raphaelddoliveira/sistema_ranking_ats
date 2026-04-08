@@ -53,14 +53,16 @@ class _ActiveChallengesTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final challengesAsync = ref.watch(activeChallengesProvider);
     final upcomingAsync = ref.watch(upcomingChallengesProvider);
+    final pendingDateAsync = ref.watch(pendingDateChallengesProvider);
     final currentPlayer = ref.watch(currentPlayerProvider);
     final playerId = currentPlayer.valueOrNull?.id;
 
     return challengesAsync.when(
       data: (challenges) {
         final upcoming = upcomingAsync.valueOrNull ?? [];
+        final pendingDate = pendingDateAsync.valueOrNull ?? [];
 
-        if (challenges.isEmpty && upcoming.isEmpty) {
+        if (challenges.isEmpty && upcoming.isEmpty && pendingDate.isEmpty) {
           return const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -85,6 +87,7 @@ class _ActiveChallengesTab extends ConsumerWidget {
           onRefresh: () async {
             ref.invalidate(activeChallengesProvider);
             ref.invalidate(upcomingChallengesProvider);
+            ref.invalidate(pendingDateChallengesProvider);
           },
           child: ListView(
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -92,6 +95,9 @@ class _ActiveChallengesTab extends ConsumerWidget {
               // Upcoming games card
               if (upcoming.isNotEmpty)
                 _UpcomingGamesCard(upcoming: upcoming),
+              // Pending date card
+              if (pendingDate.isNotEmpty)
+                _PendingDateCard(challenges: pendingDate),
               // Active challenges
               ...challenges.map((c) => _ChallengeListTile(
                 challenge: c,
@@ -212,6 +218,106 @@ class _UpcomingGamesCardState extends State<_UpcomingGamesCard> {
                       c.chosenDate != null ? dateFormat.format(c.chosenDate!.toLocal()) : 'Data pendente',
                       if (c.courtName != null) c.courtName!,
                     ].join(' • '),
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                  trailing: Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.onBackgroundLight),
+                )),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PendingDateCard extends StatefulWidget {
+  final List<ChallengeModel> challenges;
+
+  const _PendingDateCard({required this.challenges});
+
+  @override
+  State<_PendingDateCard> createState() => _PendingDateCardState();
+}
+
+class _PendingDateCardState extends State<_PendingDateCard> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final count = widget.challenges.length;
+
+    return Card(
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        onTap: () => setState(() => _expanded = !_expanded),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              colors: [
+                AppColors.warning.withAlpha(20),
+                AppColors.warning.withAlpha(10),
+              ],
+            ),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withAlpha(30),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.event_busy, color: AppColors.warning, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Data não definida',
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          Text(
+                            '$count ${count == 1 ? 'desafio aguardando' : 'desafios aguardando'} agendamento',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.onBackgroundMedium,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      _expanded ? Icons.expand_less : Icons.expand_more,
+                      color: AppColors.onBackgroundMedium,
+                    ),
+                  ],
+                ),
+              ),
+              if (_expanded) ...[
+                const Divider(height: 1),
+                ...widget.challenges.map((c) => ListTile(
+                  dense: true,
+                  onTap: () => context.push('/challenges/${c.id}'),
+                  leading: Icon(Icons.schedule, size: 18, color: AppColors.warning),
+                  title: Text(
+                    '${c.challengerName ?? '?'} vs ${c.challengedName ?? '?'}',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    'Aguardando quadra e horário • ${c.createdAt.timeAgo()}',
                     style: const TextStyle(fontSize: 11),
                   ),
                   trailing: Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.onBackgroundLight),

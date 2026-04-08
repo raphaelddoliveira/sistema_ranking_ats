@@ -53,6 +53,12 @@ class AdminDashboardScreen extends StatelessWidget {
             onTap: () => context.push('/admin/reservations'),
           ),
           _AdminCard(
+            icon: Icons.flash_on,
+            title: 'Criar Desafio',
+            subtitle: 'Criar desafio entre dois jogadores',
+            onTap: () => context.push('/admin/create-challenge'),
+          ),
+          _AdminCard(
             icon: Icons.sports,
             title: 'Esportes',
             subtitle: 'Habilitar/desabilitar esportes',

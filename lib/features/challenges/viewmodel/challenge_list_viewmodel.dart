@@ -31,6 +31,16 @@ final upcomingChallengesProvider =
   return repository.getUpcomingChallenges(clubId: clubId, sportId: sportId);
 });
 
+/// Challenges without a date defined (pending court selection)
+final pendingDateChallengesProvider =
+    FutureProvider<List<ChallengeModel>>((ref) async {
+  final clubId = ref.watch(currentClubIdProvider);
+  final sportId = ref.watch(currentSportIdProvider);
+  if (clubId == null) return [];
+  final repository = ref.watch(challengeRepositoryProvider);
+  return repository.getPendingDateChallenges(clubId: clubId, sportId: sportId);
+});
+
 /// Set of player IDs that have an active challenge (for ranking badges)
 final playersWithActiveChallengeProvider =
     FutureProvider<Set<String>>((ref) async {

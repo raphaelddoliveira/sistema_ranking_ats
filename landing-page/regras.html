@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Regras e Regulamento - SmashRank</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="googlebot" content="noindex, nofollow">
+
+  <!-- Theme -->
+  <meta name="theme-color" content="#1B4332">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/animations.css">
+
+  <style>
+    /* ─── Rules Page Specific ─── */
+    .rules-hero {
+      background: var(--gradient-hero);
+      color: var(--on-primary);
+      padding: calc(72px + var(--space-3xl)) 0 var(--space-2xl);
+    }
+    .rules-hero__title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 700;
+      margin: var(--space-md) 0 var(--space-sm);
+    }
+    .rules-hero__subtitle {
+      font-size: 1.1rem;
+      opacity: 0.85;
+      max-width: 600px;
+    }
+    .breadcrumb {
+      font-size: 0.85rem;
+      opacity: 0.7;
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .breadcrumb a { color: var(--on-primary); text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+
+    /* TOC */
+    .rules-toc {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: var(--space-md);
+      margin-top: var(--space-xl);
+    }
+    .rules-toc__item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-md) var(--space-lg);
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: var(--radius-md);
+      color: var(--on-primary);
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .rules-toc__item:hover {
+      background: rgba(255,255,255,0.18);
+      transform: translateY(-2px);
+    }
+    .rules-toc__icon {
+      font-size: 1.4rem;
+      flex-shrink: 0;
+      width: 32px;
+      text-align: center;
+    }
+
+    /* Content */
+    .rules-content {
+      padding: var(--space-2xl) 0 var(--space-3xl);
+    }
+    .rules-section {
+      margin-bottom: var(--space-2xl);
+      scroll-margin-top: 100px;
+    }
+    .rules-section__header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+      padding-bottom: var(--space-md);
+      border-bottom: 2px solid var(--secondary);
+    }
+    .rules-section__icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      background: var(--primary-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+    .rules-section__title {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      color: var(--primary);
+    }
+
+    /* Rule cards */
+    .rule-group {
+      margin-bottom: var(--space-xl);
+    }
+    .rule-group__title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--primary);
+      margin-bottom: var(--space-md);
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .rule-group__title::before {
+      content: '';
+      width: 4px;
+      height: 20px;
+      background: var(--secondary);
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .rule-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    .rule-item {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-md);
+      padding: var(--space-md) var(--space-lg);
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-sm);
+      font-size: 0.9375rem;
+      line-height: 1.6;
+      color: var(--on-bg);
+    }
+    .rule-item__icon {
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .rule-item strong {
+      color: var(--primary);
+    }
+
+    /* Values table */
+    .values-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: var(--space-md);
+      background: var(--surface);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .values-table th {
+      background: var(--primary);
+      color: var(--on-primary);
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: var(--space-md) var(--space-lg);
+      text-align: left;
+    }
+    .values-table td {
+      padding: var(--space-sm) var(--space-lg);
+      border-bottom: 1px solid var(--divider);
+      font-size: 0.9rem;
+    }
+    .values-table tr:last-child td {
+      border-bottom: none;
+    }
+    .values-table tr:hover td {
+      background: var(--surface-variant);
+    }
+    .values-table .value {
+      font-family: var(--font-display);
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /* Highlight box */
+    .highlight-box {
+      background: var(--secondary-surface);
+      border-left: 4px solid var(--secondary);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: var(--space-md) var(--space-lg);
+      margin: var(--space-md) 0;
+      font-size: 0.9rem;
+      color: var(--on-bg);
+      line-height: 1.6;
+    }
+    .highlight-box strong {
+      color: var(--secondary-dark);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .rules-toc { grid-template-columns: repeat(2, 1fr); }
+      .rules-section__header { flex-direction: column; align-items: flex-start; gap: var(--space-sm); }
+      .rule-item { padding: var(--space-md); }
+      .values-table th, .values-table td { padding: var(--space-sm) var(--space-md); font-size: 0.8rem; }
+    }
+    @media (max-width: 480px) {
+      .rules-toc { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- ========== NAVBAR ========== -->
+  <header id="navbar" class="navbar scrolled">
+    <nav class="navbar__inner container">
+      <a href="index.html" class="navbar__logo">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <circle cx="16" cy="16" r="14" fill="#C9A84C"/>
+          <path d="M8 4C12 10 12 22 8 28" stroke="#A38A30" stroke-width="2" fill="none"/>
+          <path d="M24 4C20 10 20 22 24 28" stroke="#A38A30" stroke-width="2" fill="none"/>
+        </svg>
+        <span>SmashRank</span>
+      </a>
+      <a href="index.html" class="btn btn--gold navbar__cta">&larr; Voltar ao Site</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ========== HERO ========== -->
+    <section class="rules-hero">
+      <div class="container">
+        <div class="breadcrumb">
+          <a href="index.html">Início</a>
+          <span>&rsaquo;</span>
+          <span>Regras</span>
+        </div>
+        <h1 class="rules-hero__title">Regras e Regulamento</h1>
+        <p class="rules-hero__subtitle">Todas as regras do SmashRank em um só lugar. Desafios, ranking, reservas de quadra, ambulância e mais.</p>
+
+        <div class="rules-toc">
+          <a href="#desafios" class="rules-toc__item">
+            <span class="rules-toc__icon">&#9876;</span> Desafios
+          </a>
+          <a href="#ranking" class="rules-toc__item">
+            <span class="rules-toc__icon">&#127942;</span> Ranking
+          </a>
+          <a href="#quadras" class="rules-toc__item">
+            <span class="rules-toc__icon">&#128197;</span> Quadras
+          </a>
+          <a href="#ambulância" class="rules-toc__item">
+            <span class="rules-toc__icon">&#128657;</span> Ambulância
+          </a>
+          <a href="#admin" class="rules-toc__item">
+            <span class="rules-toc__icon">&#9881;</span> Administrador
+          </a>
+          <a href="#mensalidade" class="rules-toc__item">
+            <span class="rules-toc__icon">&#128176;</span> Mensalidade
+          </a>
+          <a href="#valores" class="rules-toc__item">
+            <span class="rules-toc__icon">&#128290;</span> Valores
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== CONTENT ========== -->
+    <div class="rules-content">
+      <div class="container" style="max-width: 860px;">
+
+        <!-- ── DESAFIOS ── -->
+        <section id="desafios" class="rules-section">
+          <div class="rules-section__header">
+            <div class="rules-section__icon">&#9876;</div>
+            <h2 class="rules-section__title">Desafios</h2>
+          </div>
+
+          <div class="rule-group">
+            <h3 class="rule-group__title">Quem posso desafiar?</h3>
+            <div class="rule-list">
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--success)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                <span>Somente jogadores até <strong>2 posições acima</strong> de você no ranking.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--success)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                <span>Só é possível desafiar quem esta <strong>acima</strong> no ranking (posição menor).</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--error)"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                <span>Máximo de <strong>1 desafio ativo</strong> por jogador por esporte ao mesmo tempo.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rule-group">
+            <h3 class="rule-group__title">Cooldown e Proteção</h3>
+            <div class="rule-list">
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--warning)"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                <span><strong>Desafiante:</strong> após jogar, fica <strong>48 horas</strong> sem poder criar novos desafios. O tempo conta a partir do horário do jogo.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--info)"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                <span><strong>Desafiado:</strong> após ser desafiado, fica <strong>24 horas protegido</strong> contra novos desafios. Também conta a partir do horário do jogo.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--gold)"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2z"/></svg>
+                <span><strong>Exceção:</strong> o jogador na <strong>1a posição</strong> nunca tem proteção &mdash; pode sempre ser desafiado.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rule-group">
+            <h3 class="rule-group__title">Revanche</h3>
+            <div class="rule-list">
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--warning)"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+                <span>Depois de jogar contra alguém, você <strong>não pode desafiar a mesma pessoa</strong> até que ela jogue contra outro jogador. Isso evita desafios em loop.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rule-group">
+            <h3 class="rule-group__title">Prazos</h3>
+            <div class="rule-list">
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--warning)"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                <span><strong>Agendar:</strong> o desafiante tem <strong>48 horas</strong> para escolher quadra e horário. Se não agendar, perde por WO.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--warning)"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                <span><strong>Jogar:</strong> o prazo para jogar é de <strong>7 dias</strong> a partir da criação do desafio (dia seguinte = dia 1).</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--info)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <span><strong>Resultado:</strong> só pode ser registrado <strong>40 minutos</strong> após o horário agendado do jogo.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rule-group">
+            <h3 class="rule-group__title">Remarcação e Chuva</h3>
+            <div class="rule-list">
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--info)"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10z"/></svg>
+                <span><strong>Alterar horário:</strong> qualquer participante pode remarcar o jogo até o <strong>dia anterior</strong> a data agendada.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--info)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+                <span><strong>Adiamento por chuva:</strong> aparece apenas no <strong>último dia do prazo</strong>. Estende o prazo em <strong>+2 dias</strong> e redireciona para reservar novo horário.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rule-group">
+            <h3 class="rule-group__title">Resultado</h3>
+            <div class="rule-list">
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--success)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                <span>O resultado e <strong>automático</strong>: ao registrar, o desafio e completado imediatamente com troca de ranking e cooldowns aplicados. Nao precisa de confirmação do oponente.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--success)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                <span><strong>WO (Walkover):</strong> funciona como vitoria normal, com troca de posição no ranking.</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── RANKING ── -->
+        <section id="ranking" class="rules-section">
+          <div class="rules-section__header">
+            <div class="rules-section__icon">&#127942;</div>
+            <h2 class="rules-section__title">Ranking</h2>
+          </div>
+
+          <div class="rule-group">
+            <h3 class="rule-group__title">Como funciona</h3>
+            <div class="rule-list">
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--gold)"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2z"/></svg>
+                <span><strong>Posição #1 = melhor.</strong> Posicoes sao sequenciais e sem buracos.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--success)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                <span>Novos membros entram no <strong>final do ranking</strong>.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rule-group">
+            <h3 class="rule-group__title">Troca de posição</h3>
+            <div class="rule-list">
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--success)"><path d="M7 14l5-5 5 5z"/></svg>
+                <span>So ha troca quando o <strong>desafiante</strong> (posição inferior) <strong>vence</strong>.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--primary)"><path d="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z"/></svg>
+                <span>O desafiante assume a posição do desafiado. O desafiado cai 1 posição. Todos entre os dois descem 1.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--on-bg-light)"><path d="M19 13H5v-2h14v2z"/></svg>
+                <span>Se o <strong>desafiado vence</strong>, ninguem muda de posição.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rule-group">
+            <h3 class="rule-group__title">Penalidades automaticas</h3>
+            <div class="rule-list">
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--error)"><path d="M7 14l5-5 5 5z" transform="rotate(180 12 12)"/></svg>
+                <span><strong>Inatividade mensal:</strong> se não jogou nenhum desafio no mes, perde <strong>1 posição</strong>.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--error)"><path d="M7 14l5-5 5 5z" transform="rotate(180 12 12)"/></svg>
+                <span><strong>Mensalidade atrasada:</strong> 15+ dias de atraso resulta em <strong>-10 posições</strong>.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="highlight-box">
+            <strong>Opt-out:</strong> o jogador pode sair do ranking a qualquer momento. As posições recompactam automaticamente. Ao voltar, entra no final do ranking.
+          </div>
+        </section>
+
+        <!-- ── QUADRAS ── -->
+        <section id="quadras" class="rules-section">
+          <div class="rules-section__header">
+            <div class="rules-section__icon">&#128197;</div>
+            <h2 class="rules-section__title">Reservas de Quadra</h2>
+          </div>
+
+          <div class="rule-group">
+            <h3 class="rule-group__title">Tipos de reserva</h3>
+            <div class="rule-list">
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--primary)"><path d="M17 10.43V2H7v8.43c0 .35.18.68.49.86l4.18 2.51-.99 2.34-3.41.29 2.59 2.24L9.07 22 12 20.23 14.93 22l-.79-3.33 2.59-2.24-3.41-.29-.99-2.34 4.18-2.51c.31-.18.49-.51.49-.86z"/></svg>
+                <span><strong>Desafio:</strong> criada automaticamente ao agendar um desafio. Vinculada ao desafio.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--success)"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                <span><strong>Amistosa:</strong> reserva livre entre dois jogadores, sem vínculo com desafio.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--warning)"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z"/></svg>
+                <span><strong>Administrativa:</strong> o admin bloqueia um horário com um título/motivo. Nenhum jogador e vinculado.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rule-group">
+            <h3 class="rule-group__title">Restrições</h3>
+            <div class="rule-list">
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--error)"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                <span>Não é possível reservar um horário ja ocupado (<strong>sem dupla reserva</strong>).</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--error)"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                <span>Cada jogador pode ter no máximo <strong>1 reserva amistosa ativa</strong> por vez.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--success)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                <span>Reservas administrativas <strong>não contam</strong> como reserva amistosa do admin.</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── AMBULANCIA ── -->
+        <section id="ambulância" class="rules-section">
+          <div class="rules-section__header">
+            <div class="rules-section__icon">&#128657;</div>
+            <h2 class="rules-section__title">Ambulância</h2>
+          </div>
+
+          <div class="highlight-box">
+            A ambulância é um recurso para jogadores que precisam se afastar temporariamente (lesão, viagem, etc). O admin ativa a ambulância para o jogador.
+          </div>
+
+          <div class="rule-group">
+            <h3 class="rule-group__title">Ao ativar</h3>
+            <div class="rule-list">
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--error)"><path d="M7 14l5-5 5 5z" transform="rotate(180 12 12)"/></svg>
+                <span>Penalidade imediata: <strong>-3 posições</strong> no ranking.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--info)"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                <span>Período de proteção: <strong>10 dias</strong> sem penalidades diárias.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--warning)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <span>Não pode criar desafios &mdash; precisa ser desafiado primeiro ao retornar.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rule-group">
+            <h3 class="rule-group__title">Apos a proteção (10+ dias)</h3>
+            <div class="rule-list">
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--error)"><path d="M7 14l5-5 5 5z" transform="rotate(180 12 12)"/></svg>
+                <span>Penalidade diária: <strong>-1 posição por dia</strong> até retornar.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--error)"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                <span>Máximo de <strong>15 dias</strong> de penalidade diária. Total possível: -3 (imediata) + -15 (diária) = <strong>-18 posições</strong>.</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── ADMIN ── -->
+        <section id="admin" class="rules-section">
+          <div class="rules-section__header">
+            <div class="rules-section__icon">&#9881;</div>
+            <h2 class="rules-section__title">Administrador</h2>
+          </div>
+
+          <div class="rule-group">
+            <h3 class="rule-group__title">O que o admin pode fazer</h3>
+            <div class="rule-list">
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--primary)"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                <span><strong>Membros:</strong> aprovar/rejeitar solicitações de entrada, remover membros.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--primary)"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2z"/></svg>
+                <span><strong>Ranking:</strong> reordenar manualmente, ativar/desativar participação de jogadores.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--primary)"><path d="M17 10.43V2H7v8.43c0 .35.18.68.49.86l4.18 2.51-.99 2.34-3.41.29 2.59 2.24L9.07 22 12 20.23 14.93 22l-.79-3.33 2.59-2.24-3.41-.29-.99-2.34 4.18-2.51c.31-.18.49-.51.49-.86z"/></svg>
+                <span><strong>Desafios:</strong> registrar resultado ignorando delay de 40min, anular desafios (reverte ranking), remarcar qualquer desafio.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--primary)"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10z"/></svg>
+                <span><strong>Quadras:</strong> criar reservas para dois jogadores, bloquear horários (reserva administrativa), cancelar qualquer reserva.</span>
+              </div>
+              <div class="rule-item">
+                <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--primary)"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58z"/></svg>
+                <span><strong>Regras:</strong> ativar/desativar por esporte &mdash; limite de posições, cooldown, delay de resultado, revanche, ambulância.</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── MENSALIDADE ── -->
+        <section id="mensalidade" class="rules-section">
+          <div class="rules-section__header">
+            <div class="rules-section__icon">&#128176;</div>
+            <h2 class="rules-section__title">Mensalidade</h2>
+          </div>
+          <div class="rule-list">
+            <div class="rule-item">
+              <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--warning)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+              <span><strong>15+ dias</strong> de atraso na mensalidade resulta em status <strong>inadimplente</strong>.</span>
+            </div>
+            <div class="rule-item">
+              <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--error)"><path d="M7 14l5-5 5 5z" transform="rotate(180 12 12)"/></svg>
+              <span>Penalidade: <strong>-10 posições</strong> no ranking.</span>
+            </div>
+            <div class="rule-item">
+              <svg class="rule-item__icon" width="20" height="20" viewBox="0 0 24 24" fill="var(--error)"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+              <span><strong>Bloqueio:</strong> não pode criar desafios enquanto estiver inadimplente.</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── VALORES ── -->
+        <section id="valores" class="rules-section">
+          <div class="rules-section__header">
+            <div class="rules-section__icon">&#128290;</div>
+            <h2 class="rules-section__title">Tabela de Valores</h2>
+          </div>
+
+          <table class="values-table">
+            <thead>
+              <tr>
+                <th>Regra</th>
+                <th>Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Posições máximas para desafiar</td><td class="value">2</td></tr>
+              <tr><td>Prazo para agendar</td><td class="value">48 horas</td></tr>
+              <tr><td>Cooldown do desafiante</td><td class="value">48 horas</td></tr>
+              <tr><td>Proteção do desafiado</td><td class="value">24 horas</td></tr>
+              <tr><td>Prazo para jogar</td><td class="value">7 dias</td></tr>
+              <tr><td>Extensão por chuva</td><td class="value">+2 dias</td></tr>
+              <tr><td>Delay para registrar resultado</td><td class="value">40 minutos</td></tr>
+              <tr><td>Ambulância &mdash; penalidade imediata</td><td class="value">-3 posições</td></tr>
+              <tr><td>Ambulância &mdash; proteção</td><td class="value">10 dias</td></tr>
+              <tr><td>Ambulância &mdash; penalidade diária</td><td class="value">-1 posição/dia</td></tr>
+              <tr><td>Ambulância &mdash; máximo de dias</td><td class="value">15 dias</td></tr>
+              <tr><td>Inadimplência &mdash; dias para penalidade</td><td class="value">15 dias</td></tr>
+              <tr><td>Inadimplência &mdash; penalidade</td><td class="value">-10 posições</td></tr>
+              <tr><td>Inatividade mensal</td><td class="value">-1 posição</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__bottom" style="border-top: none; padding-top: 0;">
+        <p>&copy; 2026 SmashRank. Todos os direitos reservados.</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

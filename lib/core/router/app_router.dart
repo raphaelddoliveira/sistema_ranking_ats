@@ -28,6 +28,7 @@ import '../../features/notifications/view/notifications_screen.dart';
 import '../../features/profile/view/edit_profile_screen.dart';
 import '../../features/profile/view/profile_screen.dart';
 import '../../features/profile/view/public_profile_screen.dart';
+import '../../features/admin/view/admin_create_challenge_screen.dart';
 import '../../features/admin/view/admin_dashboard_screen.dart';
 import '../../features/admin/view/admin_ranking_screen.dart';
 import '../../features/admin/view/admin_reservations_screen.dart';
@@ -275,6 +276,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'reservations',
             builder: (context, state) => const AdminReservationsScreen(),
+          ),
+          GoRoute(
+            path: 'create-challenge',
+            builder: (context, state) => const AdminCreateChallengeScreen(),
           ),
         ],
       ),

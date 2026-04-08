@@ -46,6 +46,50 @@ class ChallengeRepository {
     }
   }
 
+  /// Admin: create challenge between any two players (no rule checks)
+  Future<String> adminCreateChallenge({
+    required String challengerId,
+    required String challengedId,
+    required String clubId,
+    required String sportId,
+  }) async {
+    try {
+      final authId = _client.auth.currentUser!.id;
+      final result = await _client.rpc(
+        SupabaseConstants.rpcAdminCreateChallenge,
+        params: {
+          'p_admin_auth_id': authId,
+          'p_challenger_id': challengerId,
+          'p_challenged_id': challengedId,
+          'p_club_id': clubId,
+          'p_sport_id': sportId,
+        },
+      );
+      return result as String;
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Get all active members in a club sport (for admin challenge creation)
+  Future<List<ClubMemberModel>> getAllMembers({
+    required String clubId,
+    required String sportId,
+  }) async {
+    try {
+      final members = await _client
+          .from('club_members')
+          .select('*, player:players(full_name, nickname, avatar_url, email, phone)')
+          .eq('club_id', clubId)
+          .eq('sport_id', sportId)
+          .eq('status', 'active')
+          .order('ranking_position');
+      return members.map((e) => ClubMemberModel.fromJson(e)).toList();
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
   /// Get only active challenges for current player in a club + sport
   /// Auto-expires challenges where all proposed dates have passed.
   Future<List<ChallengeModel>> getActiveChallenges({required String clubId, String? sportId}) async {
@@ -164,6 +208,25 @@ class ChallengeRepository {
           .map((e) => ChallengeModel.fromJson(e))
           .where((c) => c.chosenDate != null && c.chosenDate!.isAfter(DateTime.now().toUtc().subtract(const Duration(hours: 2))))
           .toList();
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  /// Get challenges without a defined date (pending court selection)
+  Future<List<ChallengeModel>> getPendingDateChallenges({required String clubId, String? sportId}) async {
+    try {
+      var query = _client
+          .from(SupabaseConstants.challengesTable)
+          .select(_selectWithJoins)
+          .eq('club_id', clubId)
+          .inFilter('status', ['pending', 'dates_proposed'])
+          .isFilter('chosen_date', null);
+      if (sportId != null) {
+        query = query.eq('sport_id', sportId);
+      }
+      final data = await query.order('created_at', ascending: false).limit(20);
+      return data.map((e) => ChallengeModel.fromJson(e)).toList();
     } catch (e) {
       throw ErrorHandler.handle(e);
     }

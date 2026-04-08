@@ -22,6 +22,17 @@ final eligibleOpponentsProvider =
   );
 });
 
+/// All members for admin challenge creation
+final allMembersProvider =
+    FutureProvider<List<ClubMemberModel>>((ref) async {
+  final clubId = ref.watch(currentClubIdProvider);
+  final sportId = ref.watch(currentSportIdProvider);
+  if (clubId == null || sportId == null) return [];
+
+  final repository = ref.watch(challengeRepositoryProvider);
+  return repository.getAllMembers(clubId: clubId, sportId: sportId);
+});
+
 final createChallengeProvider =
     StateNotifierProvider<CreateChallengeNotifier, AsyncValue<void>>((ref) {
   return CreateChallengeNotifier(
@@ -45,6 +56,27 @@ class CreateChallengeNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final challengeId = await _repository.createChallenge(
         challengedId,
+        clubId: _clubId,
+        sportId: _sportId,
+      );
+      state = const AsyncData(null);
+      return challengeId;
+    } on AppException catch (e, st) {
+      state = AsyncError(e, st);
+      return null;
+    }
+  }
+
+  Future<String?> adminCreateChallenge({
+    required String challengerId,
+    required String challengedId,
+  }) async {
+    if (_clubId == null || _sportId == null) return null;
+    state = const AsyncLoading();
+    try {
+      final challengeId = await _repository.adminCreateChallenge(
+        challengerId: challengerId,
+        challengedId: challengedId,
         clubId: _clubId,
         sportId: _sportId,
       );
