@@ -299,14 +299,13 @@ class ChallengeRepository {
     required String clubId,
   }) async {
     try {
-      final playerId = await _getCurrentPlayerId();
-
-      // 1. Get challenge info for opponent + deadline calculation
+      // 1. Get challenge info: both participants + deadline calculation
       final challenge = await _client
           .from(SupabaseConstants.challengesTable)
-          .select('challenged_id, created_at')
+          .select('challenger_id, challenged_id, created_at')
           .eq('id', challengeId)
           .single();
+      final challengerId = challenge['challenger_id'] as String;
       final challengedId = challenge['challenged_id'] as String;
 
       // 2. Build chosen_date with time info (local time, then convert to UTC for storage)
@@ -336,11 +335,12 @@ class ChallengeRepository {
           .eq('id', challengeId);
 
       // 5. Create the court reservation linked to this challenge
+      //    Always use challenger as reserved_by (not current user, who may be admin)
       final dateStr =
           '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
       await _client.from(SupabaseConstants.courtReservationsTable).insert({
         'court_id': courtId,
-        'reserved_by': playerId,
+        'reserved_by': challengerId,
         'reservation_date': dateStr,
         'start_time': startTime,
         'end_time': endTime,
@@ -350,15 +350,20 @@ class ChallengeRepository {
         'opponent_type': 'member',
       });
 
-      // 6. Notify challenged player that the match is scheduled
-      await _client.from(SupabaseConstants.notificationsTable).insert({
-        'player_id': challengedId,
-        'type': 'challenge_accepted',
-        'title': 'Desafio Agendado!',
-        'body': 'Um desafio foi agendado. Quadra e horário já definidos!',
-        'data': {'challenge_id': challengeId},
-        'club_id': clubId,
-      });
+      // 6. Notify both players that the match is scheduled
+      final currentPlayerId = await _getCurrentPlayerId();
+      final notifyIds = <String>{challengerId, challengedId}
+        ..remove(currentPlayerId);
+      for (final id in notifyIds) {
+        await _client.from(SupabaseConstants.notificationsTable).insert({
+          'player_id': id,
+          'type': 'challenge_accepted',
+          'title': 'Desafio Agendado!',
+          'body': 'Um desafio foi agendado. Quadra e horário já definidos!',
+          'data': {'challenge_id': challengeId},
+          'club_id': clubId,
+        });
+      }
     } catch (e) {
       throw ErrorHandler.handle(e);
     }

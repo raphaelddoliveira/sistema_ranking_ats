@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/snackbar_utils.dart';
@@ -28,8 +29,9 @@ class CourtScheduleScreen extends ConsumerStatefulWidget {
   final String courtId;
   final bool isAdminMode;
   final DateTime? maxDate;
+  final String? editingReservationId;
 
-  const CourtScheduleScreen({super.key, required this.courtId, this.isAdminMode = false, this.maxDate});
+  const CourtScheduleScreen({super.key, required this.courtId, this.isAdminMode = false, this.maxDate, this.editingReservationId});
 
   @override
   ConsumerState<CourtScheduleScreen> createState() =>
@@ -537,17 +539,21 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
       return;
     }
 
-    // Check friendly reservation limit
-    final hasFriendly =
-        await ref.read(hasActiveFriendlyReservationProvider.future);
-    if (hasFriendly && mounted) {
-      SnackbarUtils.showError(
-        context,
-        'Você já tem uma reserva amistosa ativa. Cancele ou conclua antes de reservar outra.',
-      );
-      return;
+    final isEditing = widget.editingReservationId != null;
+
+    // Check friendly reservation limit (skip when editing — player already has one)
+    if (!isEditing) {
+      final hasFriendly =
+          await ref.read(hasActiveFriendlyReservationProvider.future);
+      if (hasFriendly && mounted) {
+        SnackbarUtils.showError(
+          context,
+          'Você já tem uma reserva amistosa ativa. Cancele ou conclua antes de reservar outra.',
+        );
+        return;
+      }
+      if (!mounted) return;
     }
-    if (!mounted) return;
 
     final courtName =
         ref.read(_courtProvider(widget.courtId)).valueOrNull?.name ?? 'Quadra';
@@ -564,8 +570,17 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
         date: _selectedDate,
         slot: slot,
         clubId: clubId,
+        isEditing: isEditing,
         onConfirm: (opponentType, opponentId, opponentName) async {
           Navigator.of(ctx).pop();
+
+          // When editing, cancel old reservation first
+          if (isEditing) {
+            await ref
+                .read(reservationActionProvider.notifier)
+                .cancelReservation(widget.editingReservationId!);
+          }
+
           final success = await ref
               .read(reservationActionProvider.notifier)
               .createReservation(
@@ -580,12 +595,16 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
 
           if (mounted) {
             if (success) {
-              SnackbarUtils.showSuccess(context, 'Reserva confirmada!');
+              SnackbarUtils.showSuccess(
+                context,
+                isEditing ? 'Reserva alterada!' : 'Reserva confirmada!',
+              );
               ref.invalidate(courtReservationsProvider(
                 (courtId: widget.courtId, date: _selectedDate),
               ));
               ref.invalidate(myReservationsProvider);
               ref.invalidate(hasActiveFriendlyReservationProvider);
+              if (isEditing) context.pop();
             } else {
               final errorState = ref.read(reservationActionProvider);
               final msg = errorState.error?.toString() ?? 'Erro desconhecido';
@@ -746,6 +765,7 @@ class _ReservationBottomSheet extends ConsumerStatefulWidget {
   final DateTime date;
   final TimeSlot slot;
   final String? clubId;
+  final bool isEditing;
   final void Function(
     OpponentType? opponentType,
     String? opponentId,
@@ -757,6 +777,7 @@ class _ReservationBottomSheet extends ConsumerStatefulWidget {
     required this.date,
     required this.slot,
     required this.clubId,
+    this.isEditing = false,
     required this.onConfirm,
   });
 
@@ -810,7 +831,7 @@ class _ReservationBottomSheetState
 
               // Title
               Text(
-                'Confirmar Reserva',
+                widget.isEditing ? 'Alterar Reserva' : 'Confirmar Reserva',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -905,7 +926,7 @@ class _ReservationBottomSheetState
                 child: FilledButton.icon(
                   onPressed: _canConfirm ? _doConfirm : null,
                   icon: const Icon(Icons.check),
-                  label: const Text('Confirmar Reserva'),
+                  label: Text(widget.isEditing ? 'Alterar Reserva' : 'Confirmar Reserva'),
                 ),
               ),
             ],

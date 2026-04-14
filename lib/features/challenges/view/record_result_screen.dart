@@ -1137,7 +1137,7 @@ class _ScoreDropdown extends StatelessWidget {
     } else if (isTiebreak) {
       count = 21; // 0-20 for regular tiebreak
     } else if (isSingleSet) {
-      count = 9; // 0-8 for single set of 8 games
+      count = 10; // 0-9 for single set of 8 games (9-8 when tiebreak at 8-8)
     } else {
       count = 8; // 0-7 for regular games
     }

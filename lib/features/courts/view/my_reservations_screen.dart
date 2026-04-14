@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/snackbar_utils.dart';
@@ -256,13 +257,23 @@ class _ReservationCard extends ConsumerWidget {
                     ],
                   ),
                 ),
-                if (isMine)
-                  IconButton(
-                    onPressed: () =>
-                        _confirmCancel(context, ref, reservation),
-                    icon: const Icon(Icons.close, color: AppColors.error),
-                    tooltip: 'Cancelar reserva',
-                  ),
+                if (isMine || (isOpponent && reservation.isChallenge)) ...[
+                  // Edit button: available up to 1 day before the reservation
+                  if (resDate.isAfter(today))
+                    IconButton(
+                      onPressed: () =>
+                          _editReservation(context, ref, reservation),
+                      icon: const Icon(Icons.edit_calendar, color: AppColors.primary),
+                      tooltip: 'Alterar reserva',
+                    ),
+                  if (isMine)
+                    IconButton(
+                      onPressed: () =>
+                          _confirmCancel(context, ref, reservation),
+                      icon: const Icon(Icons.close, color: AppColors.error),
+                      tooltip: 'Cancelar reserva',
+                    ),
+                ],
               ],
             ),
             // Opponent joined notification
@@ -290,6 +301,62 @@ class _ReservationCard extends ConsumerWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  void _editReservation(
+    BuildContext context,
+    WidgetRef ref,
+    ReservationModel reservation,
+  ) {
+    if (reservation.isChallenge) {
+      // Challenge reservation: use the challenge reschedule flow
+      _confirmRescheduleChallenge(context, ref, reservation);
+    } else {
+      // Standalone reservation: navigate to court schedule to pick a new slot
+      context.push(
+        '/courts/${reservation.courtId}/schedule',
+        extra: {'editingReservationId': reservation.id},
+      );
+    }
+  }
+
+  void _confirmRescheduleChallenge(
+    BuildContext context,
+    WidgetRef ref,
+    ReservationModel reservation,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Alterar Horário'),
+        content: const Text(
+          'A reserva atual será cancelada e você poderá escolher uma nova quadra e horário.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              final success = await ref
+                  .read(challengeActionProvider.notifier)
+                  .rescheduleChallenge(reservation.challengeId!);
+              if (success && context.mounted) {
+                ref.invalidate(myReservationsProvider);
+                ref.invalidate(hasActiveFriendlyReservationProvider);
+                ref.invalidate(activeChallengesProvider);
+                context.push(
+                  '/challenges/${reservation.challengeId}/select-court',
+                );
+              }
+            },
+            child: const Text('Alterar'),
+          ),
+        ],
       ),
     );
   }

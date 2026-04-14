@@ -172,10 +172,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   final extra = state.extra as Map<String, dynamic>?;
                   final isAdmin = extra?['isAdminMode'] == true;
                   final maxDate = extra?['maxDate'] as DateTime?;
+                  final editingReservationId = extra?['editingReservationId'] as String?;
                   return CourtScheduleScreen(
                     courtId: state.pathParameters['courtId']!,
                     isAdminMode: isAdmin,
                     maxDate: maxDate,
+                    editingReservationId: editingReservationId,
                   );
                 },
               ),
