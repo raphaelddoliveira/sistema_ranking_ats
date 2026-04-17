@@ -148,6 +148,23 @@ class ClubRepository {
   }
 
   /// Get the current player's membership for a specific club + sport
+  /// Check if player is admin of a club (any sport membership with admin role)
+  Future<bool> isPlayerClubAdmin(String clubId, String playerId) async {
+    try {
+      final data = await _client
+          .from('club_members')
+          .select('role')
+          .eq('club_id', clubId)
+          .eq('player_id', playerId)
+          .eq('status', 'active')
+          .eq('role', 'admin')
+          .limit(1);
+      return (data as List).isNotEmpty;
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
   Future<ClubMemberModel?> getMyMembership(String clubId, String playerId, {String? sportId}) async {
     try {
       var query = _client

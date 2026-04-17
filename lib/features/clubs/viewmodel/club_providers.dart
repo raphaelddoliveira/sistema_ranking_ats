@@ -82,8 +82,7 @@ final isClubAdminProvider = FutureProvider<bool>((ref) async {
   final player = ref.watch(currentPlayerProvider).valueOrNull;
   if (clubId == null || player == null) return false;
   final repo = ref.watch(clubRepositoryProvider);
-  final member = await repo.getMyMembership(clubId, player.id);
-  return member?.isClubAdmin ?? false;
+  return repo.isPlayerClubAdmin(clubId, player.id);
 });
 
 /// Members of the selected club (all sports, used in management)
