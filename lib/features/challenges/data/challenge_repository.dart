@@ -335,23 +335,24 @@ class ChallengeRepository {
           .eq('id', challengeId);
 
       // 5. Create the court reservation linked to this challenge
-      //    Always use challenger as reserved_by (not current user, who may be admin)
+      //    reserved_by = current user, opponent_id = the other participant
+      final currentPlayerId = await _getCurrentPlayerId();
+      final opponentId = currentPlayerId == challengerId ? challengedId : challengerId;
       final dateStr =
           '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
       await _client.from(SupabaseConstants.courtReservationsTable).insert({
         'court_id': courtId,
-        'reserved_by': challengerId,
+        'reserved_by': currentPlayerId,
         'reservation_date': dateStr,
         'start_time': startTime,
         'end_time': endTime,
         'club_id': clubId,
         'challenge_id': challengeId,
-        'opponent_id': challengedId,
+        'opponent_id': opponentId,
         'opponent_type': 'member',
       });
 
       // 6. Notify both players that the match is scheduled
-      final currentPlayerId = await _getCurrentPlayerId();
       final notifyIds = <String>{challengerId, challengedId}
         ..remove(currentPlayerId);
       for (final id in notifyIds) {
