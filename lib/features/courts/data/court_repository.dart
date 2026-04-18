@@ -545,6 +545,57 @@ class CourtRepository {
     }
   }
 
+  /// Admin: update reservation (change court, date, time) preserving players/challenge
+  Future<void> adminUpdateReservation({
+    required String reservationId,
+    required String courtId,
+    required DateTime date,
+    required String startTime,
+    required String endTime,
+  }) async {
+    try {
+      final dateStr =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      // Update the reservation directly (RLS allows admin)
+      await _client
+          .from(SupabaseConstants.courtReservationsTable)
+          .update({
+            'court_id': courtId,
+            'reservation_date': dateStr,
+            'start_time': startTime,
+            'end_time': endTime,
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('id', reservationId);
+
+      // If linked to a challenge, update the challenge's chosen_date and court_id too
+      final reservation = await _client
+          .from(SupabaseConstants.courtReservationsTable)
+          .select('challenge_id')
+          .eq('id', reservationId)
+          .single();
+      final challengeId = reservation['challenge_id'] as String?;
+      if (challengeId != null) {
+        final chosenDateTimeLocal = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          int.parse(startTime.split(':')[0]),
+          int.parse(startTime.split(':')[1]),
+        );
+        await _client
+            .from(SupabaseConstants.challengesTable)
+            .update({
+              'court_id': courtId,
+              'chosen_date': chosenDateTimeLocal.toUtc().toIso8601String(),
+            })
+            .eq('id', challengeId);
+      }
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
   /// Admin: create reservation for two club members
   Future<String> adminCreateReservation({
     required String player1Id,

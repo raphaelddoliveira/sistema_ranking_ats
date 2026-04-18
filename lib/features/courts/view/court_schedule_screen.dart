@@ -616,7 +616,64 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
     );
   }
 
+  void _confirmAdminEdit(TimeSlot slot) async {
+    final reservationId = widget.editingReservationId!;
+    final courtName =
+        ref.read(_courtProvider(widget.courtId)).valueOrNull?.name ?? 'Quadra';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Alterar reserva?'),
+        content: Text(
+          'Mover para $courtName em ${_formatDateLabel(_selectedDate)} das ${slot.startTime}-${slot.endTime}?\n\nOs jogadores/desafio serão mantidos.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ref.read(courtRepositoryProvider).adminUpdateReservation(
+            reservationId: reservationId,
+            courtId: widget.courtId,
+            date: _selectedDate,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+          );
+      if (mounted) {
+        SnackbarUtils.showSuccess(context, 'Reserva alterada!');
+        ref.invalidate(courtReservationsProvider(
+          (courtId: widget.courtId, date: _selectedDate),
+        ));
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackbarUtils.showError(context, 'Erro: $e');
+      }
+    }
+  }
+
   void _confirmAdminReservation(TimeSlot slot) {
+    final isEditing = widget.editingReservationId != null;
+
+    // If editing, just update the reservation (keep players/challenge)
+    if (isEditing) {
+      _confirmAdminEdit(slot);
+      return;
+    }
+
     final courtName =
         ref.read(_courtProvider(widget.courtId)).valueOrNull?.name ?? 'Quadra';
     final clubId = ref.read(currentClubIdProvider);

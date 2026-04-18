@@ -247,9 +247,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin/court-schedule/:courtId',
         builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final editingReservationId = extra?['editingReservationId'] as String?;
           return CourtScheduleScreen(
             courtId: state.pathParameters['courtId']!,
             isAdminMode: true,
+            editingReservationId: editingReservationId,
           );
         },
       ),

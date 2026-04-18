@@ -227,6 +227,19 @@ class _ReservationCard extends ConsumerWidget {
                 ],
               ),
             ),
+            // Edit button
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, color: AppColors.primary, size: 22),
+              tooltip: 'Editar reserva',
+              onPressed: () {
+                context.push(
+                  '/admin/court-schedule/${reservation.courtId}',
+                  extra: {
+                    'editingReservationId': reservation.id,
+                  },
+                );
+              },
+            ),
             // Cancel button
             IconButton(
               icon: const Icon(Icons.cancel_outlined, color: AppColors.error, size: 22),
