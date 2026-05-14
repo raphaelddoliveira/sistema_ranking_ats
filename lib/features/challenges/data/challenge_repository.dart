@@ -289,7 +289,9 @@ class ChallengeRepository {
   }
 
   /// Challenger selects a court + date/time and auto-creates a reservation.
-  /// Status: pending -> scheduled (no acceptance needed — challenge is automatic)
+  /// Status: pending -> scheduled (no acceptance needed — challenge is automatic).
+  /// Also handles RESCHEDULE: if there's already an active reservation linked
+  /// to this challenge, it is cancelled before creating the new one.
   Future<void> selectCourtAndDate(
     String challengeId, {
     required String courtId,
@@ -302,7 +304,7 @@ class ChallengeRepository {
       // 1. Get challenge info: both participants + deadline calculation
       final challenge = await _client
           .from(SupabaseConstants.challengesTable)
-          .select('challenger_id, challenged_id, created_at')
+          .select('challenger_id, challenged_id, created_at, play_deadline')
           .eq('id', challengeId)
           .single();
       final challengerId = challenge['challenger_id'] as String;
@@ -317,11 +319,56 @@ class ChallengeRepository {
         int.parse(startTime.split(':')[1]),
       );
 
-      // 3. Deadline = 7 days from challenge creation, counting from the day after
-      final createdAt = DateTime.parse(challenge['created_at'] as String).toLocal();
-      final deadlineDate = DateTime(createdAt.year, createdAt.month, createdAt.day + 7, 23, 59, 59);
+      // 3. Deadline: keep existing if rescheduling, otherwise 7 days from creation
+      final existingDeadline = challenge['play_deadline'];
+      final String playDeadlineIso;
+      if (existingDeadline != null) {
+        playDeadlineIso = existingDeadline as String;
+      } else {
+        final createdAt =
+            DateTime.parse(challenge['created_at'] as String).toLocal();
+        final deadlineDate = DateTime(
+            createdAt.year, createdAt.month, createdAt.day + 7, 23, 59, 59);
+        playDeadlineIso = deadlineDate.toUtc().toIso8601String();
+      }
 
-      // 4. Update challenge directly to scheduled (no acceptance step)
+      // 4. Create the NEW reservation FIRST so any conflict fails before we
+      //    touch the existing state (avoids leaving challenge orphaned)
+      final currentPlayerId = await _getCurrentPlayerId();
+      final opponentId =
+          currentPlayerId == challengerId ? challengedId : challengerId;
+      final dateStr =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final newReservation = await _client
+          .from(SupabaseConstants.courtReservationsTable)
+          .insert({
+            'court_id': courtId,
+            'reserved_by': currentPlayerId,
+            'reservation_date': dateStr,
+            'start_time': startTime,
+            'end_time': endTime,
+            'club_id': clubId,
+            'challenge_id': challengeId,
+            'opponent_id': opponentId,
+            'opponent_type': 'member',
+          })
+          .select('id')
+          .single();
+      final newReservationId = newReservation['id'] as String;
+
+      // 5. Cancel any previous active reservation linked to this challenge
+      //    (excludes the one we just inserted)
+      await _client
+          .from(SupabaseConstants.courtReservationsTable)
+          .update({
+            'status': 'cancelled',
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('challenge_id', challengeId)
+          .eq('status', 'confirmed')
+          .neq('id', newReservationId);
+
+      // 6. Update challenge to scheduled with new court/date
       await _client
           .from(SupabaseConstants.challengesTable)
           .update({
@@ -330,29 +377,11 @@ class ChallengeRepository {
             'chosen_date': chosenDateTimeLocal.toUtc().toIso8601String(),
             'dates_proposed_at': DateTime.now().toUtc().toIso8601String(),
             'date_chosen_at': DateTime.now().toUtc().toIso8601String(),
-            'play_deadline': deadlineDate.toUtc().toIso8601String(),
+            'play_deadline': playDeadlineIso,
           })
           .eq('id', challengeId);
 
-      // 5. Create the court reservation linked to this challenge
-      //    reserved_by = current user, opponent_id = the other participant
-      final currentPlayerId = await _getCurrentPlayerId();
-      final opponentId = currentPlayerId == challengerId ? challengedId : challengerId;
-      final dateStr =
-          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-      await _client.from(SupabaseConstants.courtReservationsTable).insert({
-        'court_id': courtId,
-        'reserved_by': currentPlayerId,
-        'reservation_date': dateStr,
-        'start_time': startTime,
-        'end_time': endTime,
-        'club_id': clubId,
-        'challenge_id': challengeId,
-        'opponent_id': opponentId,
-        'opponent_type': 'member',
-      });
-
-      // 6. Notify both players that the match is scheduled
+      // 7. Notify both players that the match is scheduled
       final notifyIds = <String>{challengerId, challengedId}
         ..remove(currentPlayerId);
       for (final id in notifyIds) {

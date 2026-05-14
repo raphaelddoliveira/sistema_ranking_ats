@@ -28,35 +28,75 @@ class ProfileScreen extends ConsumerWidget {
         title: clubAppBarTitle('Meu Perfil', context, ref),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: 'Editar perfil',
-            onPressed: () => context.push(RouteNames.editProfile),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              final confirmed = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Sair'),
-                  content: const Text('Deseja realmente sair da sua conta?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Cancelar'),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.menu),
+            tooltip: 'Menu',
+            onSelected: (value) async {
+              switch (value) {
+                case 'edit':
+                  context.push(RouteNames.editProfile);
+                  break;
+                case 'bug':
+                  context.push('/bug-report');
+                  break;
+                case 'logout':
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Sair'),
+                      content:
+                          const Text('Deseja realmente sair da sua conta?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Cancelar'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Sair'),
+                        ),
+                      ],
                     ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('Sair'),
-                    ),
-                  ],
-                ),
-              );
-              if (confirmed == true) {
-                await ref.read(authRepositoryProvider).signOut();
+                  );
+                  if (confirmed == true) {
+                    await ref.read(authRepositoryProvider).signOut();
+                  }
+                  break;
               }
             },
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Editar perfil'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'bug',
+                child: Row(
+                  children: [
+                    Icon(Icons.bug_report_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Reportar problema'),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 20, color: AppColors.error),
+                    SizedBox(width: 12),
+                    Text('Sair', style: TextStyle(color: AppColors.error)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

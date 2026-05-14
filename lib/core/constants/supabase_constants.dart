@@ -42,4 +42,8 @@ abstract final class SupabaseConstants {
   static const String avatarsBucket = 'avatars';
   static const String receiptsBucket = 'receipts';
   static const String clubsBucket = 'clubs';
+  static const String bugReportsBucket = 'bug-reports';
+
+  // Tables (additional)
+  static const String bugReportsTable = 'bug_reports';
 }

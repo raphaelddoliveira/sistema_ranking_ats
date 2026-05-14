@@ -627,6 +627,40 @@ class CourtRepository {
     }
   }
 
+  /// Admin: create reservation for a club member + guest (non-member)
+  /// Uses direct INSERT (allowed by RLS for admins).
+  Future<String> adminCreateReservationWithGuest({
+    required String hostPlayerId,
+    required String guestName,
+    required String courtId,
+    required DateTime date,
+    required String startTime,
+    required String endTime,
+    required String clubId,
+  }) async {
+    try {
+      final dateStr =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final inserted = await _client
+          .from(SupabaseConstants.courtReservationsTable)
+          .insert({
+            'court_id': courtId,
+            'reserved_by': hostPlayerId,
+            'reservation_date': dateStr,
+            'start_time': startTime,
+            'end_time': endTime,
+            'club_id': clubId,
+            'opponent_type': 'guest',
+            'opponent_name': guestName,
+          })
+          .select('id')
+          .single();
+      return inserted['id'] as String;
+    } catch (e) {
+      throw ErrorHandler.handle(e);
+    }
+  }
+
   /// Admin: get all club reservations (confirmed, today+)
   Future<List<ReservationModel>> getClubReservations({required String clubId}) async {
     try {

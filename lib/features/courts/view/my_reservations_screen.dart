@@ -327,38 +327,9 @@ class _ReservationCard extends ConsumerWidget {
     WidgetRef ref,
     ReservationModel reservation,
   ) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Alterar Horário'),
-        content: const Text(
-          'A reserva atual será cancelada e você poderá escolher uma nova quadra e horário.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              final success = await ref
-                  .read(challengeActionProvider.notifier)
-                  .rescheduleChallenge(reservation.challengeId!);
-              if (success && context.mounted) {
-                ref.invalidate(myReservationsProvider);
-                ref.invalidate(hasActiveFriendlyReservationProvider);
-                ref.invalidate(activeChallengesProvider);
-                context.push(
-                  '/challenges/${reservation.challengeId}/select-court',
-                );
-              }
-            },
-            child: const Text('Alterar'),
-          ),
-        ],
-      ),
-    );
+    // Navigate directly to select-court. Old reservation is only cancelled
+    // and challenge only updated when user confirms new slot atomically.
+    context.push('/challenges/${reservation.challengeId}/select-court');
   }
 
   void _showDeclareOpponentSheet(

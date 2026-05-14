@@ -32,6 +32,7 @@ import '../../features/admin/view/admin_create_challenge_screen.dart';
 import '../../features/admin/view/admin_dashboard_screen.dart';
 import '../../features/admin/view/admin_ranking_screen.dart';
 import '../../features/admin/view/admin_reservations_screen.dart';
+import '../../features/bug_report/view/bug_report_screen.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../services/supabase_service.dart';
 import '../constants/route_names.dart';
@@ -232,6 +233,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => PublicProfileScreen(
           playerId: state.pathParameters['playerId']!,
         ),
+      ),
+
+      // Bug report (no bottom nav)
+      GoRoute(
+        path: '/bug-report',
+        builder: (context, state) => const BugReportScreen(),
       ),
 
       // Court slots admin (no bottom nav)

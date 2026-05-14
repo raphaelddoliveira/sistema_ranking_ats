@@ -713,6 +713,32 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
             }
           }
         },
+        onConfirmGuest: (hostPlayerId, guestName) async {
+          Navigator.of(ctx).pop();
+          try {
+            await ref
+                .read(courtRepositoryProvider)
+                .adminCreateReservationWithGuest(
+                  hostPlayerId: hostPlayerId,
+                  guestName: guestName,
+                  courtId: widget.courtId,
+                  date: _selectedDate,
+                  startTime: slot.startTime,
+                  endTime: slot.endTime,
+                  clubId: clubId!,
+                );
+            if (mounted) {
+              SnackbarUtils.showSuccess(context, 'Reserva criada!');
+              ref.invalidate(courtReservationsProvider(
+                (courtId: widget.courtId, date: _selectedDate),
+              ));
+            }
+          } catch (e) {
+            if (mounted) {
+              SnackbarUtils.showError(context, 'Erro: $e');
+            }
+          }
+        },
         onConfirmAdministrative: (title) async {
           Navigator.of(ctx).pop();
           try {
@@ -1127,6 +1153,7 @@ class _AdminReservationBottomSheet extends ConsumerStatefulWidget {
   final TimeSlot slot;
   final String? clubId;
   final void Function(String player1Id, String player2Id) onConfirmPlayers;
+  final void Function(String hostPlayerId, String guestName) onConfirmGuest;
   final void Function(String title) onConfirmAdministrative;
 
   const _AdminReservationBottomSheet({
@@ -1135,6 +1162,7 @@ class _AdminReservationBottomSheet extends ConsumerStatefulWidget {
     required this.slot,
     required this.clubId,
     required this.onConfirmPlayers,
+    required this.onConfirmGuest,
     required this.onConfirmAdministrative,
   });
 
@@ -1153,20 +1181,26 @@ class _AdminReservationBottomSheetState
   final _searchController1 = TextEditingController();
   final _searchController2 = TextEditingController();
   final _titleController = TextEditingController();
+  final _guestNameController = TextEditingController();
+  bool _player2IsGuest = false;
 
   @override
   void dispose() {
     _searchController1.dispose();
     _searchController2.dispose();
     _titleController.dispose();
+    _guestNameController.dispose();
     super.dispose();
   }
 
-  bool get _canConfirm => _isAdministrative
-      ? _titleController.text.trim().isNotEmpty
-      : _player1 != null &&
-        _player2 != null &&
-        _player1!.playerId != _player2!.playerId;
+  bool get _canConfirm {
+    if (_isAdministrative) return _titleController.text.trim().isNotEmpty;
+    if (_player1 == null) return false;
+    if (_player2IsGuest) {
+      return _guestNameController.text.trim().isNotEmpty;
+    }
+    return _player2 != null && _player1!.playerId != _player2!.playerId;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1281,15 +1315,47 @@ class _AdminReservationBottomSheetState
                       ),
                 ),
                 const SizedBox(height: 8),
-                _buildPlayerPicker(
-                  controller: _searchController2,
-                  query: _searchQuery2,
-                  selected: _player2,
-                  onQueryChanged: (v) => setState(() => _searchQuery2 = v),
-                  onSelected: (m) => setState(() => _player2 = m),
-                  excludePlayerId: _player1?.playerId,
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(value: false, label: Text('Membro'), icon: Icon(Icons.person, size: 16)),
+                    ButtonSegment(value: true, label: Text('Convidado'), icon: Icon(Icons.person_add_alt_1, size: 16)),
+                  ],
+                  selected: {_player2IsGuest},
+                  onSelectionChanged: (v) => setState(() {
+                    _player2IsGuest = v.first;
+                    _player2 = null;
+                    _searchQuery2 = '';
+                    _guestNameController.clear();
+                  }),
                 ),
-                if (_player1 != null && _player2 != null && _player1!.playerId == _player2!.playerId)
+                const SizedBox(height: 8),
+                if (_player2IsGuest)
+                  TextField(
+                    controller: _guestNameController,
+                    decoration: InputDecoration(
+                      hintText: 'Nome do convidado',
+                      prefixIcon: const Icon(Icons.person_outline, size: 20),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  )
+                else
+                  _buildPlayerPicker(
+                    controller: _searchController2,
+                    query: _searchQuery2,
+                    selected: _player2,
+                    onQueryChanged: (v) => setState(() => _searchQuery2 = v),
+                    onSelected: (m) => setState(() => _player2 = m),
+                    excludePlayerId: _player1?.playerId,
+                  ),
+                if (!_player2IsGuest &&
+                    _player1 != null &&
+                    _player2 != null &&
+                    _player1!.playerId == _player2!.playerId)
                   const Padding(
                     padding: EdgeInsets.only(top: 8),
                     child: Text('Selecione jogadores diferentes',
@@ -1304,7 +1370,13 @@ class _AdminReservationBottomSheetState
                   onPressed: _canConfirm
                       ? () {
                           if (_isAdministrative) {
-                            widget.onConfirmAdministrative(_titleController.text.trim());
+                            widget.onConfirmAdministrative(
+                                _titleController.text.trim());
+                          } else if (_player2IsGuest) {
+                            widget.onConfirmGuest(
+                              _player1!.playerId,
+                              _guestNameController.text.trim(),
+                            );
                           } else {
                             widget.onConfirmPlayers(
                               _player1!.playerId,
