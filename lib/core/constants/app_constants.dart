@@ -8,6 +8,12 @@ abstract final class AppConstants {
   static const Duration weatherExtension = Duration(days: 2);
   static const int minChallengesPerMonth = 1;
 
+  // Reservation rules
+  /// Friendly (non-ranking) court reservations can only be booked up to this
+  /// many days ahead of today (D+2). Does not apply to challenge reservations
+  /// (7-day rule) nor to admin reservations.
+  static const int friendlyReservationMaxDaysAhead = 2;
+
   // Ambulance rules
   static const int ambulanceImmediatePenalty = 3;
   static const Duration ambulanceProtectionPeriod = Duration(days: 10);

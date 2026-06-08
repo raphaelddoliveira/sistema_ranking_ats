@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/snackbar_utils.dart';
 import '../../../shared/models/club_member_model.dart';
@@ -50,9 +51,16 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
     super.initState();
     final today = DateTime.now();
     _selectedDate = DateTime(today.year, today.month, today.day);
-    final maxDate = widget.maxDate != null
+    // Effective max date:
+    // - explicit maxDate (e.g. editing) always wins;
+    // - friendly (non-admin) reservations are capped at D+2;
+    // - admin reservations have no cap.
+    final DateTime? maxDate = widget.maxDate != null
         ? DateTime(widget.maxDate!.year, widget.maxDate!.month, widget.maxDate!.day)
-        : null;
+        : widget.isAdminMode
+            ? null
+            : DateTime(today.year, today.month,
+                today.day + AppConstants.friendlyReservationMaxDaysAhead);
     _dates = List.generate(60, (i) => DateTime(today.year, today.month, today.day + i))
         .where((d) => maxDate == null || !d.isAfter(maxDate))
         .toList();

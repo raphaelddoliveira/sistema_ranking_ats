@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/supabase_constants.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/errors/error_handler.dart';
@@ -205,6 +206,24 @@ class CourtRepository {
       final playerId = await _getCurrentPlayerId();
       final dateStr =
           '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+      // Friendly (non-ranking) reservations can only be booked up to D+2.
+      // Challenge reservations (challengeId != null) follow the 7-day rule and
+      // admin reservations use dedicated methods, so neither is affected here.
+      if (challengeId == null) {
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final maxDate = today
+            .add(const Duration(days: AppConstants.friendlyReservationMaxDaysAhead));
+        final chosenDay = DateTime(date.year, date.month, date.day);
+        if (chosenDay.isAfter(maxDate)) {
+          throw const ValidationException(
+            'Reservas amistosas só podem ser feitas com até 2 dias de '
+            'antecedência (hoje, amanhã ou depois de amanhã).',
+            code: 'RESERVATION_TOO_FAR_AHEAD',
+          );
+        }
+      }
 
       // Check if the slot is already taken (prevent double-booking)
       final existing = await _client
