@@ -30,7 +30,6 @@ class ChallengeCourtSelectionScreen extends ConsumerStatefulWidget {
 class _ChallengeCourtSelectionScreenState
     extends ConsumerState<ChallengeCourtSelectionScreen> {
   late DateTime _selectedDate;
-  late final List<DateTime> _dates;
   late final ScrollController _dateScrollController;
 
   CourtModel? _selectedCourt;
@@ -42,11 +41,22 @@ class _ChallengeCourtSelectionScreenState
     super.initState();
     final today = DateTime.now();
     _selectedDate = DateTime(today.year, today.month, today.day);
-    _dates = List.generate(
-      60,
-      (i) => DateTime(today.year, today.month, today.day + i),
-    );
     _dateScrollController = ScrollController();
+  }
+
+  /// Allowed dates to schedule the match: from today up to the challenge's
+  /// play deadline (inclusive). The match must be played within 7 days, so
+  /// dates beyond the deadline are never offered.
+  List<DateTime> _allowedDates(DateTime maxDate) {
+    final today = DateTime.now();
+    final start = DateTime(today.year, today.month, today.day);
+    final dates = <DateTime>[];
+    for (var d = start;
+        !d.isAfter(maxDate);
+        d = DateTime(d.year, d.month, d.day + 1)) {
+      dates.add(d);
+    }
+    return dates;
   }
 
   @override
@@ -60,66 +70,98 @@ class _ChallengeCourtSelectionScreenState
 
   @override
   Widget build(BuildContext context) {
+    final challengeAsync =
+        ref.watch(challengeDetailProvider(widget.challengeId));
     final courtsAsync = ref.watch(challengeCourtsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Escolher Quadra e Horário')),
       bottomNavigationBar:
           _selectedSlot != null ? _buildConfirmBar() : null,
-      body: courtsAsync.when(
-        data: (courts) {
-          if (courts.isEmpty) {
-            return const Center(
+      body: challengeAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Erro: $e')),
+        data: (challenge) {
+          final dates = _allowedDates(challenge.playByDate);
+
+          // Deadline already passed: nothing valid to schedule.
+          if (dates.isEmpty) {
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Nenhuma quadra disponível para este esporte.',
+                  'O prazo para jogar este desafio (até '
+                  '${_formatDateLabel(challenge.playByDate)}) já passou.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.onBackgroundLight),
+                  style: const TextStyle(color: AppColors.onBackgroundLight),
                 ),
               ),
             );
           }
 
-          // Auto-select first court
-          _selectedCourt ??= courts.first;
+          // Keep the selected date within the allowed range.
+          if (_selectedDate.isAfter(dates.last)) {
+            _selectedDate = dates.last;
+          } else if (_selectedDate.isBefore(dates.first)) {
+            _selectedDate = dates.first;
+          }
 
-          return Column(
-            children: [
-              _buildInfoCard(),
-              _buildCourtChips(courts),
-              const Divider(height: 1),
-              _buildDateSelector(),
-              const Divider(height: 1),
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  children: [
-                    Text(
-                      _formatDateLabel(_selectedDate),
-                      style:
-                          Theme.of(context).textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+          return courtsAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('Erro: $e')),
+            data: (courts) {
+              if (courts.isEmpty) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                      'Nenhuma quadra disponível para este esporte.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppColors.onBackgroundLight),
                     ),
-                    const Spacer(),
-                    Text(
-                      _dayOfWeekLabel(_dbDayOfWeek),
-                      style: const TextStyle(
-                        color: AppColors.onBackgroundLight,
-                        fontSize: 13,
-                      ),
+                  ),
+                );
+              }
+
+              // Auto-select first court
+              _selectedCourt ??= courts.first;
+
+              return Column(
+                children: [
+                  _buildInfoCard(),
+                  _buildCourtChips(courts),
+                  const Divider(height: 1),
+                  _buildDateSelector(dates),
+                  const Divider(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 8),
+                    child: Row(
+                      children: [
+                        Text(
+                          _formatDateLabel(_selectedDate),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const Spacer(),
+                        Text(
+                          _dayOfWeekLabel(_dbDayOfWeek),
+                          style: const TextStyle(
+                            color: AppColors.onBackgroundLight,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-              Expanded(child: _buildSlotsList()),
-            ],
+                  ),
+                  Expanded(child: _buildSlotsList()),
+                ],
+              );
+            },
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erro: $e')),
       ),
     );
   }
@@ -178,16 +220,16 @@ class _ChallengeCourtSelectionScreenState
     );
   }
 
-  Widget _buildDateSelector() {
+  Widget _buildDateSelector(List<DateTime> dates) {
     return SizedBox(
       height: 80,
       child: ListView.builder(
         controller: _dateScrollController,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        itemCount: _dates.length,
+        itemCount: dates.length,
         itemBuilder: (context, index) {
-          final date = _dates[index];
+          final date = dates[index];
           final isSelected = date.year == _selectedDate.year &&
               date.month == _selectedDate.month &&
               date.day == _selectedDate.day;

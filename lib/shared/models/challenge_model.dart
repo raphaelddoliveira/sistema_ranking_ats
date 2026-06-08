@@ -109,6 +109,21 @@ class ChallengeModel {
         ?proposedDate3,
       ];
 
+  /// Última data (inclusive) em que a partida pode ser jogada.
+  ///
+  /// Regra: 7 dias contados a partir do dia SEGUINTE ao desafio, ou seja,
+  /// data de criação + 7 dias (desafio dia 2 → joga até dia 9). Se já existe
+  /// um `play_deadline` definido (agendamento anterior ou extensão por chuva),
+  /// ele prevalece. Retorna apenas a data (sem hora), no fuso local.
+  DateTime get playByDate {
+    if (playDeadline != null) {
+      final d = playDeadline!.toLocal();
+      return DateTime(d.year, d.month, d.day);
+    }
+    final c = createdAt.toLocal();
+    return DateTime(c.year, c.month, c.day + 7);
+  }
+
   /// True when status is dates_proposed but the chosen date is in the past
   bool get isCourtDateExpired {
     if (status != ChallengeStatus.datesProposed) return false;

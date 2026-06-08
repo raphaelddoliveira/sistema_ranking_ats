@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/constants/supabase_constants.dart';
+import '../../../core/errors/app_exception.dart';
 import '../../../core/errors/error_handler.dart';
 import '../../../services/supabase_service.dart';
 import '../../../shared/models/challenge_model.dart';
@@ -330,6 +331,22 @@ class ChallengeRepository {
         final deadlineDate = DateTime(
             createdAt.year, createdAt.month, createdAt.day + 7, 23, 59, 59);
         playDeadlineIso = deadlineDate.toUtc().toIso8601String();
+      }
+
+      // 3b. Enforce the play deadline: the chosen date may not be later than
+      //     the deadline (7 days counting from the day after the challenge).
+      //     Without this guard a player could schedule the match for any day.
+      final deadlineLocal = DateTime.parse(playDeadlineIso).toLocal();
+      final deadlineDay = DateTime(
+          deadlineLocal.year, deadlineLocal.month, deadlineLocal.day);
+      final chosenDay = DateTime(date.year, date.month, date.day);
+      if (chosenDay.isAfter(deadlineDay)) {
+        String fmt(DateTime d) =>
+            '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
+        throw ChallengeException(
+          'A data escolhida (${fmt(chosenDay)}) ultrapassa o prazo para jogar '
+          '(até ${fmt(deadlineDay)}). O desafio deve ser jogado em até 7 dias.',
+        );
       }
 
       // 4. Create the NEW reservation FIRST so any conflict fails before we
