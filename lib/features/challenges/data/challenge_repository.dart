@@ -352,15 +352,23 @@ class ChallengeRepository {
       // 4. Create the NEW reservation FIRST so any conflict fails before we
       //    touch the existing state (avoids leaving challenge orphaned)
       final currentPlayerId = await _getCurrentPlayerId();
-      final opponentId =
-          currentPlayerId == challengerId ? challengedId : challengerId;
+      // A reserva deve SEMPRE ligar os dois participantes reais do desafio.
+      // Se quem agenda é um dos jogadores, ele fica como reserved_by; se é um
+      // ADMIN (não participante), o desafiante fica como reserved_by — nunca o
+      // admin, senão o nome dele apareceria no jogo e o desafiado sumiria.
+      final bool callerIsParticipant =
+          currentPlayerId == challengerId || currentPlayerId == challengedId;
+      final String reservedBy =
+          callerIsParticipant ? currentPlayerId : challengerId;
+      final String opponentId =
+          reservedBy == challengerId ? challengedId : challengerId;
       final dateStr =
           '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
       final newReservation = await _client
           .from(SupabaseConstants.courtReservationsTable)
           .insert({
             'court_id': courtId,
-            'reserved_by': currentPlayerId,
+            'reserved_by': reservedBy,
             'reservation_date': dateStr,
             'start_time': startTime,
             'end_time': endTime,
