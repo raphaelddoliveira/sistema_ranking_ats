@@ -12,6 +12,7 @@ import '../../features/clubs/view/create_club_screen.dart';
 import '../../features/clubs/view/join_club_screen.dart';
 import '../../features/clubs/view/club_management_screen.dart';
 import '../../features/clubs/view/edit_club_screen.dart';
+import '../../features/clubs/viewmodel/club_providers.dart';
 import '../../features/ranking/view/ranking_screen.dart';
 import '../../features/ranking/view/ranking_history_screen.dart';
 import '../../features/challenges/view/challenges_screen.dart';
@@ -50,6 +51,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       if (!isLoggedIn && !isAuthRoute) return RouteNames.login;
       if (isLoggedIn && isAuthRoute) return RouteNames.ranking;
+
+      // Guard das telas de admin: bloqueia quem definitivamente não é admin.
+      // valueOrNull == false → não-admin confirmado; null = ainda carregando,
+      // deixa passar (o backend/RLS continua protegendo os dados).
+      if (state.matchedLocation.startsWith('/admin')) {
+        if (ref.read(isClubAdminProvider).valueOrNull == false) {
+          return RouteNames.ranking;
+        }
+      }
       return null;
     },
     routes: [
