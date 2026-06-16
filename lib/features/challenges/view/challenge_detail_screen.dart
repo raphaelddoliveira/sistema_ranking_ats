@@ -446,6 +446,11 @@ class _ChallengeDetailBody extends ConsumerWidget {
         break;
 
       case ChallengeStatus.scheduled:
+        // Ações sobre o jogo só para participantes ou admin — um terceiro que
+        // apenas visualiza o desafio não pode registrar resultado, adiar nem
+        // cancelar.
+        final isAdmin = ref.watch(isClubAdminProvider).valueOrNull ?? false;
+        final canActOnChallenge = isChallenger || isChallenged || isAdmin;
         // Check result delay rule
         final clubSports = ref.watch(clubSportsProvider).valueOrNull ?? [];
         final clubSport = clubSports.where((cs) => cs.sportId == challenge.sportId).firstOrNull;
@@ -481,7 +486,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
               ),
             ),
           );
-        } else {
+        } else if (canActOnChallenge) {
           actions.add(
             ElevatedButton.icon(
               onPressed: () {
@@ -508,7 +513,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
         final withinPlayWindow = deadline != null &&
             !DateTime(today.year, today.month, today.day).isAfter(
                 DateTime(deadline.year, deadline.month, deadline.day));
-        if (withinPlayWindow) {
+        if (withinPlayWindow && canActOnChallenge) {
           final weatherDays = challenge.nextWeatherExtensionDays;
           actions.add(const SizedBox(height: 8));
           actions.add(
@@ -523,7 +528,6 @@ class _ChallengeDetailBody extends ConsumerWidget {
           );
         }
         {
-          final isAdmin = ref.watch(isClubAdminProvider).valueOrNull ?? false;
           // Only allow rescheduling before the day of the match
           final matchDate = challenge.chosenDate?.toLocal();
           final now = DateTime.now().toLocal();
@@ -545,55 +549,54 @@ class _ChallengeDetailBody extends ConsumerWidget {
             );
           }
         }
-        actions.add(const SizedBox(height: 8));
-        actions.add(
-          OutlinedButton.icon(
-            onPressed: () => _confirmCancel(context, ref),
-            icon: const Icon(Icons.close, color: AppColors.error),
-            label: const Text('Cancelar Desafio',
-                style: TextStyle(color: AppColors.error)),
-          ),
-        );
+        if (isChallenger || isChallenged) {
+          actions.add(const SizedBox(height: 8));
+          actions.add(
+            OutlinedButton.icon(
+              onPressed: () => _confirmCancel(context, ref),
+              icon: const Icon(Icons.close, color: AppColors.error),
+              label: const Text('Cancelar Desafio',
+                  style: TextStyle(color: AppColors.error)),
+            ),
+          );
+        }
         // Admin actions
-        {
-          final isAdmin = ref.watch(isClubAdminProvider).valueOrNull ?? false;
-          if (isAdmin) {
-            // Admin: submit result bypassing delay rule
-            if (delayBlocked) {
-              actions.add(const SizedBox(height: 8));
-              actions.add(
-                OutlinedButton.icon(
-                  onPressed: () {
-                    context.push(
-                      '/challenges/$challengeId/record-result',
-                      extra: {
-                        'challengerId': challenge.challengerId,
-                        'challengedId': challenge.challengedId,
-                        'challengerName': challenge.challengerName ?? 'Desafiante',
-                        'challengedName': challenge.challengedName ?? 'Desafiado',
-                        'isAdminEdit': true,
-                        'challengeStatus': challenge.status.dbValue,
-                      },
-                    );
-                  },
-                  icon: Icon(Icons.scoreboard, color: AppColors.warning),
-                  label: Text('Registrar Resultado (Admin)',
-                      style: TextStyle(color: AppColors.warning)),
-                ),
-              );
-            }
-            // Admin: cancel challenge (for non-participants)
-            if (!isChallenger && !isChallenged) {
-              actions.add(const SizedBox(height: 8));
-              actions.add(
-                OutlinedButton.icon(
-                  onPressed: () => _confirmAnnul(context, ref),
-                  icon: const Icon(Icons.gavel, color: AppColors.error),
-                  label: const Text('Cancelar Desafio (Admin)',
-                      style: TextStyle(color: AppColors.error)),
-                ),
-              );
-            }
+        if (isAdmin) {
+          // Admin: registrar resultado furando a regra de atraso
+          if (delayBlocked) {
+            actions.add(const SizedBox(height: 8));
+            actions.add(
+              OutlinedButton.icon(
+                onPressed: () {
+                  context.push(
+                    '/challenges/$challengeId/record-result',
+                    extra: {
+                      'challengerId': challenge.challengerId,
+                      'challengedId': challenge.challengedId,
+                      'challengerName': challenge.challengerName ?? 'Desafiante',
+                      'challengedName': challenge.challengedName ?? 'Desafiado',
+                      'isAdminEdit': true,
+                      'challengeStatus': challenge.status.dbValue,
+                    },
+                  );
+                },
+                icon: Icon(Icons.scoreboard, color: AppColors.warning),
+                label: Text('Registrar Resultado (Admin)',
+                    style: TextStyle(color: AppColors.warning)),
+              ),
+            );
+          }
+          // Admin não-participante: cancelar (não anular — anular é p/ concluídos)
+          if (!isChallenger && !isChallenged) {
+            actions.add(const SizedBox(height: 8));
+            actions.add(
+              OutlinedButton.icon(
+                onPressed: () => _confirmCancel(context, ref),
+                icon: const Icon(Icons.gavel, color: AppColors.error),
+                label: const Text('Cancelar Desafio (Admin)',
+                    style: TextStyle(color: AppColors.error)),
+              ),
+            );
           }
         }
         break;
