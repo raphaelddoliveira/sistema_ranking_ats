@@ -575,6 +575,32 @@ class CourtRepository {
     try {
       final dateStr =
           '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+      // Evita sobrepor outra reserva confirmada na mesma quadra/data/horário
+      // (o update é direto, então não passa pela checagem do RPC de criação).
+      int toMin(String t) {
+        final p = t.split(':');
+        return int.parse(p[0]) * 60 + (p.length > 1 ? int.parse(p[1]) : 0);
+      }
+
+      final newStart = toMin(startTime);
+      final newEnd = toMin(endTime);
+      final existing = await _client
+          .from(SupabaseConstants.courtReservationsTable)
+          .select('id, start_time, end_time')
+          .eq('court_id', courtId)
+          .eq('reservation_date', dateStr)
+          .eq('status', 'confirmed')
+          .neq('id', reservationId);
+      for (final r in existing) {
+        final rs = toMin(r['start_time'] as String);
+        final re = toMin(r['end_time'] as String);
+        if (newStart < re && rs < newEnd) {
+          throw const ValidationException(
+              'Já existe uma reserva nesse horário nesta quadra.');
+        }
+      }
+
       // Update the reservation directly (RLS allows admin)
       await _client
           .from(SupabaseConstants.courtReservationsTable)

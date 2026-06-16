@@ -424,9 +424,9 @@ class _ChallengeDetailBody extends ConsumerWidget {
             actions.add(const SizedBox(height: 8));
             actions.add(
               OutlinedButton.icon(
-                onPressed: () => isAdmin && !isChallenger && !isChallenged
-                    ? _confirmAnnul(context, ref)
-                    : _confirmCancel(context, ref),
+                // Desafio PENDENTE deve ser CANCELADO (não anulado — anular é
+                // para desafios já concluídos, que revertem ranking).
+                onPressed: () => _confirmCancel(context, ref),
                 icon: const Icon(Icons.close, color: AppColors.error),
                 label: Text(
                   isAdmin && !isChallenger && !isChallenged

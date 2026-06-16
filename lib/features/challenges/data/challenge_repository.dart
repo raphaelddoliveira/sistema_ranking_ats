@@ -721,18 +721,22 @@ class ChallengeRepository {
           })
           .eq('id', challengeId);
 
-      final otherPlayerId = challenge['challenger_id'] == playerId
-          ? challenge['challenged_id']
-          : challenge['challenger_id'];
-
-      await _client.from(SupabaseConstants.notificationsTable).insert({
-        'player_id': otherPlayerId,
-        'type': 'general',
-        'title': 'Desafio Cancelado',
-        'body': 'Um desafio em que você participava foi cancelado.',
-        'data': {'challenge_id': challengeId},
-        'club_id': challenge['club_id'],
-      });
+      // Notifica os participantes, menos quem cancelou. Se quem cancelou for
+      // um ADMIN (não participante), ambos os jogadores são avisados.
+      final notifyIds = <String>{
+        challenge['challenger_id'] as String,
+        challenge['challenged_id'] as String,
+      }..remove(playerId);
+      for (final id in notifyIds) {
+        await _client.from(SupabaseConstants.notificationsTable).insert({
+          'player_id': id,
+          'type': 'general',
+          'title': 'Desafio Cancelado',
+          'body': 'Um desafio em que você participava foi cancelado.',
+          'data': {'challenge_id': challengeId},
+          'club_id': challenge['club_id'],
+        });
+      }
     } catch (e) {
       throw ErrorHandler.handle(e);
     }

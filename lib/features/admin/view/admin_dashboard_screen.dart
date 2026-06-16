@@ -323,58 +323,91 @@ class AdminAmbulanceScreen extends ConsumerWidget {
     );
   }
 
-  void _activateAmbulance(
-      BuildContext context, WidgetRef ref, ClubMemberModel member, String clubId) {
-    showDialog(
+  void _activateAmbulance(BuildContext context, WidgetRef ref,
+      ClubMemberModel member, String clubId) async {
+    // O RPC activate_ambulance exige p_sport_id e p_reason — sem eles a ação
+    // falha no backend. A ambulância é por esporte.
+    final sportId = ref.read(currentSportIdProvider);
+    if (sportId == null) {
+      SnackbarUtils.showError(context, 'Selecione um esporte primeiro.');
+      return;
+    }
+    final reasonController = TextEditingController();
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Ativar Ambulância'),
-        content: Text(
-          'Ativar ambulância para ${member.playerName} (#${member.rankingPosition ?? '-'})?\n\n'
-          'Isso irá:\n'
-          '- Penalizar -3 posições\n'
-          '- Ativar proteção de 10 dias\n'
-          '- Após 10 dias: -1 posição/dia',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Ativar ambulância para ${member.playerName} (#${member.rankingPosition ?? '-'})?\n\n'
+              'Isso irá:\n'
+              '- Penalizar -3 posições\n'
+              '- Ativar proteção de 10 dias\n'
+              '- Após 10 dias: -1 posição/dia',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                labelText: 'Motivo (opcional)',
+                hintText: 'Ex.: lesão, viagem...',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              textCapitalization: TextCapitalization.sentences,
+            ),
+          ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
+            onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error),
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              try {
-                final client = ref.read(supabaseClientProvider);
-                await client.rpc(
-                  SupabaseConstants.rpcActivateAmbulance,
-                  params: {
-                    'p_player_id': member.playerId,
-                    'p_club_id': clubId,
-                  },
-                );
-                if (context.mounted) {
-                  SnackbarUtils.showSuccess(
-                      context, 'Ambulância ativada para ${member.playerName}');
-                  ref.invalidate(_adminClubMembersProvider(clubId));
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  SnackbarUtils.showError(context, 'Erro: $e');
-                }
-              }
-            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Ativar'),
           ),
         ],
       ),
     );
+    final reason = reasonController.text.trim();
+    reasonController.dispose();
+    if (confirmed != true || !context.mounted) return;
+    try {
+      final client = ref.read(supabaseClientProvider);
+      await client.rpc(
+        SupabaseConstants.rpcActivateAmbulance,
+        params: {
+          'p_player_id': member.playerId,
+          'p_reason': reason.isEmpty ? 'Ativada pelo administrador' : reason,
+          'p_club_id': clubId,
+          'p_sport_id': sportId,
+        },
+      );
+      if (context.mounted) {
+        SnackbarUtils.showSuccess(
+            context, 'Ambulância ativada para ${member.playerName}');
+        ref.invalidate(_adminClubMembersProvider(clubId));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        SnackbarUtils.showError(context, 'Erro: $e');
+      }
+    }
   }
 
-  void _deactivateAmbulance(
-      BuildContext context, WidgetRef ref, ClubMemberModel member, String clubId) {
+  void _deactivateAmbulance(BuildContext context, WidgetRef ref,
+      ClubMemberModel member, String clubId) {
+    // deactivate_ambulance também exige p_sport_id (a ambulância é por esporte).
+    final sportId = ref.read(currentSportIdProvider);
+    if (sportId == null) {
+      SnackbarUtils.showError(context, 'Selecione um esporte primeiro.');
+      return;
+    }
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -396,6 +429,7 @@ class AdminAmbulanceScreen extends ConsumerWidget {
                   params: {
                     'p_player_id': member.playerId,
                     'p_club_id': clubId,
+                    'p_sport_id': sportId,
                   },
                 );
                 if (context.mounted) {
