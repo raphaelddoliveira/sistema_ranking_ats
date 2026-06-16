@@ -38,7 +38,7 @@ class _AdminCreateChallengeScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Criar Desafio'),
+        title: const Text('Criar Desafio (Admin)'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {

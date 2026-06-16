@@ -22,6 +22,7 @@ class ProfileScreen extends ConsumerWidget {
     final playerAsync = ref.watch(currentPlayerProvider);
     final clubMember = ref.watch(currentClubMemberProvider);
     final myClubs = ref.watch(myClubsProvider);
+    final isAdmin = ref.watch(isClubAdminProvider).valueOrNull ?? false;
 
     return Scaffold(
       appBar: AppBar(
@@ -161,6 +162,27 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
+
+                // Acesso persistente ao Painel Admin (modo admin claro)
+                if (isAdmin) ...[
+                  const SizedBox(height: 16),
+                  Card(
+                    color: AppColors.secondary.withAlpha(20),
+                    child: ListTile(
+                      leading: const CircleAvatar(
+                        backgroundColor: AppColors.secondary,
+                        child: Icon(Icons.admin_panel_settings,
+                            color: Colors.white, size: 20),
+                      ),
+                      title: const Text('Painel Admin',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      subtitle: const Text(
+                          'Criar desafios e gerenciar reservas de outros jogadores'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                      onTap: () => context.push('/admin'),
+                    ),
+                  ),
+                ],
 
                 // Club-specific status indicators
                 if (member != null) ...[

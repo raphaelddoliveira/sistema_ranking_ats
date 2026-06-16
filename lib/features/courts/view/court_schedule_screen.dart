@@ -104,6 +104,10 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
     final reservationsAsync = ref.watch(courtReservationsProvider(
       (courtId: court.id, date: _selectedDate),
     ));
+    // Admin no fluxo de jogador: aqui a reserva é PARA VOCÊ. Para reservar
+    // por outros jogadores, use o Painel Admin → Reservas.
+    final isAdmin = !widget.isAdminMode &&
+        (ref.watch(isClubAdminProvider).valueOrNull ?? false);
 
     return Scaffold(
       appBar: AppBar(
@@ -118,7 +122,10 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
       ),
       body: Column(
         children: [
-          if (widget.isAdminMode) _buildAdminBar(court),
+          if (widget.isAdminMode)
+            _buildAdminBar(court)
+          else if (isAdmin)
+            _buildPlayerModeAdminHint(context),
           _buildDateSelector(),
           const Divider(height: 1),
           Padding(
@@ -197,6 +204,33 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                 label: const Text('Trocar quadra'),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Aviso para admins no fluxo de jogador: a reserva aqui é PARA VOCÊ.
+  Widget _buildPlayerModeAdminHint(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: AppColors.secondary.withAlpha(20),
+      padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+      child: Row(
+        children: [
+          const Icon(Icons.admin_panel_settings,
+              size: 18, color: AppColors.secondary),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Aqui a reserva é PARA VOCÊ. Para reservar por outros jogadores, '
+              'use o Painel Admin → Reservas.',
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+          TextButton(
+            onPressed: () => context.push('/admin/reservations'),
+            child: const Text('Painel Admin'),
           ),
         ],
       ),

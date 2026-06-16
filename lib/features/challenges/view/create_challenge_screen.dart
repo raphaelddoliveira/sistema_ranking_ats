@@ -44,6 +44,7 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
   Widget build(BuildContext context) {
     final opponentsAsync = ref.watch(eligibleOpponentsProvider);
     final createState = ref.watch(createChallengeProvider);
+    final isAdmin = ref.watch(isClubAdminProvider).valueOrNull ?? false;
     final clubSport = ref.watch(currentClubSportProvider);
     final hasPositionGap = clubSport?.rulePositionGapEnabled ?? true;
     final hasCooldownRule = clubSport?.ruleCooldownEnabled ?? true;
@@ -60,7 +61,11 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
       appBar: AppBar(
         title: const Text('Criar Desafio'),
       ),
-      body: opponentsAsync.when(
+      body: Column(
+        children: [
+          if (isAdmin) _buildAdminHint(context),
+          Expanded(
+            child: opponentsAsync.when(
         data: (opponents) {
           _tryAutoSelect(opponents);
 
@@ -201,6 +206,37 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
             ],
           ),
         ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Aviso para admins: este fluxo cria um desafio em que VOCÊ joga.
+  /// Para criar entre dois outros jogadores, use o Painel Admin.
+  Widget _buildAdminHint(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: AppColors.secondary.withAlpha(20),
+      padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+      child: Row(
+        children: [
+          const Icon(Icons.admin_panel_settings,
+              size: 18, color: AppColors.secondary),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Aqui VOCÊ é o desafiante. Para criar um desafio entre dois '
+              'outros jogadores, use o Painel Admin.',
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+          TextButton(
+            onPressed: () => context.push('/admin/create-challenge'),
+            child: const Text('Painel Admin'),
+          ),
+        ],
       ),
     );
   }
