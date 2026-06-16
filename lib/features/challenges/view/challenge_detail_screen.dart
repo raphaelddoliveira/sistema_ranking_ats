@@ -501,21 +501,22 @@ class _ChallengeDetailBody extends ConsumerWidget {
             ),
           );
         }
-        // Show rain postponement only on the last day of the deadline
+        // Adiamento por chuva disponível em QUALQUER dia dentro do prazo de
+        // jogo (não só no último dia) — a quadra pode ficar impraticável antes.
         final deadline = challenge.playDeadline?.toLocal();
         final today = DateTime.now().toLocal();
-        final isLastDay = deadline != null &&
-            today.year == deadline.year &&
-            today.month == deadline.month &&
-            today.day == deadline.day;
-        if (isLastDay) {
+        final withinPlayWindow = deadline != null &&
+            !DateTime(today.year, today.month, today.day).isAfter(
+                DateTime(deadline.year, deadline.month, deadline.day));
+        if (withinPlayWindow) {
+          final weatherDays = challenge.nextWeatherExtensionDays;
           actions.add(const SizedBox(height: 8));
           actions.add(
             OutlinedButton.icon(
               onPressed: () => _confirmWeatherExtension(context, ref),
               icon: const Icon(Icons.water_drop, color: AppColors.info),
               label: Text(
-                'Adiamento por Chuva (+2 dias)',
+                'Adiamento por Chuva (+$weatherDays ${weatherDays > 1 ? 'dias' : 'dia'})',
                 style: TextStyle(color: AppColors.info),
               ),
             ),
@@ -722,13 +723,15 @@ class _ChallengeDetailBody extends ConsumerWidget {
   }
 
   void _confirmWeatherExtension(BuildContext context, WidgetRef ref) {
+    final weatherDays = challenge.nextWeatherExtensionDays;
+    final dayLabel = weatherDays > 1 ? 'dias' : 'dia';
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Adiamento por Chuva'),
         content: Text(
-          'O prazo para jogar será estendido em +2 dias devido à chuva.\n\n'
-          '${challenge.weatherExtensionDays > 0 ? 'Extensão atual: +${challenge.weatherExtensionDays} dias\nNovo total: +${challenge.weatherExtensionDays + 2} dias' : 'Novo prazo: +2 dias além do original'}',
+          'O prazo para jogar será estendido em +$weatherDays $dayLabel devido à chuva.\n\n'
+          '${challenge.weatherExtensionDays > 0 ? 'Extensão atual: +${challenge.weatherExtensionDays} dias\nNovo total: +${challenge.weatherExtensionDays + weatherDays} dias' : 'Novo prazo: +$weatherDays dias além do original'}',
         ),
         actions: [
           TextButton(
@@ -747,14 +750,14 @@ class _ChallengeDetailBody extends ConsumerWidget {
                 final courtId = challenge.courtId;
                 if (courtId != null) {
                   final newDeadline = (challenge.playDeadline ?? DateTime.now())
-                      .add(const Duration(days: 2));
+                      .add(Duration(days: weatherDays));
                   context.push(
                     '/courts/$courtId/schedule',
                     extra: {'maxDate': newDeadline},
                   );
                 } else {
-                  SnackbarUtils.showSuccess(
-                      context, 'Prazo estendido em +2 dias por chuva');
+                  SnackbarUtils.showSuccess(context,
+                      'Prazo estendido em +$weatherDays $dayLabel por chuva');
                 }
               }
             },

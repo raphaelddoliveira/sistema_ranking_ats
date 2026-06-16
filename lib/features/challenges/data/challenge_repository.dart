@@ -806,7 +806,10 @@ class ChallengeRepository {
     }
   }
 
-  /// Request weather extension (+2 days) for a scheduled challenge
+  /// Request weather extension for a scheduled challenge.
+  ///
+  /// Regra: 1º uso no desafio = +3 dias; a partir do 2º uso = +1 dia
+  /// (mesma lógica de [ChallengeModel.nextWeatherExtensionDays]).
   Future<void> requestWeatherExtension(String challengeId) async {
     try {
       final playerId = await _getCurrentPlayerId();
@@ -819,12 +822,14 @@ class ChallengeRepository {
 
       final currentExtension = challenge['weather_extension_days'] as int? ?? 0;
       final currentDeadline = DateTime.parse(challenge['play_deadline'] as String);
+      final daysToAdd = currentExtension == 0 ? 3 : 1;
 
       await _client
           .from(SupabaseConstants.challengesTable)
           .update({
-            'weather_extension_days': currentExtension + 2,
-            'play_deadline': currentDeadline.add(const Duration(days: 2)).toIso8601String(),
+            'weather_extension_days': currentExtension + daysToAdd,
+            'play_deadline':
+                currentDeadline.add(Duration(days: daysToAdd)).toIso8601String(),
           })
           .eq('id', challengeId);
 
@@ -833,11 +838,13 @@ class ChallengeRepository {
           ? challenge['challenged_id']
           : challenge['challenger_id'];
 
+      final dayLabel = daysToAdd > 1 ? 'dias' : 'dia';
       await _client.from(SupabaseConstants.notificationsTable).insert({
         'player_id': otherPlayerId,
         'type': 'general',
         'title': 'Adiamento por Chuva',
-        'body': 'O prazo do desafio foi estendido em +2 dias devido a chuva. Total: +${currentExtension + 2} dias.',
+        'body':
+            'O prazo do desafio foi estendido em +$daysToAdd $dayLabel devido a chuva. Total: +${currentExtension + daysToAdd} dias.',
         'data': {'challenge_id': challengeId},
         'club_id': challenge['club_id'],
       });

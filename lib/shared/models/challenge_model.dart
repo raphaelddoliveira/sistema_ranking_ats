@@ -124,6 +124,13 @@ class ChallengeModel {
     return DateTime(c.year, c.month, c.day + 7);
   }
 
+  /// Dias adicionados pela PRÓXIMA solicitação de "Adiamento por Chuva".
+  ///
+  /// Regra: 1º uso no desafio = +3 dias; a partir do 2º uso = +1 dia
+  /// (evita acúmulo ilimitado). Fonte única da regra — UI e backend
+  /// devem usar este valor pra ficarem consistentes.
+  int get nextWeatherExtensionDays => weatherExtensionDays == 0 ? 3 : 1;
+
   /// True when status is dates_proposed but the chosen date is in the past
   bool get isCourtDateExpired {
     if (status != ChallengeStatus.datesProposed) return false;
