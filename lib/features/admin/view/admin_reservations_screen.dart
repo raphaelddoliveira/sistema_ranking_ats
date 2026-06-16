@@ -231,13 +231,15 @@ class _ReservationCard extends ConsumerWidget {
             IconButton(
               icon: const Icon(Icons.edit_outlined, color: AppColors.primary, size: 22),
               tooltip: 'Editar reserva',
-              onPressed: () {
-                context.push(
+              onPressed: () async {
+                await context.push(
                   '/admin/court-schedule/${reservation.courtId}',
                   extra: {
                     'editingReservationId': reservation.id,
                   },
                 );
+                // Atualiza a lista ao voltar (quadra/data/horário podem ter mudado)
+                ref.invalidate(_clubReservationsProvider);
               },
             ),
             // Cancel button

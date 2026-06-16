@@ -17,6 +17,7 @@ import '../../challenges/viewmodel/challenge_detail_viewmodel.dart';
 import '../../challenges/viewmodel/challenge_list_viewmodel.dart';
 import '../../clubs/viewmodel/club_providers.dart';
 import '../data/court_repository.dart';
+import '../viewmodel/courts_viewmodel.dart';
 import '../viewmodel/reservation_viewmodel.dart';
 
 /// Provider to load a single court by ID
@@ -41,6 +42,9 @@ class CourtScheduleScreen extends ConsumerStatefulWidget {
 
 class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
   late DateTime _selectedDate;
+  // Quadra atualmente exibida. Começa na quadra recebida, mas o ADM pode
+  // trocar (ex.: mover uma reserva para outra quadra).
+  late String _courtId;
   late final ScrollController _dateScrollController;
 
   // Generate 60 days starting from today
@@ -49,6 +53,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
   @override
   void initState() {
     super.initState();
+    _courtId = widget.courtId;
     final today = DateTime.now();
     _selectedDate = DateTime(today.year, today.month, today.day);
     // Effective max date:
@@ -75,7 +80,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final courtAsync = ref.watch(_courtProvider(widget.courtId));
+    final courtAsync = ref.watch(_courtProvider(_courtId));
 
     return courtAsync.when(
       data: (court) => _buildContent(context, court),
@@ -113,6 +118,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
       ),
       body: Column(
         children: [
+          if (widget.isAdminMode) _buildAdminBar(court),
           _buildDateSelector(),
           const Divider(height: 1),
           Padding(
@@ -155,6 +161,91 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
         ],
       ),
     );
+  }
+
+  /// Barra do modo ADM: trocar de quadra e, ao editar, instruir como mover.
+  Widget _buildAdminBar(CourtModel court) {
+    final isEditing = widget.editingReservationId != null;
+    return Container(
+      width: double.infinity,
+      color: AppColors.primary.withAlpha(15),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (isEditing)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Editando reserva: escolha a quadra e a data e toque em um '
+                'horário livre para mover. Os jogadores são mantidos.',
+                style:
+                    TextStyle(fontSize: 12, color: AppColors.onBackgroundLight),
+              ),
+            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  court.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: _pickCourt,
+                icon: const Icon(Icons.swap_horiz, size: 18),
+                label: const Text('Trocar quadra'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Abre um seletor com as quadras do clube e troca a quadra exibida.
+  Future<void> _pickCourt() async {
+    final List<CourtModel> courts;
+    try {
+      courts = await ref.read(courtsListProvider.future);
+    } catch (_) {
+      return;
+    }
+    if (!mounted || courts.isEmpty) return;
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Escolher quadra',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+            ...courts.map(
+              (c) => ListTile(
+                leading: Icon(
+                  Icons.sports_tennis,
+                  color: c.id == _courtId ? AppColors.primary : null,
+                ),
+                title: Text(c.name),
+                trailing: c.id == _courtId
+                    ? const Icon(Icons.check, color: AppColors.primary)
+                    : null,
+                onTap: () => Navigator.pop(ctx, c.id),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (selected != null && selected != _courtId && mounted) {
+      setState(() => _courtId = selected);
+    }
   }
 
   Widget _buildDateSelector() {
@@ -444,7 +535,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                         : 'Reserva cancelada',
                   );
                   ref.invalidate(courtReservationsProvider(
-                    (courtId: widget.courtId, date: _selectedDate),
+                    (courtId: _courtId, date: _selectedDate),
                   ));
                   ref.invalidate(myReservationsProvider);
                   ref.invalidate(hasActiveFriendlyReservationProvider);
@@ -499,7 +590,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                 if (success) {
                   SnackbarUtils.showSuccess(context, 'Você entrou na reserva!');
                   ref.invalidate(courtReservationsProvider(
-                    (courtId: widget.courtId, date: _selectedDate),
+                    (courtId: _courtId, date: _selectedDate),
                   ));
                   ref.invalidate(myReservationsProvider);
                   ref.invalidate(hasActiveFriendlyReservationProvider);
@@ -564,7 +655,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
     }
 
     final courtName =
-        ref.read(_courtProvider(widget.courtId)).valueOrNull?.name ?? 'Quadra';
+        ref.read(_courtProvider(_courtId)).valueOrNull?.name ?? 'Quadra';
     final clubId = ref.read(currentClubIdProvider);
 
     showModalBottomSheet(
@@ -592,7 +683,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
           final success = await ref
               .read(reservationActionProvider.notifier)
               .createReservation(
-                courtId: widget.courtId,
+                courtId: _courtId,
                 date: _selectedDate,
                 startTime: slot.startTime,
                 endTime: slot.endTime,
@@ -608,7 +699,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                 isEditing ? 'Reserva alterada!' : 'Reserva confirmada!',
               );
               ref.invalidate(courtReservationsProvider(
-                (courtId: widget.courtId, date: _selectedDate),
+                (courtId: _courtId, date: _selectedDate),
               ));
               ref.invalidate(myReservationsProvider);
               ref.invalidate(hasActiveFriendlyReservationProvider);
@@ -627,7 +718,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
   void _confirmAdminEdit(TimeSlot slot) async {
     final reservationId = widget.editingReservationId!;
     final courtName =
-        ref.read(_courtProvider(widget.courtId)).valueOrNull?.name ?? 'Quadra';
+        ref.read(_courtProvider(_courtId)).valueOrNull?.name ?? 'Quadra';
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -654,7 +745,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
     try {
       await ref.read(courtRepositoryProvider).adminUpdateReservation(
             reservationId: reservationId,
-            courtId: widget.courtId,
+            courtId: _courtId,
             date: _selectedDate,
             startTime: slot.startTime,
             endTime: slot.endTime,
@@ -662,7 +753,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
       if (mounted) {
         SnackbarUtils.showSuccess(context, 'Reserva alterada!');
         ref.invalidate(courtReservationsProvider(
-          (courtId: widget.courtId, date: _selectedDate),
+          (courtId: _courtId, date: _selectedDate),
         ));
         context.pop();
       }
@@ -683,7 +774,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
     }
 
     final courtName =
-        ref.read(_courtProvider(widget.courtId)).valueOrNull?.name ?? 'Quadra';
+        ref.read(_courtProvider(_courtId)).valueOrNull?.name ?? 'Quadra';
     final clubId = ref.read(currentClubIdProvider);
 
     showModalBottomSheet(
@@ -703,7 +794,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
             await ref.read(courtRepositoryProvider).adminCreateReservation(
               player1Id: player1Id,
               player2Id: player2Id,
-              courtId: widget.courtId,
+              courtId: _courtId,
               date: _selectedDate,
               startTime: slot.startTime,
               endTime: slot.endTime,
@@ -712,7 +803,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
             if (mounted) {
               SnackbarUtils.showSuccess(context, 'Reserva criada!');
               ref.invalidate(courtReservationsProvider(
-                (courtId: widget.courtId, date: _selectedDate),
+                (courtId: _courtId, date: _selectedDate),
               ));
             }
           } catch (e) {
@@ -729,7 +820,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                 .adminCreateReservationWithGuest(
                   hostPlayerId: hostPlayerId,
                   guestName: guestName,
-                  courtId: widget.courtId,
+                  courtId: _courtId,
                   date: _selectedDate,
                   startTime: slot.startTime,
                   endTime: slot.endTime,
@@ -738,7 +829,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
             if (mounted) {
               SnackbarUtils.showSuccess(context, 'Reserva criada!');
               ref.invalidate(courtReservationsProvider(
-                (courtId: widget.courtId, date: _selectedDate),
+                (courtId: _courtId, date: _selectedDate),
               ));
             }
           } catch (e) {
@@ -751,7 +842,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
           Navigator.of(ctx).pop();
           try {
             await ref.read(courtRepositoryProvider).adminCreateAdministrativeReservation(
-              courtId: widget.courtId,
+              courtId: _courtId,
               date: _selectedDate,
               startTime: slot.startTime,
               endTime: slot.endTime,
@@ -761,7 +852,7 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
             if (mounted) {
               SnackbarUtils.showSuccess(context, 'Reserva administrativa criada!');
               ref.invalidate(courtReservationsProvider(
-                (courtId: widget.courtId, date: _selectedDate),
+                (courtId: _courtId, date: _selectedDate),
               ));
             }
           } catch (e) {
