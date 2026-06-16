@@ -174,11 +174,11 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
   Widget _buildAdminBar(CourtModel court) {
     final isEditing = widget.editingReservationId != null;
     return Container(
-      width: double.infinity,
       color: AppColors.primary.withAlpha(15),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           if (isEditing)
             const Padding(
@@ -190,20 +190,10 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
                     TextStyle(fontSize: 12, color: AppColors.onBackgroundLight),
               ),
             ),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  court.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              OutlinedButton.icon(
-                onPressed: _pickCourt,
-                icon: const Icon(Icons.swap_horiz, size: 18),
-                label: const Text('Trocar quadra'),
-              ),
-            ],
+          OutlinedButton.icon(
+            onPressed: _pickCourt,
+            icon: const Icon(Icons.swap_horiz, size: 18),
+            label: Text('Trocar quadra (atual: ${court.name})'),
           ),
         ],
       ),
@@ -213,24 +203,24 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
   /// Aviso para admins no fluxo de jogador: a reserva aqui é PARA VOCÊ.
   Widget _buildPlayerModeAdminHint(BuildContext context) {
     return Container(
-      width: double.infinity,
       color: AppColors.secondary.withAlpha(20),
-      padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
-      child: Row(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.admin_panel_settings,
-              size: 18, color: AppColors.secondary),
-          const SizedBox(width: 8),
-          const Expanded(
+          const Padding(
+            padding: EdgeInsets.only(bottom: 4),
             child: Text(
               'Aqui a reserva é PARA VOCÊ. Para reservar por outros jogadores, '
               'use o Painel Admin → Reservas.',
               style: TextStyle(fontSize: 12),
             ),
           ),
-          TextButton(
+          TextButton.icon(
             onPressed: () => context.push('/admin/reservations'),
-            child: const Text('Painel Admin'),
+            icon: const Icon(Icons.admin_panel_settings, size: 16),
+            label: const Text('Abrir Painel Admin'),
           ),
         ],
       ),
