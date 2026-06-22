@@ -750,18 +750,14 @@ class _ChallengeDetailBody extends ConsumerWidget {
               if (success && context.mounted) {
                 ref.invalidate(challengeDetailProvider(challengeId));
                 ref.invalidate(activeChallengesProvider);
-                final courtId = challenge.courtId;
-                if (courtId != null) {
-                  final newDeadline = (challenge.playDeadline ?? DateTime.now())
-                      .add(Duration(days: weatherDays));
-                  context.push(
-                    '/courts/$courtId/schedule',
-                    extra: {'maxDate': newDeadline},
-                  );
-                } else {
-                  SnackbarUtils.showSuccess(context,
-                      'Prazo estendido em +$weatherDays $dayLabel por chuva');
-                }
+                SnackbarUtils.showSuccess(context,
+                    'Prazo estendido em +$weatherDays $dayLabel por chuva');
+                // Reagenda pelo MESMO fluxo do desafio (selectCourtAndDate):
+                // cancela a reserva antiga e cria a nova, dentro do prazo já
+                // estendido. NÃO usar /courts/:id/schedule aqui — aquele é o
+                // fluxo de reserva amistosa e cai na regra de "reserva
+                // amistosa ativa", forçando cancelar o desafio.
+                context.push('/challenges/$challengeId/select-court');
               }
             },
             icon: const Icon(Icons.water_drop),
