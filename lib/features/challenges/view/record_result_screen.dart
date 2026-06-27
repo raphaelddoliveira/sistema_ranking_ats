@@ -945,6 +945,7 @@ class _RecordResultScreenState extends ConsumerState<RecordResultScreen> {
       ref.invalidate(challengeDetailProvider(widget.challengeId));
       ref.invalidate(challengeMatchProvider(widget.challengeId));
       ref.invalidate(activeChallengesProvider);
+      ref.invalidate(playersWithActiveChallengeProvider);
       ref.invalidate(challengeHistoryProvider);
       context.pop();
     } else {
@@ -1082,6 +1083,7 @@ class _RecordResultScreenState extends ConsumerState<RecordResultScreen> {
       ref.invalidate(challengeDetailProvider(widget.challengeId));
       ref.invalidate(challengeMatchProvider(widget.challengeId));
       ref.invalidate(activeChallengesProvider);
+      ref.invalidate(playersWithActiveChallengeProvider);
       if (widget.isAdminEdit) {
         ref.invalidate(challengeHistoryProvider);
       }

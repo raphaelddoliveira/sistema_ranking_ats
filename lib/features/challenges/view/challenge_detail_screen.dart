@@ -707,6 +707,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
                     context, 'Desafio anulado. Ranking revertido.');
                 ref.invalidate(challengeDetailProvider(challengeId));
                 ref.invalidate(activeChallengesProvider);
+                ref.invalidate(playersWithActiveChallengeProvider);
                 ref.invalidate(challengeHistoryProvider);
               }
             },
@@ -750,6 +751,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
               if (success && context.mounted) {
                 ref.invalidate(challengeDetailProvider(challengeId));
                 ref.invalidate(activeChallengesProvider);
+                ref.invalidate(playersWithActiveChallengeProvider);
                 SnackbarUtils.showSuccess(context,
                     'Prazo estendido em +$weatherDays $dayLabel por chuva');
                 // Reagenda pelo MESMO fluxo do desafio (selectCourtAndDate):
@@ -792,6 +794,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
                 SnackbarUtils.showSuccess(context, 'Desafio cancelado');
                 ref.invalidate(challengeDetailProvider(challengeId));
                 ref.invalidate(activeChallengesProvider);
+                ref.invalidate(playersWithActiveChallengeProvider);
                 ref.invalidate(myReservationsProvider);
                 ref.invalidate(hasActiveFriendlyReservationProvider);
               }

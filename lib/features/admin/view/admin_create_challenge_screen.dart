@@ -207,6 +207,7 @@ class _AdminCreateChallengeScreenState
                 SnackbarUtils.showSuccess(context, 'Desafio criado!');
                 ref.invalidate(activeChallengesProvider);
                 ref.invalidate(upcomingChallengesProvider);
+                ref.invalidate(playersWithActiveChallengeProvider);
                 ref.invalidate(allMembersProvider);
                 setState(() => _selectedChallenger = null);
                 context.pushReplacement('/challenges/$challengeId');

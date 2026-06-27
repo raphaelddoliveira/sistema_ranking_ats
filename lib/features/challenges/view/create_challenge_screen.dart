@@ -265,6 +265,7 @@ class _CreateChallengeScreenState extends ConsumerState<CreateChallengeScreen> {
                 SnackbarUtils.showSuccess(context, 'Desafio criado!');
                 ref.invalidate(activeChallengesProvider);
                 ref.invalidate(upcomingChallengesProvider);
+                ref.invalidate(playersWithActiveChallengeProvider);
                 ref.invalidate(eligibleOpponentsProvider);
                 context.pushReplacement('/challenges/$challengeId');
               }

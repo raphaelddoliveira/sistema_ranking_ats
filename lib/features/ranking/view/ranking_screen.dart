@@ -129,6 +129,9 @@ class _RankingScreenState extends ConsumerState<RankingScreen>
             onPressed: () {
               if (isRankingTab) {
                 ref.invalidate(rankingListProvider);
+                // Atualiza também os marcadores de "em desafio" (espada),
+                // senão eles ficam grudados após um desafio encerrar.
+                ref.invalidate(playersWithActiveChallengeProvider);
               } else {
                 ref.invalidate(feedProvider);
               }
