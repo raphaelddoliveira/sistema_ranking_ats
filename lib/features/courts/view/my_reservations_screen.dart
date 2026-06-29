@@ -100,6 +100,7 @@ class _ReservationCard extends ConsumerWidget {
     final currentPlayer = ref.watch(currentPlayerProvider).valueOrNull;
     final isMine = reservation.reservedBy == currentPlayer?.id;
     final isOpponent = reservation.opponentId == currentPlayer?.id;
+    final isAdmin = ref.watch(isClubAdminProvider).valueOrNull ?? false;
 
     final accentColor =
         reservation.isChallenge ? AppColors.secondary : AppColors.primary;
@@ -266,7 +267,8 @@ class _ReservationCard extends ConsumerWidget {
                       icon: const Icon(Icons.edit_calendar, color: AppColors.primary),
                       tooltip: 'Alterar reserva',
                     ),
-                  if (isMine)
+                  // Reserva de desafio (ranking): só admin cancela. Amistosa: o dono.
+                  if (isMine && (!reservation.isChallenge || isAdmin))
                     IconButton(
                       onPressed: () =>
                           _confirmCancel(context, ref, reservation),
@@ -356,6 +358,12 @@ class _ReservationCard extends ConsumerWidget {
     ReservationModel reservation,
   ) {
     final isChallenge = reservation.isChallenge;
+    // Jogador não pode cancelar desafio de ranking (nem pela reserva) — só admin.
+    if (isChallenge && !(ref.read(isClubAdminProvider).valueOrNull ?? false)) {
+      SnackbarUtils.showError(
+          context, 'Só um administrador pode cancelar um desafio de ranking.');
+      return;
+    }
     final message = isChallenge
         ? 'Esta reserva está vinculada a um desafio. '
             'Ao cancelar a reserva, o desafio também será cancelado. '

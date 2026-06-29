@@ -421,21 +421,21 @@ class _ChallengeDetailBody extends ConsumerWidget {
                 label: const Text('Escolher Quadra e Horário'),
               ),
             );
-            actions.add(const SizedBox(height: 8));
-            actions.add(
-              OutlinedButton.icon(
-                // Desafio PENDENTE deve ser CANCELADO (não anulado — anular é
-                // para desafios já concluídos, que revertem ranking).
-                onPressed: () => _confirmCancel(context, ref),
-                icon: const Icon(Icons.close, color: AppColors.error),
-                label: Text(
-                  isAdmin && !isChallenger && !isChallenged
-                      ? 'Cancelar Desafio (Admin)'
-                      : 'Cancelar Desafio',
-                  style: const TextStyle(color: AppColors.error),
+            // Só admin pode cancelar desafio de ranking — jogador não pode
+            // (evita "dodge"). Cancela, não anula (anular é p/ concluídos).
+            if (isAdmin) {
+              actions.add(const SizedBox(height: 8));
+              actions.add(
+                OutlinedButton.icon(
+                  onPressed: () => _confirmCancel(context, ref),
+                  icon: const Icon(Icons.close, color: AppColors.error),
+                  label: const Text(
+                    'Cancelar Desafio (Admin)',
+                    style: TextStyle(color: AppColors.error),
+                  ),
                 ),
-              ),
-            );
+              );
+            }
           }
         }
         break;
@@ -549,18 +549,7 @@ class _ChallengeDetailBody extends ConsumerWidget {
             );
           }
         }
-        if (isChallenger || isChallenged) {
-          actions.add(const SizedBox(height: 8));
-          actions.add(
-            OutlinedButton.icon(
-              onPressed: () => _confirmCancel(context, ref),
-              icon: const Icon(Icons.close, color: AppColors.error),
-              label: const Text('Cancelar Desafio',
-                  style: TextStyle(color: AppColors.error)),
-            ),
-          );
-        }
-        // Admin actions
+        // Admin actions (jogador não pode cancelar desafio de ranking)
         if (isAdmin) {
           // Admin: registrar resultado furando a regra de atraso
           if (delayBlocked) {
@@ -586,18 +575,17 @@ class _ChallengeDetailBody extends ConsumerWidget {
               ),
             );
           }
-          // Admin não-participante: cancelar (não anular — anular é p/ concluídos)
-          if (!isChallenger && !isChallenged) {
-            actions.add(const SizedBox(height: 8));
-            actions.add(
-              OutlinedButton.icon(
-                onPressed: () => _confirmCancel(context, ref),
-                icon: const Icon(Icons.gavel, color: AppColors.error),
-                label: const Text('Cancelar Desafio (Admin)',
-                    style: TextStyle(color: AppColors.error)),
-              ),
-            );
-          }
+          // Admin pode cancelar (jogador não). Cancela, não anula —
+          // anular é para desafios já concluídos.
+          actions.add(const SizedBox(height: 8));
+          actions.add(
+            OutlinedButton.icon(
+              onPressed: () => _confirmCancel(context, ref),
+              icon: const Icon(Icons.gavel, color: AppColors.error),
+              label: const Text('Cancelar Desafio (Admin)',
+                  style: TextStyle(color: AppColors.error)),
+            ),
+          );
         }
         break;
 
@@ -622,15 +610,18 @@ class _ChallengeDetailBody extends ConsumerWidget {
             label: const Text('Registrar Resultado'),
           ),
         );
-        actions.add(const SizedBox(height: 8));
-        actions.add(
-          OutlinedButton.icon(
-            onPressed: () => _confirmCancel(context, ref),
-            icon: const Icon(Icons.close, color: AppColors.error),
-            label: const Text('Cancelar Desafio',
-                style: TextStyle(color: AppColors.error)),
-          ),
-        );
+        // Só admin pode cancelar desafio de ranking (jogador não pode).
+        if (ref.watch(isClubAdminProvider).valueOrNull ?? false) {
+          actions.add(const SizedBox(height: 8));
+          actions.add(
+            OutlinedButton.icon(
+              onPressed: () => _confirmCancel(context, ref),
+              icon: const Icon(Icons.close, color: AppColors.error),
+              label: const Text('Cancelar Desafio (Admin)',
+                  style: TextStyle(color: AppColors.error)),
+            ),
+          );
+        }
         break;
 
       case ChallengeStatus.completed:

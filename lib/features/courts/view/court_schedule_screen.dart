@@ -425,7 +425,9 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
             ),
             child: const Text('Reservar', style: TextStyle(fontSize: 13)),
           );
-        } else if (isMine) {
+        } else if (isMine && !isChallenge) {
+          // Só reserva amistosa pode ser cancelada aqui. Desafio de ranking
+          // não — só admin, pelo detalhe do desafio ou painel admin.
           trailing = IconButton(
             onPressed: () => _confirmCancelFromSchedule(reservation),
             icon: const Icon(Icons.close, color: AppColors.error, size: 20),
@@ -520,6 +522,12 @@ class _CourtScheduleScreenState extends ConsumerState<CourtScheduleScreen> {
 
   void _confirmCancelFromSchedule(ReservationModel reservation) {
     final isChallenge = reservation.isChallenge;
+    // Jogador não pode cancelar desafio de ranking (nem pela reserva) — só admin.
+    if (isChallenge && !(ref.read(isClubAdminProvider).valueOrNull ?? false)) {
+      SnackbarUtils.showError(
+          context, 'Só um administrador pode cancelar um desafio de ranking.');
+      return;
+    }
     final message = isChallenge
         ? 'Esta reserva está vinculada a um desafio. '
             'Ao cancelar a reserva, o desafio também será cancelado. '
