@@ -382,16 +382,11 @@ class ChallengeRepository {
       final newReservationId = newReservation['id'] as String;
 
       // 5. Cancel any previous active reservation linked to this challenge
-      //    (excludes the one we just inserted)
-      await _client
-          .from(SupabaseConstants.courtReservationsTable)
-          .update({
-            'status': 'cancelled',
-            'updated_at': DateTime.now().toUtc().toIso8601String(),
-          })
-          .eq('challenge_id', challengeId)
-          .eq('status', 'confirmed')
-          .neq('id', newReservationId);
+      //    (excludes the one we just inserted). Vai por RPC porque o UPDATE
+      //    direto batia em 0 linhas quando a reserva antiga era de OUTRO
+      //    participante — a RLS bloqueia sem erro e a reserva velha ficava
+      //    'confirmed', deixando o desafio em duas quadras/datas.
+      await _cancelOtherReservations(challengeId, keepId: newReservationId);
 
       // 6. Update challenge to scheduled with new court/date
       await _client
@@ -435,21 +430,7 @@ class ChallengeRepository {
           .single();
 
       // Cancel linked reservation(s)
-      final reservations = await _client
-          .from(SupabaseConstants.courtReservationsTable)
-          .select('id')
-          .eq('challenge_id', challengeId)
-          .eq('status', 'confirmed');
-
-      for (final r in reservations) {
-        await _client
-            .from(SupabaseConstants.courtReservationsTable)
-            .update({
-              'status': 'cancelled',
-              'updated_at': DateTime.now().toUtc().toIso8601String(),
-            })
-            .eq('id', r['id']);
-      }
+      await _cancelOtherReservations(challengeId);
 
       // Reset court/date fields but keep status as pending
       await _client
@@ -540,21 +521,7 @@ class ChallengeRepository {
           .single();
 
       // 1. Cancel linked reservation(s)
-      final reservations = await _client
-          .from(SupabaseConstants.courtReservationsTable)
-          .select('id')
-          .eq('challenge_id', challengeId)
-          .eq('status', 'confirmed');
-
-      for (final r in reservations) {
-        await _client
-            .from(SupabaseConstants.courtReservationsTable)
-            .update({
-              'status': 'cancelled',
-              'updated_at': DateTime.now().toUtc().toIso8601String(),
-            })
-            .eq('id', r['id']);
-      }
+      await _cancelOtherReservations(challengeId);
 
       // 2. Reset challenge to pending
       await _client
@@ -673,16 +640,33 @@ class ChallengeRepository {
   /// Mark the court reservation linked to a challenge as completed
   Future<void> _completeReservationForChallenge(String challengeId) async {
     try {
-      await _client
-          .from(SupabaseConstants.courtReservationsTable)
-          .update({
-            'status': 'completed',
-            'updated_at': DateTime.now().toUtc().toIso8601String(),
-          })
-          .eq('challenge_id', challengeId);
+      // Só a reserva realmente ativa vira 'completed'. O UPDATE antigo pegava
+      // TODAS as reservas do desafio, sem filtro de status — reserva já
+      // cancelada voltava como 'completed' e o jogo reaparecia na quadra
+      // antiga (bug relatado no grupo).
+      await _client.rpc(
+        SupabaseConstants.rpcCompleteChallengeReservation,
+        params: {'p_challenge_id': challengeId},
+      );
     } catch (_) {
       // Silent fail — reservation might not exist
     }
+  }
+
+  /// Cancela as reservas ativas do desafio (opcionalmente preservando uma).
+  /// Roda via RPC SECURITY DEFINER: o UPDATE direto era silenciosamente
+  /// barrado pela RLS quando a reserva pertencia ao outro participante.
+  Future<void> _cancelOtherReservations(
+    String challengeId, {
+    String? keepId,
+  }) async {
+    await _client.rpc(
+      SupabaseConstants.rpcCancelChallengeReservations,
+      params: {
+        'p_challenge_id': challengeId,
+        'p_keep_id': keepId,
+      },
+    );
   }
 
   /// Cancel a challenge (and its linked reservation, if any)
@@ -697,21 +681,7 @@ class ChallengeRepository {
           .single();
 
       // Cancel linked reservation(s)
-      final reservations = await _client
-          .from(SupabaseConstants.courtReservationsTable)
-          .select('id')
-          .eq('challenge_id', challengeId)
-          .eq('status', 'confirmed');
-
-      for (final r in reservations) {
-        await _client
-            .from(SupabaseConstants.courtReservationsTable)
-            .update({
-              'status': 'cancelled',
-              'updated_at': DateTime.now().toUtc().toIso8601String(),
-            })
-            .eq('id', r['id']);
-      }
+      await _cancelOtherReservations(challengeId);
 
       await _client
           .from(SupabaseConstants.challengesTable)

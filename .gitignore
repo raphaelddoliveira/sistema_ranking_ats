@@ -64,3 +64,5 @@ nul
 # Database dumps
 *.backup
 supabase/dump_*
+admin/env.local
+admin/.env.local
